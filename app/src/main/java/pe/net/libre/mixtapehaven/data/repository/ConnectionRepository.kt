@@ -43,11 +43,29 @@ class ConnectionRepository(
                 val systemInfo = apiService.getPublicSystemInfo()
                 // Successfully connected to server
             } catch (e: Exception) {
+                val errorDetails = buildString {
+                    append("\n\nTechnical Details:\n")
+                    append("Error Type: ${e.javaClass.simpleName}\n")
+                    append("Message: ${e.message ?: "No message available"}\n")
+                    e.cause?.let { cause ->
+                        append("Cause: ${cause.javaClass.simpleName}: ${cause.message}\n")
+                    }
+                    append("Server URL: ${connection.serverUrl}")
+                }
+
                 throw when (e) {
-                    is UnknownHostException -> IllegalArgumentException("Cannot reach server. Check the URL.")
-                    is ConnectException -> IllegalArgumentException("Cannot connect to server. Check if it's running.")
-                    is SocketTimeoutException -> IllegalArgumentException("Connection timeout. Server took too long to respond.")
-                    else -> IllegalArgumentException("Failed to connect to server: ${e.message}")
+                    is UnknownHostException -> IllegalArgumentException(
+                        "Cannot reach server. Check the URL.$errorDetails"
+                    )
+                    is ConnectException -> IllegalArgumentException(
+                        "Cannot connect to server. Check if it's running.$errorDetails"
+                    )
+                    is SocketTimeoutException -> IllegalArgumentException(
+                        "Connection timeout. Server took too long to respond.$errorDetails"
+                    )
+                    else -> IllegalArgumentException(
+                        "Failed to connect to server.$errorDetails"
+                    )
                 }
             }
 
@@ -71,7 +89,20 @@ class ConnectionRepository(
             val authResponse = try {
                 apiService.authenticateByName(authRequest, authHeader)
             } catch (e: Exception) {
-                throw IllegalArgumentException("Authentication failed: Invalid username or password")
+                val errorDetails = buildString {
+                    append("\n\nTechnical Details:\n")
+                    append("Error Type: ${e.javaClass.simpleName}\n")
+                    append("Message: ${e.message ?: "No message available"}\n")
+                    e.cause?.let { cause ->
+                        append("Cause: ${cause.javaClass.simpleName}: ${cause.message}\n")
+                    }
+                    append("Server URL: ${connection.serverUrl}\n")
+                    append("Username: ${connection.username}")
+                }
+
+                throw IllegalArgumentException(
+                    "Authentication failed: Invalid username or password.$errorDetails"
+                )
             }
 
             // Save connection details including access token

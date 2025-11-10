@@ -227,16 +227,24 @@ fun OnboardingScreen(
             exit = fadeOut() + slideOutVertically()
         ) {
             uiState.errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = VaporwaveMagenta,
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.SansSerif,
-                    textAlign = TextAlign.Center,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
-                )
+                ) {
+                    Text(
+                        text = error,
+                        color = VaporwaveMagenta,
+                        fontSize = 14.sp,
+                        fontFamily = if (error.contains("Technical Details:")) {
+                            FontFamily.Monospace
+                        } else {
+                            FontFamily.SansSerif
+                        },
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
 
@@ -550,16 +558,24 @@ private fun OnboardingScreen(
             exit = fadeOut() + slideOutVertically()
         ) {
             uiState.errorMessage?.let { error ->
-                Text(
-                    text = error,
-                    color = VaporwaveMagenta,
-                    fontSize = 14.sp,
-                    fontFamily = FontFamily.SansSerif,
-                    textAlign = TextAlign.Center,
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(bottom = 16.dp)
-                )
+                ) {
+                    Text(
+                        text = error,
+                        color = VaporwaveMagenta,
+                        fontSize = 14.sp,
+                        fontFamily = if (error.contains("Technical Details:")) {
+                            FontFamily.Monospace
+                        } else {
+                            FontFamily.SansSerif
+                        },
+                        textAlign = TextAlign.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
         }
 

@@ -1,3 +1,40 @@
 <resources>
     <string name="app_name">Mixtape Haven</string>
+
+    <!-- Onboarding Screen -->
+    <string name="onboarding_title">Mixtape Haven</string>
+    <string name="onboarding_subtitle">Connect to Your Server</string>
+    <string name="server_url_label">Server URL</string>
+    <string name="server_url_placeholder">https://jellyfin.example.com</string>
+    <string name="username_label">Username</string>
+    <string name="username_placeholder">Enter your username</string>
+    <string name="password_label">Password</string>
+    <string name="password_placeholder">Enter your password</string>
+    <string name="connect_button">Connect</string>
+    <string name="troubleshoot_button">Troubleshoot Connection</string>
+    <string name="privacy_message">Your connection data is stored locally on this device\nand is never shared.</string>
+    <string name="show_password">Show password</string>
+    <string name="hide_password">Hide password</string>
+
+    <!-- Home Screen -->
+    <string name="home_connected_title">Connected Successfully</string>
+    <string name="home_connected_message">Your Jellyfin server connection has been established.\n\nHome screen coming soon...</string>
+
+    <!-- Troubleshoot Screen -->
+    <string name="troubleshoot_title">Troubleshoot Connection</string>
+    <string name="troubleshoot_server_url_title">Check Server URL</string>
+    <string name="troubleshoot_server_url_description">Ensure your server URL is correctly formatted:\n\n• Include http:// or https://\n• Example: http://192.168.1.100:8096\n• Example: https://jellyfin.example.com</string>
+    <string name="troubleshoot_network_title">Network Connection</string>
+    <string name="troubleshoot_network_description">Verify that:\n\n• Your device is connected to the network\n• The Jellyfin server is running\n• You can access the server from a web browser\n• Firewall settings allow connections</string>
+    <string name="troubleshoot_credentials_title">Credentials</string>
+    <string name="troubleshoot_credentials_description">Double-check your login information:\n\n• Username is case-sensitive\n• Password is entered correctly\n• Account has proper permissions\n• Account is not locked</string>
+    <string name="troubleshoot_server_config_title">Server Configuration</string>
+    <string name="troubleshoot_server_config_description">Ensure Jellyfin server settings allow:\n\n• Remote connections if not on local network\n• API access is enabled\n• HTTPS certificate is valid (if using HTTPS)\n• Port forwarding is configured correctly</string>
+    <string name="back_to_connection">Back to Connection</string>
+
+    <!-- Error Messages -->
+    <string name="error_invalid_url">Invalid server URL format</string>
+    <string name="error_empty_username">Username cannot be empty</string>
+    <string name="error_empty_password">Password cannot be empty</string>
+    <string name="error_connection_failed">Connection failed</string>
 </resources>

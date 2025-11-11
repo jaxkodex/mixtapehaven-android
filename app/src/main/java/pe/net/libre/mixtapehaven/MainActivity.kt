@@ -22,7 +22,7 @@ class MainActivity : ComponentActivity() {
 
         // Initialize dependencies
         val dataStoreManager = DataStoreManager(applicationContext)
-        val connectionRepository = ConnectionRepository(dataStoreManager)
+        val connectionRepository = ConnectionRepository(dataStoreManager, applicationContext)
         val onboardingViewModel = OnboardingViewModel(connectionRepository)
 
         setContent {

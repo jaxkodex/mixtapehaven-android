@@ -20,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -116,73 +117,101 @@ fun HomeScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 16.dp)
-        ) {
-            // Recently Added Section
-            item {
-                Spacer(modifier = Modifier.height(16.dp))
-                SectionHeader(
-                    title = "Recently Added",
-                    onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") }
-                )
-            }
-
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+        if (uiState.isLoading) {
+            // Loading state
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
                 ) {
-                    items(uiState.recentlyAddedAlbums) { album ->
-                        AlbumCard(
-                            album = album,
-                            onClick = { viewModel.onAlbumClick(album) }
-                        )
-                    }
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(48.dp),
+                        color = CyberNeonBlue,
+                        strokeWidth = 4.dp
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Loading your library...",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = LunarWhite.copy(alpha = 0.7f)
+                    )
                 }
             }
+        } else {
+            // Content state
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues),
+                contentPadding = PaddingValues(bottom = 16.dp)
+            ) {
+                // Recently Added Section
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    SectionHeader(
+                        title = "Recently Added",
+                        onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") }
+                    )
+                }
 
-            // Top Artists Section
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                SectionHeader(
-                    title = "Top Artists",
-                    onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
-                )
-            }
-
-            item {
-                LazyRow(
-                    contentPadding = PaddingValues(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(uiState.topArtists) { artist ->
-                        ArtistCircle(
-                            artist = artist,
-                            onClick = { viewModel.onArtistClick(artist) }
-                        )
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.recentlyAddedAlbums) { album ->
+                            AlbumCard(
+                                album = album,
+                                onClick = { viewModel.onAlbumClick(album) }
+                            )
+                        }
                     }
                 }
-            }
 
-            // Popular Songs Section
-            item {
-                Spacer(modifier = Modifier.height(24.dp))
-                SectionHeader(
-                    title = "Popular Songs",
-                    onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
-                )
-            }
+                // Top Artists Section
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    SectionHeader(
+                        title = "Top Artists",
+                        onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
+                    )
+                }
 
-            itemsIndexed(uiState.popularSongs) { index, song ->
-                SongListItem(
-                    song = song,
-                    trackNumber = index + 1,
-                    onClick = { viewModel.onSongClick(song) }
-                )
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.topArtists) { artist ->
+                            ArtistCircle(
+                                artist = artist,
+                                onClick = { viewModel.onArtistClick(artist) }
+                            )
+                        }
+                    }
+                }
+
+                // Popular Songs Section
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    SectionHeader(
+                        title = "Popular Songs",
+                        onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
+                    )
+                }
+
+                itemsIndexed(uiState.popularSongs) { index, song ->
+                    SongListItem(
+                        song = song,
+                        trackNumber = index + 1,
+                        onClick = { viewModel.onSongClick(song) }
+                    )
+                }
             }
         }
     }

@@ -36,6 +36,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
@@ -49,12 +50,14 @@ import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    mediaRepository: MediaRepository,
     onNavigateToAllAlbums: () -> Unit = {},
     onNavigateToAllArtists: () -> Unit = {},
     onNavigateToAllSongs: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel {
         HomeViewModel(
+            mediaRepository = mediaRepository,
             onNavigateToAllAlbums = onNavigateToAllAlbums,
             onNavigateToAllArtists = onNavigateToAllArtists,
             onNavigateToAllSongs = onNavigateToAllSongs

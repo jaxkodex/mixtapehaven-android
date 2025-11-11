@@ -10,6 +10,7 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
+import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.navigation.NavGraph
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingViewModel
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
@@ -23,6 +24,7 @@ class MainActivity : ComponentActivity() {
         // Initialize dependencies
         val dataStoreManager = DataStoreManager(applicationContext)
         val connectionRepository = ConnectionRepository(dataStoreManager, applicationContext)
+        val mediaRepository = MediaRepository(dataStoreManager)
         val onboardingViewModel = OnboardingViewModel(connectionRepository)
 
         setContent {
@@ -34,7 +36,8 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
                     NavGraph(
                         navController = navController,
-                        onboardingViewModel = onboardingViewModel
+                        onboardingViewModel = onboardingViewModel,
+                        mediaRepository = mediaRepository
                     )
                 }
             }

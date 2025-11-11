@@ -17,6 +17,9 @@ class DataStoreManager(private val context: Context) {
         private val SERVER_URL_KEY = stringPreferencesKey("server_url")
         private val USERNAME_KEY = stringPreferencesKey("username")
         private val PASSWORD_KEY = stringPreferencesKey("password")
+        private val ACCESS_TOKEN_KEY = stringPreferencesKey("access_token")
+        private val USER_ID_KEY = stringPreferencesKey("user_id")
+        private val SERVER_ID_KEY = stringPreferencesKey("server_id")
         private val IS_CONNECTED_KEY = stringPreferencesKey("is_connected")
     }
 
@@ -30,16 +33,41 @@ class DataStoreManager(private val context: Context) {
             preferences[USERNAME_KEY]
         }
 
+    val accessToken: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[ACCESS_TOKEN_KEY]
+        }
+
+    val userId: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[USER_ID_KEY]
+        }
+
+    val serverId: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[SERVER_ID_KEY]
+        }
+
     val isConnected: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[IS_CONNECTED_KEY]?.toBoolean() ?: false
         }
 
-    suspend fun saveConnection(serverUrl: String, username: String, password: String) {
+    suspend fun saveConnection(
+        serverUrl: String,
+        username: String,
+        password: String,
+        accessToken: String,
+        userId: String,
+        serverId: String
+    ) {
         context.dataStore.edit { preferences ->
             preferences[SERVER_URL_KEY] = serverUrl
             preferences[USERNAME_KEY] = username
             preferences[PASSWORD_KEY] = password
+            preferences[ACCESS_TOKEN_KEY] = accessToken
+            preferences[USER_ID_KEY] = userId
+            preferences[SERVER_ID_KEY] = serverId
             preferences[IS_CONNECTED_KEY] = "true"
         }
     }
@@ -49,6 +77,9 @@ class DataStoreManager(private val context: Context) {
             preferences.remove(SERVER_URL_KEY)
             preferences.remove(USERNAME_KEY)
             preferences.remove(PASSWORD_KEY)
+            preferences.remove(ACCESS_TOKEN_KEY)
+            preferences.remove(USER_ID_KEY)
+            preferences.remove(SERVER_ID_KEY)
             preferences[IS_CONNECTED_KEY] = "false"
         }
     }

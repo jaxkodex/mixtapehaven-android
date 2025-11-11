@@ -1,5 +1,7 @@
 package pe.net.libre.mixtapehaven.data.repository
 
+import android.content.Context
+import android.provider.Settings
 import kotlinx.coroutines.flow.first
 import pe.net.libre.mixtapehaven.data.api.BaseItemDto
 import pe.net.libre.mixtapehaven.data.api.JellyfinApiClient
@@ -10,21 +12,44 @@ import pe.net.libre.mixtapehaven.ui.home.Artist
 import pe.net.libre.mixtapehaven.ui.home.Song
 
 class MediaRepository(
-    private val dataStoreManager: DataStoreManager
+    private val dataStoreManager: DataStoreManager,
+    private val context: Context
 ) {
     private var apiService: JellyfinApiService? = null
     private var serverUrl: String? = null
+    private var accessToken: String? = null
 
     /**
      * Initialize the API service with stored credentials
      */
     private suspend fun ensureApiService(): JellyfinApiService {
-        if (apiService == null || serverUrl != dataStoreManager.serverUrl.first()) {
-            serverUrl = dataStoreManager.serverUrl.first()
+        val currentServerUrl = dataStoreManager.serverUrl.first()
+        val currentAccessToken = dataStoreManager.accessToken.first()
+
+        if (apiService == null ||
+            serverUrl != currentServerUrl ||
+            accessToken != currentAccessToken) {
+
+            serverUrl = currentServerUrl
+            accessToken = currentAccessToken
+
             if (serverUrl.isNullOrBlank()) {
                 throw IllegalStateException("No server URL configured")
             }
-            apiService = JellyfinApiClient.createService(serverUrl!!)
+            if (accessToken.isNullOrBlank()) {
+                throw IllegalStateException("No access token found. Please login again.")
+            }
+
+            val deviceId = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ANDROID_ID
+            ) ?: "unknown_device"
+
+            apiService = JellyfinApiClient.createAuthenticatedService(
+                baseUrl = serverUrl!!,
+                accessToken = accessToken!!,
+                deviceId = deviceId
+            )
         }
         return apiService!!
     }

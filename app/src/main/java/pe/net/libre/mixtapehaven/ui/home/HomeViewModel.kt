@@ -9,7 +9,11 @@ import kotlinx.coroutines.flow.asStateFlow
  * ViewModel for the home screen
  * Currently uses mock data, will be connected to Jellyfin API in the future
  */
-class HomeViewModel : ViewModel() {
+class HomeViewModel(
+    private val onNavigateToAllAlbums: () -> Unit = {},
+    private val onNavigateToAllArtists: () -> Unit = {},
+    private val onNavigateToAllSongs: () -> Unit = {}
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -49,7 +53,11 @@ class HomeViewModel : ViewModel() {
     }
 
     fun onSeeMoreClick(section: String) {
-        // TODO: Navigate to section detail page
+        when (section) {
+            "recently_added" -> onNavigateToAllAlbums()
+            "top_artists" -> onNavigateToAllArtists()
+            "popular_songs" -> onNavigateToAllSongs()
+        }
     }
 
     fun onSearchClick() {

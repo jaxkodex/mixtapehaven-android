@@ -49,8 +49,17 @@ import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    viewModel: HomeViewModel = viewModel()
+    onNavigateToAllAlbums: () -> Unit = {},
+    onNavigateToAllArtists: () -> Unit = {},
+    onNavigateToAllSongs: () -> Unit = {}
 ) {
+    val viewModel: HomeViewModel = viewModel {
+        HomeViewModel(
+            onNavigateToAllAlbums = onNavigateToAllAlbums,
+            onNavigateToAllArtists = onNavigateToAllArtists,
+            onNavigateToAllSongs = onNavigateToAllSongs
+        )
+    }
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(

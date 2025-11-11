@@ -15,7 +15,9 @@ data class Album(
 data class Artist(
     val id: String,
     val name: String,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val albumCount: Int = 0,
+    val songCount: Int = 0
 )
 
 data class Song(
@@ -63,19 +65,105 @@ val mockRecentlyAddedAlbums = listOf(
 val mockTopArtists = listOf(
     Artist(
         id = "1",
-        name = "Daft Punk"
+        name = "Daft Punk",
+        albumCount = 8,
+        songCount = 96
     ),
     Artist(
         id = "2",
-        name = "Frank Ocean"
+        name = "Frank Ocean",
+        albumCount = 3,
+        songCount = 45
     ),
     Artist(
         id = "3",
-        name = "Kendrick Lamar"
+        name = "Kendrick Lamar",
+        albumCount = 5,
+        songCount = 78
     ),
     Artist(
         id = "4",
-        name = "Tame Impala"
+        name = "Tame Impala",
+        albumCount = 4,
+        songCount = 52
+    )
+)
+
+/**
+ * Mock data for all artists (expanded list for detail view)
+ */
+val mockAllArtists = listOf(
+    Artist(
+        id = "1",
+        name = "Aetheric Echoes",
+        albumCount = 12,
+        songCount = 142
+    ),
+    Artist(
+        id = "2",
+        name = "Arcade Velocity",
+        albumCount = 8,
+        songCount = 96
+    ),
+    Artist(
+        id = "3",
+        name = "Chromatic Wave",
+        albumCount = 5,
+        songCount = 60
+    ),
+    Artist(
+        id = "4",
+        name = "Daft Punk",
+        albumCount = 8,
+        songCount = 96
+    ),
+    Artist(
+        id = "5",
+        name = "Digital Dreamscape",
+        albumCount = 15,
+        songCount = 180
+    ),
+    Artist(
+        id = "6",
+        name = "Frank Ocean",
+        albumCount = 3,
+        songCount = 45
+    ),
+    Artist(
+        id = "7",
+        name = "Glitch Mob",
+        albumCount = 4,
+        songCount = 55
+    ),
+    Artist(
+        id = "8",
+        name = "Kendrick Lamar",
+        albumCount = 5,
+        songCount = 78
+    ),
+    Artist(
+        id = "9",
+        name = "Neon Nomad",
+        albumCount = 7,
+        songCount = 84
+    ),
+    Artist(
+        id = "10",
+        name = "Pink Floyd",
+        albumCount = 15,
+        songCount = 200
+    ),
+    Artist(
+        id = "11",
+        name = "Synthwave Specter",
+        albumCount = 22,
+        songCount = 250
+    ),
+    Artist(
+        id = "12",
+        name = "Tame Impala",
+        albumCount = 4,
+        songCount = 52
     )
 )
 

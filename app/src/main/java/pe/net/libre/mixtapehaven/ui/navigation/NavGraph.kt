@@ -1,9 +1,12 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
@@ -26,11 +29,15 @@ sealed class Screen(val route: String) {
 fun NavGraph(
     navController: NavHostController,
     onboardingViewModel: OnboardingViewModel,
-    mediaRepository: MediaRepository
+    mediaRepository: MediaRepository,
+    connectionRepository: ConnectionRepository,
+    startDestination: String = Screen.Onboarding.route
 ) {
+    val coroutineScope = rememberCoroutineScope()
+
     NavHost(
         navController = navController,
-        startDestination = Screen.Onboarding.route
+        startDestination = startDestination
     ) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
@@ -57,6 +64,14 @@ fun NavGraph(
                 },
                 onNavigateToAllSongs = {
                     navController.navigate(Screen.AllSongs.route)
+                },
+                onLogout = {
+                    coroutineScope.launch {
+                        connectionRepository.clearConnection()
+                        navController.navigate(Screen.Onboarding.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
                 }
             )
         }

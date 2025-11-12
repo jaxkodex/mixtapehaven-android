@@ -78,6 +78,7 @@ fun NavGraph(
 
         composable(Screen.AllAlbums.route) {
             AllAlbumsScreen(
+                mediaRepository = mediaRepository,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -86,6 +87,7 @@ fun NavGraph(
 
         composable(Screen.AllArtists.route) {
             AllArtistsScreen(
+                mediaRepository = mediaRepository,
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -94,6 +96,7 @@ fun NavGraph(
 
         composable(Screen.AllSongs.route) {
             AllSongsScreen(
+                mediaRepository = mediaRepository,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

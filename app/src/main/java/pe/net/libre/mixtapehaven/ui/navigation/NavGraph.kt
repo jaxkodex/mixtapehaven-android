@@ -6,12 +6,14 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllArtistsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllSongsScreen
+import pe.net.libre.mixtapehaven.ui.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingViewModel
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
@@ -23,6 +25,7 @@ sealed class Screen(val route: String) {
     data object AllAlbums : Screen("all_albums")
     data object AllArtists : Screen("all_artists")
     data object AllSongs : Screen("all_songs")
+    data object NowPlaying : Screen("now_playing")
 }
 
 @Composable
@@ -31,6 +34,7 @@ fun NavGraph(
     onboardingViewModel: OnboardingViewModel,
     mediaRepository: MediaRepository,
     connectionRepository: ConnectionRepository,
+    playbackManager: PlaybackManager,
     startDestination: String = Screen.Onboarding.route
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -56,6 +60,7 @@ fun NavGraph(
         composable(Screen.Home.route) {
             HomeScreen(
                 mediaRepository = mediaRepository,
+                playbackManager = playbackManager,
                 onNavigateToAllAlbums = {
                     navController.navigate(Screen.AllAlbums.route)
                 },
@@ -64,6 +69,9 @@ fun NavGraph(
                 },
                 onNavigateToAllSongs = {
                     navController.navigate(Screen.AllSongs.route)
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Screen.NowPlaying.route)
                 },
                 onLogout = {
                     coroutineScope.launch {
@@ -105,6 +113,15 @@ fun NavGraph(
 
         composable(Screen.Troubleshoot.route) {
             TroubleshootScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.NowPlaying.route) {
+            NowPlayingScreen(
+                playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

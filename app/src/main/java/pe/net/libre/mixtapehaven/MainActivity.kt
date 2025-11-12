@@ -17,6 +17,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.flow.first
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
@@ -35,6 +36,7 @@ class MainActivity : ComponentActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         val connectionRepository = ConnectionRepository(dataStoreManager, applicationContext)
         val mediaRepository = MediaRepository(dataStoreManager, applicationContext)
+        val playbackManager = PlaybackManager.getInstance()
         val onboardingViewModel = OnboardingViewModel(connectionRepository)
 
         setContent {
@@ -73,6 +75,7 @@ class MainActivity : ComponentActivity() {
                             onboardingViewModel = onboardingViewModel,
                             mediaRepository = mediaRepository,
                             connectionRepository = connectionRepository,
+                            playbackManager = playbackManager,
                             startDestination = startDestination!!
                         )
                     }

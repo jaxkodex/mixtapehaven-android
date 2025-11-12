@@ -48,3 +48,80 @@ data class SystemInfo(
     @SerialName("OperatingSystem")
     val operatingSystem: String? = null
 )
+
+// Media item models
+@Serializable
+data class ItemsResponse(
+    @SerialName("Items")
+    val items: List<BaseItemDto> = emptyList(),
+    @SerialName("TotalRecordCount")
+    val totalRecordCount: Int = 0,
+    @SerialName("StartIndex")
+    val startIndex: Int = 0
+)
+
+@Serializable
+data class BaseItemDto(
+    @SerialName("Id")
+    val id: String,
+    @SerialName("Name")
+    val name: String,
+    @SerialName("Type")
+    val type: String,
+    @SerialName("AlbumArtist")
+    val albumArtist: String? = null,
+    @SerialName("AlbumArtists")
+    val albumArtists: List<NameIdPair>? = null,
+    @SerialName("Artists")
+    val artists: List<String>? = null,
+    @SerialName("ArtistItems")
+    val artistItems: List<NameIdPair>? = null,
+    @SerialName("Album")
+    val album: String? = null,
+    @SerialName("AlbumId")
+    val albumId: String? = null,
+    @SerialName("ProductionYear")
+    val productionYear: Int? = null,
+    @SerialName("RunTimeTicks")
+    val runTimeTicks: Long? = null,
+    @SerialName("HasSubtitles")
+    val hasSubtitles: Boolean? = null,
+    @SerialName("ImageTags")
+    val imageTags: Map<String, String>? = null,
+    @SerialName("BackdropImageTags")
+    val backdropImageTags: List<String>? = null,
+    @SerialName("UserData")
+    val userData: UserItemDataDto? = null,
+    @SerialName("IndexNumber")
+    val indexNumber: Int? = null,
+    @SerialName("ParentIndexNumber")
+    val parentIndexNumber: Int? = null,
+    @SerialName("ChildCount")
+    val childCount: Int? = null,
+    @SerialName("DateCreated")
+    val dateCreated: String? = null,
+    @SerialName("PremiereDate")
+    val premiereDate: String? = null
+)
+
+@Serializable
+data class NameIdPair(
+    @SerialName("Name")
+    val name: String,
+    @SerialName("Id")
+    val id: String
+)
+
+@Serializable
+data class UserItemDataDto(
+    @SerialName("PlaybackPositionTicks")
+    val playbackPositionTicks: Long? = null,
+    @SerialName("PlayCount")
+    val playCount: Int? = null,
+    @SerialName("IsFavorite")
+    val isFavorite: Boolean = false,
+    @SerialName("Played")
+    val played: Boolean = false,
+    @SerialName("Key")
+    val key: String? = null
+)

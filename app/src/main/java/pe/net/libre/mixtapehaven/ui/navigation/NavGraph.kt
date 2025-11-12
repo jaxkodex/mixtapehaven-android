@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllArtistsScreen
@@ -24,7 +25,8 @@ sealed class Screen(val route: String) {
 @Composable
 fun NavGraph(
     navController: NavHostController,
-    onboardingViewModel: OnboardingViewModel
+    onboardingViewModel: OnboardingViewModel,
+    mediaRepository: MediaRepository
 ) {
     NavHost(
         navController = navController,
@@ -46,6 +48,7 @@ fun NavGraph(
 
         composable(Screen.Home.route) {
             HomeScreen(
+                mediaRepository = mediaRepository,
                 onNavigateToAllAlbums = {
                     navController.navigate(Screen.AllAlbums.route)
                 },

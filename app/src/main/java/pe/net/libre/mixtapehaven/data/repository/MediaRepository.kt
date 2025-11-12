@@ -80,7 +80,7 @@ class MediaRepository(
     /**
      * Get all albums
      */
-    suspend fun getAllAlbums(limit: Int = 50): Result<List<Album>> {
+    suspend fun getAllAlbums(limit: Int = 50, startIndex: Int = 0): Result<List<Album>> {
         return try {
             val service = ensureApiService()
             val userId = dataStoreManager.userId.first()
@@ -93,6 +93,7 @@ class MediaRepository(
                 sortBy = "SortName",
                 sortOrder = "Ascending",
                 limit = limit,
+                startIndex = startIndex,
                 fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
             )
 
@@ -132,7 +133,7 @@ class MediaRepository(
     /**
      * Get all artists
      */
-    suspend fun getAllArtists(limit: Int = 100): Result<List<Artist>> {
+    suspend fun getAllArtists(limit: Int = 50, startIndex: Int = 0): Result<List<Artist>> {
         return try {
             val service = ensureApiService()
             val userId = dataStoreManager.userId.first()
@@ -145,6 +146,7 @@ class MediaRepository(
                 sortBy = "SortName",
                 sortOrder = "Ascending",
                 limit = limit,
+                startIndex = startIndex,
                 fields = "PrimaryImageAspectRatio,SortName,ChildCount"
             )
 
@@ -184,7 +186,7 @@ class MediaRepository(
     /**
      * Get all songs
      */
-    suspend fun getAllSongs(limit: Int = 100): Result<List<Song>> {
+    suspend fun getAllSongs(limit: Int = 50, startIndex: Int = 0): Result<List<Song>> {
         return try {
             val service = ensureApiService()
             val userId = dataStoreManager.userId.first()
@@ -197,6 +199,7 @@ class MediaRepository(
                 sortBy = "SortName",
                 sortOrder = "Ascending",
                 limit = limit,
+                startIndex = startIndex,
                 fields = "PrimaryImageAspectRatio,Path,MediaSources"
             )
 

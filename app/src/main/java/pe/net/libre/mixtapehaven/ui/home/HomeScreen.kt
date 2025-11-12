@@ -54,14 +54,16 @@ fun HomeScreen(
     mediaRepository: MediaRepository,
     onNavigateToAllAlbums: () -> Unit = {},
     onNavigateToAllArtists: () -> Unit = {},
-    onNavigateToAllSongs: () -> Unit = {}
+    onNavigateToAllSongs: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel {
         HomeViewModel(
             mediaRepository = mediaRepository,
             onNavigateToAllAlbums = onNavigateToAllAlbums,
             onNavigateToAllArtists = onNavigateToAllArtists,
-            onNavigateToAllSongs = onNavigateToAllSongs
+            onNavigateToAllSongs = onNavigateToAllSongs,
+            onLogout = onLogout
         )
     }
     val uiState by viewModel.uiState.collectAsState()

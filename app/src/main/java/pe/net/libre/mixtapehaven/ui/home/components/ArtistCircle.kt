@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -16,9 +17,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Artist
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
@@ -35,7 +38,7 @@ fun ArtistCircle(
             .clickable(onClick = onClick),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Artist image (circular placeholder)
+        // Artist image
         Box(
             modifier = Modifier
                 .size(80.dp)
@@ -43,12 +46,21 @@ fun ArtistCircle(
                 .background(GunmetalGray),
             contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Person,
-                contentDescription = artist.name,
-                tint = LunarWhite.copy(alpha = 0.5f),
-                modifier = Modifier.size(40.dp)
-            )
+            if (artist.imageUrl != null) {
+                AsyncImage(
+                    model = artist.imageUrl,
+                    contentDescription = artist.name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.Person,
+                    contentDescription = artist.name,
+                    tint = LunarWhite.copy(alpha = 0.5f),
+                    modifier = Modifier.size(40.dp)
+                )
+            }
         }
 
         // Artist name

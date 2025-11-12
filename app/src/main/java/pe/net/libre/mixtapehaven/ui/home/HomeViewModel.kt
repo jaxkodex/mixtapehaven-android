@@ -16,7 +16,8 @@ class HomeViewModel(
     private val mediaRepository: MediaRepository,
     private val onNavigateToAllAlbums: () -> Unit = {},
     private val onNavigateToAllArtists: () -> Unit = {},
-    private val onNavigateToAllSongs: () -> Unit = {}
+    private val onNavigateToAllSongs: () -> Unit = {},
+    private val onLogout: () -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -103,7 +104,8 @@ class HomeViewModel(
     }
 
     fun onProfileClick() {
-        // TODO: Open profile menu
+        // Trigger logout
+        onLogout()
     }
 }
 

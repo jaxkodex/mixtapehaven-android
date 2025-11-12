@@ -36,7 +36,7 @@ class MainActivity : ComponentActivity() {
         val dataStoreManager = DataStoreManager(applicationContext)
         val connectionRepository = ConnectionRepository(dataStoreManager, applicationContext)
         val mediaRepository = MediaRepository(dataStoreManager, applicationContext)
-        val playbackManager = PlaybackManager.getInstance()
+        val playbackManager = PlaybackManager.getInstance(applicationContext, dataStoreManager)
         val onboardingViewModel = OnboardingViewModel(connectionRepository)
 
         setContent {

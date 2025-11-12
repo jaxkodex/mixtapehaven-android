@@ -1,5 +1,9 @@
 package pe.net.libre.mixtapehaven.data.playback
 
+import android.content.Context
+import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
+import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -7,45 +11,107 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.ui.home.Song
 
 /**
- * Manages playback state for the application
+ * Manages playback state for the application using ExoPlayer
  * This is a singleton that maintains the current playback state
  * and provides methods to control playback
  */
-class PlaybackManager {
+class PlaybackManager private constructor(
+    context: Context,
+    private val dataStoreManager: DataStoreManager
+) {
     private val _playbackState = MutableStateFlow(PlaybackState())
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
 
     private val scope = CoroutineScope(Dispatchers.Main)
     private var progressJob: Job? = null
 
+    // ExoPlayer instance
+    private val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+        // Set up player listener to track state changes
+        addListener(object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                when (state) {
+                    Player.STATE_ENDED -> {
+                        // Song finished
+                        _playbackState.value = _playbackState.value.copy(isPlaying = false)
+                        stopProgressTracking()
+                        // TODO: Auto-play next song
+                    }
+                    Player.STATE_READY -> {
+                        // Media is ready to play
+                        val duration = player.duration
+                        if (duration > 0) {
+                            _playbackState.value = _playbackState.value.copy(duration = duration)
+                        }
+                    }
+                }
+            }
+
+            override fun onIsPlayingChanged(isPlaying: Boolean) {
+                _playbackState.value = _playbackState.value.copy(isPlaying = isPlaying)
+                if (isPlaying) {
+                    startProgressTracking()
+                } else {
+                    stopProgressTracking()
+                }
+            }
+        })
+    }
+
     /**
      * Play a song
      */
     fun playSong(song: Song) {
-        // Parse duration string (format: "MM:SS") to milliseconds
-        val durationMs = parseDurationToMillis(song.duration)
+        scope.launch {
+            try {
+                // Get server URL and access token from DataStore
+                val serverUrl = dataStoreManager.serverUrl.first()
+                val accessToken = dataStoreManager.accessToken.first()
 
-        _playbackState.value = PlaybackState(
-            currentSong = song,
-            isPlaying = true,
-            currentPosition = 0L,
-            duration = durationMs
-        )
+                if (serverUrl.isNullOrEmpty() || accessToken.isNullOrEmpty()) {
+                    // Can't play without server connection
+                    return@launch
+                }
 
-        startProgressTracking()
+                // Construct streaming URL
+                val streamUrl = song.getStreamUrl(serverUrl, accessToken)
+
+                // Create media item
+                val mediaItem = MediaItem.fromUri(streamUrl)
+
+                // Set media item and prepare
+                player.setMediaItem(mediaItem)
+                player.prepare()
+                player.play()
+
+                // Update state
+                _playbackState.value = PlaybackState(
+                    currentSong = song,
+                    isPlaying = true,
+                    currentPosition = 0L,
+                    duration = parseDurationToMillis(song.duration) // Initial duration from song metadata
+                )
+
+                startProgressTracking()
+            } catch (e: Exception) {
+                e.printStackTrace()
+                // TODO: Handle error (show toast/snackbar)
+            }
+        }
     }
 
     /**
      * Toggle play/pause
      */
     fun togglePlayPause() {
-        val currentState = _playbackState.value
-        if (currentState.isPlaying) {
+        if (player.isPlaying) {
             pause()
         } else {
             resume()
@@ -56,16 +122,14 @@ class PlaybackManager {
      * Pause playback
      */
     fun pause() {
-        _playbackState.value = _playbackState.value.copy(isPlaying = false)
-        stopProgressTracking()
+        player.pause()
     }
 
     /**
      * Resume playback
      */
     fun resume() {
-        _playbackState.value = _playbackState.value.copy(isPlaying = true)
-        startProgressTracking()
+        player.play()
     }
 
     /**
@@ -84,8 +148,8 @@ class PlaybackManager {
      */
     fun playPrevious() {
         // For now, restart the current song
-        val currentState = _playbackState.value
-        if (currentState.currentPosition > 3000) {
+        val currentPosition = player.currentPosition
+        if (currentPosition > 3000) {
             // If more than 3 seconds, restart current song
             seekTo(0L)
         } else {
@@ -99,17 +163,23 @@ class PlaybackManager {
      * Seek to a specific position
      */
     fun seekTo(positionMs: Long) {
-        val currentState = _playbackState.value
-        _playbackState.value = currentState.copy(
-            currentPosition = positionMs.coerceIn(0L, currentState.duration)
-        )
+        player.seekTo(positionMs)
     }
 
     /**
      * Stop playback
      */
     fun stop() {
+        player.stop()
         _playbackState.value = PlaybackState()
+        stopProgressTracking()
+    }
+
+    /**
+     * Release resources
+     */
+    fun release() {
+        player.release()
         stopProgressTracking()
     }
 
@@ -120,25 +190,16 @@ class PlaybackManager {
         stopProgressTracking()
 
         progressJob = scope.launch {
-            while (isActive && _playbackState.value.isPlaying) {
+            while (isActive && player.isPlaying) {
                 delay(100) // Update every 100ms
 
-                val currentState = _playbackState.value
-                val newPosition = currentState.currentPosition + 100
+                val currentPosition = player.currentPosition
+                val duration = player.duration
 
-                if (newPosition >= currentState.duration) {
-                    // Song finished
-                    _playbackState.value = currentState.copy(
-                        currentPosition = currentState.duration,
-                        isPlaying = false
-                    )
-                    stopProgressTracking()
-                    // TODO: Auto-play next song
-                } else {
-                    _playbackState.value = currentState.copy(
-                        currentPosition = newPosition
-                    )
-                }
+                _playbackState.value = _playbackState.value.copy(
+                    currentPosition = currentPosition,
+                    duration = if (duration > 0) duration else _playbackState.value.duration
+                )
             }
         }
     }
@@ -171,10 +232,19 @@ class PlaybackManager {
         @Volatile
         private var instance: PlaybackManager? = null
 
-        fun getInstance(): PlaybackManager {
+        fun getInstance(context: Context, dataStoreManager: DataStoreManager): PlaybackManager {
             return instance ?: synchronized(this) {
-                instance ?: PlaybackManager().also { instance = it }
+                instance ?: PlaybackManager(
+                    context.applicationContext,
+                    dataStoreManager
+                ).also { instance = it }
             }
+        }
+
+        fun getInstance(): PlaybackManager {
+            return instance ?: throw IllegalStateException(
+                "PlaybackManager must be initialized with getInstance(context, dataStoreManager) first"
+            )
         }
     }
 }

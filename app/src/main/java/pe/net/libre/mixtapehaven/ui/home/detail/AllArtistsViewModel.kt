@@ -20,7 +20,7 @@ data class AllArtistsUiState(
 )
 
 class AllArtistsViewModel(
-    private val mediaRepository: MediaRepository = MediaRepository()
+    private val mediaRepository: MediaRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AllArtistsUiState())

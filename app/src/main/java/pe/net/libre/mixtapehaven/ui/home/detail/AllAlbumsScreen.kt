@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
@@ -46,11 +47,14 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AllAlbumsScreen(
+    mediaRepository: MediaRepository,
     onNavigateBack: () -> Unit,
     onAlbumClick: (String) -> Unit = {},
-    onSearchClick: () -> Unit = {},
-    viewModel: AllAlbumsViewModel = viewModel()
+    onSearchClick: () -> Unit = {}
 ) {
+    val viewModel: AllAlbumsViewModel = viewModel {
+        AllAlbumsViewModel(mediaRepository = mediaRepository)
+    }
     val uiState by viewModel.uiState.collectAsState()
 
     Scaffold(

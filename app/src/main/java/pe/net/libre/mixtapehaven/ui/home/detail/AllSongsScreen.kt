@@ -4,10 +4,12 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -23,8 +25,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -133,12 +137,28 @@ fun AllSongsScreen(
                     }
                 }
                 else -> {
+                    val listState = rememberLazyListState()
+
+                    LaunchedEffect(listState) {
+                        snapshotFlow {
+                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                        }.collect { lastVisibleIndex ->
+                            if (lastVisibleIndex != null) {
+                                val totalItems = listState.layoutInfo.totalItemsCount
+                                if (lastVisibleIndex >= totalItems - 5 && !uiState.isLoadingMore) {
+                                    viewModel.loadMore()
+                                }
+                            }
+                        }
+                    }
+
                     PullToRefreshBox(
                         isRefreshing = uiState.isRefreshing,
                         onRefresh = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     ) {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.fillMaxSize()
                         ) {
                             itemsIndexed(uiState.songs) { index, song ->
@@ -147,6 +167,19 @@ fun AllSongsScreen(
                                     trackNumber = index + 1,
                                     onClick = { onSongClick(song.id) }
                                 )
+                            }
+
+                            if (uiState.isLoadingMore) {
+                                item {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(color = CyberNeonBlue)
+                                    }
+                                }
                             }
                         }
                     }

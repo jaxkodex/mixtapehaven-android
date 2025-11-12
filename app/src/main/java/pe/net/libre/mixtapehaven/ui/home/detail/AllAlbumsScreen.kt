@@ -6,11 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -26,8 +29,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -136,6 +141,21 @@ fun AllAlbumsScreen(
                     }
                 }
                 else -> {
+                    val gridState = rememberLazyGridState()
+
+                    LaunchedEffect(gridState) {
+                        snapshotFlow {
+                            gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                        }.collect { lastVisibleIndex ->
+                            if (lastVisibleIndex != null) {
+                                val totalItems = gridState.layoutInfo.totalItemsCount
+                                if (lastVisibleIndex >= totalItems - 5 && !uiState.isLoadingMore) {
+                                    viewModel.loadMore()
+                                }
+                            }
+                        }
+                    }
+
                     PullToRefreshBox(
                         isRefreshing = uiState.isRefreshing,
                         onRefresh = { viewModel.refresh() },
@@ -143,6 +163,7 @@ fun AllAlbumsScreen(
                     ) {
                         LazyVerticalGrid(
                             columns = GridCells.Fixed(2),
+                            state = gridState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(horizontal = 8.dp, vertical = 16.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -153,6 +174,19 @@ fun AllAlbumsScreen(
                                     album = album,
                                     onClick = { onAlbumClick(album.id) }
                                 )
+                            }
+
+                            if (uiState.isLoadingMore) {
+                                item(span = { GridItemSpan(2) }) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(16.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        CircularProgressIndicator(color = CyberNeonBlue)
+                                    }
+                                }
                             }
                         }
                     }

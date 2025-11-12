@@ -13,7 +13,9 @@ data class AllAlbumsUiState(
     val albums: List<Album> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
-    val isRefreshing: Boolean = false
+    val isRefreshing: Boolean = false,
+    val isLoadingMore: Boolean = false,
+    val hasMorePages: Boolean = true
 )
 
 class AllAlbumsViewModel(
@@ -23,20 +25,29 @@ class AllAlbumsViewModel(
     private val _uiState = MutableStateFlow(AllAlbumsUiState())
     val uiState: StateFlow<AllAlbumsUiState> = _uiState.asStateFlow()
 
+    companion object {
+        private const val PAGE_SIZE = 50
+    }
+
     init {
         loadAlbums()
     }
 
     fun loadAlbums() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                errorMessage = null,
+                hasMorePages = true
+            )
 
-            mediaRepository.getAllAlbums(limit = 50).fold(
+            mediaRepository.getAllAlbums(limit = PAGE_SIZE, startIndex = 0).fold(
                 onSuccess = { albums ->
                     _uiState.value = _uiState.value.copy(
                         albums = albums,
                         isLoading = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        hasMorePages = albums.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->
@@ -49,16 +60,49 @@ class AllAlbumsViewModel(
         }
     }
 
+    fun loadMore() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMorePages) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+
+            val currentSize = _uiState.value.albums.size
+
+            mediaRepository.getAllAlbums(limit = PAGE_SIZE, startIndex = currentSize).fold(
+                onSuccess = { newAlbums ->
+                    _uiState.value = _uiState.value.copy(
+                        albums = _uiState.value.albums + newAlbums,
+                        isLoadingMore = false,
+                        hasMorePages = newAlbums.size >= PAGE_SIZE
+                    )
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingMore = false,
+                        errorMessage = error.message ?: "Failed to load more albums"
+                    )
+                }
+            )
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(
+                isRefreshing = true,
+                errorMessage = null,
+                hasMorePages = true
+            )
 
-            mediaRepository.getAllAlbums(limit = 50).fold(
+            mediaRepository.getAllAlbums(limit = PAGE_SIZE, startIndex = 0).fold(
                 onSuccess = { albums ->
                     _uiState.value = _uiState.value.copy(
                         albums = albums,
                         isRefreshing = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        hasMorePages = albums.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->

@@ -6,10 +6,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -25,8 +27,10 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -137,6 +141,21 @@ fun AllArtistsScreen(
                     }
                 }
                 else -> {
+                    val listState = rememberLazyListState()
+
+                    LaunchedEffect(listState) {
+                        snapshotFlow {
+                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                        }.collect { lastVisibleIndex ->
+                            if (lastVisibleIndex != null) {
+                                val totalItems = listState.layoutInfo.totalItemsCount
+                                if (lastVisibleIndex >= totalItems - 5 && !uiState.isLoadingMore) {
+                                    viewModel.loadMore()
+                                }
+                            }
+                        }
+                    }
+
                     PullToRefreshBox(
                         isRefreshing = uiState.isRefreshing,
                         onRefresh = { viewModel.refresh() },
@@ -145,6 +164,7 @@ fun AllArtistsScreen(
                         Box(modifier = Modifier.fillMaxSize()) {
                             // Artist list
                             LazyColumn(
+                                state = listState,
                                 modifier = Modifier.fillMaxSize()
                             ) {
                                 items(uiState.artists) { artist ->
@@ -153,6 +173,19 @@ fun AllArtistsScreen(
                                         onClick = { onArtistClick(artist.id) },
                                         onMenuClick = { onArtistMenuClick(artist.id) }
                                     )
+                                }
+
+                                if (uiState.isLoadingMore) {
+                                    item {
+                                        Box(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(16.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            CircularProgressIndicator(color = CyberNeonBlue)
+                                        }
+                                    }
                                 }
                             }
 

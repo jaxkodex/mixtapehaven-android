@@ -14,7 +14,9 @@ data class AllArtistsUiState(
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val isRefreshing: Boolean = false,
-    val groupedArtists: Map<Char, List<Artist>> = emptyMap()
+    val groupedArtists: Map<Char, List<Artist>> = emptyMap(),
+    val isLoadingMore: Boolean = false,
+    val hasMorePages: Boolean = true
 )
 
 class AllArtistsViewModel(
@@ -24,15 +26,23 @@ class AllArtistsViewModel(
     private val _uiState = MutableStateFlow(AllArtistsUiState())
     val uiState: StateFlow<AllArtistsUiState> = _uiState.asStateFlow()
 
+    companion object {
+        private const val PAGE_SIZE = 50
+    }
+
     init {
         loadArtists()
     }
 
     fun loadArtists() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(
+                isLoading = true,
+                errorMessage = null,
+                hasMorePages = true
+            )
 
-            mediaRepository.getAllArtists(limit = 100).fold(
+            mediaRepository.getAllArtists(limit = PAGE_SIZE, startIndex = 0).fold(
                 onSuccess = { artists ->
                     val groupedArtists = artists
                         .sortedBy { it.name.uppercase() }
@@ -42,7 +52,8 @@ class AllArtistsViewModel(
                         artists = artists.sortedBy { it.name.uppercase() },
                         groupedArtists = groupedArtists,
                         isLoading = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        hasMorePages = artists.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->
@@ -55,11 +66,50 @@ class AllArtistsViewModel(
         }
     }
 
+    fun loadMore() {
+        if (_uiState.value.isLoadingMore || !_uiState.value.hasMorePages) {
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMore = true)
+
+            val currentSize = _uiState.value.artists.size
+
+            mediaRepository.getAllArtists(limit = PAGE_SIZE, startIndex = currentSize).fold(
+                onSuccess = { newArtists ->
+                    val allArtists = (_uiState.value.artists + newArtists)
+                        .sortedBy { it.name.uppercase() }
+
+                    val groupedArtists = allArtists
+                        .groupBy { it.name.firstOrNull()?.uppercaseChar() ?: '#' }
+
+                    _uiState.value = _uiState.value.copy(
+                        artists = allArtists,
+                        groupedArtists = groupedArtists,
+                        isLoadingMore = false,
+                        hasMorePages = newArtists.size >= PAGE_SIZE
+                    )
+                },
+                onFailure = { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoadingMore = false,
+                        errorMessage = error.message ?: "Failed to load more artists"
+                    )
+                }
+            )
+        }
+    }
+
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isRefreshing = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(
+                isRefreshing = true,
+                errorMessage = null,
+                hasMorePages = true
+            )
 
-            mediaRepository.getAllArtists(limit = 100).fold(
+            mediaRepository.getAllArtists(limit = PAGE_SIZE, startIndex = 0).fold(
                 onSuccess = { artists ->
                     val groupedArtists = artists
                         .sortedBy { it.name.uppercase() }
@@ -69,7 +119,8 @@ class AllArtistsViewModel(
                         artists = artists.sortedBy { it.name.uppercase() },
                         groupedArtists = groupedArtists,
                         isRefreshing = false,
-                        errorMessage = null
+                        errorMessage = null,
+                        hasMorePages = artists.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->

@@ -1,9 +1,14 @@
 package pe.net.libre.mixtapehaven.data.playback
 
 import android.content.Context
+import android.provider.Settings
+import android.util.Log
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -14,8 +19,14 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.home.Song
+import pe.net.libre.mixtapehaven.ui.home.StreamingQuality
+import java.util.concurrent.TimeUnit
 
 /**
  * Manages playback state for the application using ExoPlayer
@@ -23,7 +34,7 @@ import pe.net.libre.mixtapehaven.ui.home.Song
  * and provides methods to control playback
  */
 class PlaybackManager private constructor(
-    context: Context,
+    private val context: Context,
     private val dataStoreManager: DataStoreManager
 ) {
     private val _playbackState = MutableStateFlow(PlaybackState())
@@ -32,8 +43,42 @@ class PlaybackManager private constructor(
     private val scope = CoroutineScope(Dispatchers.Main)
     private var progressJob: Job? = null
 
-    // ExoPlayer instance
-    private val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+    companion object {
+        private const val TAG = "PlaybackManager"
+
+        @Volatile
+        private var instance: PlaybackManager? = null
+
+        fun getInstance(context: Context, dataStoreManager: DataStoreManager): PlaybackManager {
+            return instance ?: synchronized(this) {
+                instance ?: PlaybackManager(
+                    context.applicationContext,
+                    dataStoreManager
+                ).also { instance = it }
+            }
+        }
+
+        fun getInstance(): PlaybackManager {
+            return instance ?: throw IllegalStateException(
+                "PlaybackManager must be initialized with getInstance(context, dataStoreManager) first"
+            )
+        }
+    }
+
+    // Device ID for authentication headers
+    private val deviceId: String by lazy {
+        Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ANDROID_ID
+        ) ?: "unknown_device"
+    }
+
+    // Current access token for authentication (updated when playing songs)
+    @Volatile
+    private var currentAccessToken: String? = null
+
+    // ExoPlayer instance with custom OkHttp DataSource for authenticated streaming
+    private val player: ExoPlayer = createExoPlayer(context).apply {
         // Set up player listener to track state changes
         addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -62,6 +107,16 @@ class PlaybackManager private constructor(
                     stopProgressTracking()
                 }
             }
+
+            override fun onPlayerError(error: PlaybackException) {
+                Log.e(TAG, "Playback error: ${error.message}", error)
+                Log.e(TAG, "Error code: ${error.errorCode}")
+                if (error.cause != null) {
+                    Log.e(TAG, "Caused by: ${error.cause?.message}", error.cause)
+                }
+                _playbackState.value = _playbackState.value.copy(isPlaying = false)
+                stopProgressTracking()
+            }
         })
     }
 
@@ -71,17 +126,29 @@ class PlaybackManager private constructor(
     fun playSong(song: Song) {
         scope.launch {
             try {
+                Log.d(TAG, "playSong called for: ${song.title} by ${song.artist}")
+
                 // Get server URL and access token from DataStore
                 val serverUrl = dataStoreManager.serverUrl.first()
                 val accessToken = dataStoreManager.accessToken.first()
 
                 if (serverUrl.isNullOrEmpty() || accessToken.isNullOrEmpty()) {
                     // Can't play without server connection
+                    Log.e(TAG, "Cannot play: serverUrl or accessToken is empty")
                     return@launch
                 }
 
-                // Construct streaming URL
-                val streamUrl = song.getStreamUrl(serverUrl, accessToken)
+                // Update the current access token for the OkHttp interceptor
+                currentAccessToken = accessToken
+                Log.d(TAG, "Access token set for interceptor: ${accessToken.take(10)}...")
+
+                // Detect network type and select appropriate streaming quality
+                val quality = getStreamingQuality()
+                Log.d(TAG, "Network-based streaming quality: $quality")
+
+                // Construct streaming URL with adaptive quality (auth handled via OkHttp headers)
+                val streamUrl = song.getStreamUrl(serverUrl, quality)
+                Log.d(TAG, "Streaming URL: $streamUrl")
 
                 // Create media item
                 val mediaItem = MediaItem.fromUri(streamUrl)
@@ -101,6 +168,7 @@ class PlaybackManager private constructor(
 
                 startProgressTracking()
             } catch (e: Exception) {
+                Log.e(TAG, "Error in playSong: ${e.message}", e)
                 e.printStackTrace()
                 // TODO: Handle error (show toast/snackbar)
             }
@@ -213,6 +281,32 @@ class PlaybackManager private constructor(
     }
 
     /**
+     * Determine the appropriate streaming quality based on network conditions
+     */
+    private fun getStreamingQuality(): StreamingQuality {
+        val networkType = NetworkUtil.getNetworkType(context)
+
+        return when (networkType) {
+            NetworkUtil.NetworkType.WIFI,
+            NetworkUtil.NetworkType.ETHERNET -> {
+                // High-speed connections: stream original quality
+                Log.d(TAG, "High-speed connection detected, using ORIGINAL quality")
+                StreamingQuality.ORIGINAL
+            }
+            NetworkUtil.NetworkType.CELLULAR -> {
+                // Cellular connection: use medium quality (192kbps) for data savings
+                Log.d(TAG, "Cellular connection detected, using MEDIUM quality (192kbps)")
+                StreamingQuality.MEDIUM
+            }
+            NetworkUtil.NetworkType.NONE -> {
+                // No connection: attempt original quality (will fail gracefully)
+                Log.w(TAG, "No network connection detected, attempting ORIGINAL quality")
+                StreamingQuality.ORIGINAL
+            }
+        }
+    }
+
+    /**
      * Parse duration string to milliseconds
      * Format: "MM:SS" or "M:SS"
      */
@@ -228,24 +322,69 @@ class PlaybackManager private constructor(
         }
     }
 
-    companion object {
-        @Volatile
-        private var instance: PlaybackManager? = null
+    /**
+     * Create ExoPlayer instance with custom OkHttp DataSource for authenticated streaming
+     */
+    private fun createExoPlayer(context: Context): ExoPlayer {
+        // Create OkHttp client with dynamic authentication interceptor
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BASIC
+        }
 
-        fun getInstance(context: Context, dataStoreManager: DataStoreManager): PlaybackManager {
-            return instance ?: synchronized(this) {
-                instance ?: PlaybackManager(
-                    context.applicationContext,
-                    dataStoreManager
-                ).also { instance = it }
+        // Dynamic auth interceptor that uses the current access token
+        val authInterceptor = Interceptor { chain ->
+            val original = chain.request()
+
+            // Only add auth headers if we have an access token
+            val request = if (currentAccessToken != null) {
+                val authHeader = createAuthorizationHeader()
+                Log.d(TAG, "Adding auth headers to request: ${original.url}")
+                Log.d(TAG, "X-Emby-Authorization: $authHeader")
+                Log.d(TAG, "X-Emby-Token: ${currentAccessToken?.take(10)}...")
+                original.newBuilder()
+                    .header("X-Emby-Authorization", authHeader)
+                    .header("X-Emby-Token", currentAccessToken!!)
+                    .build()
+            } else {
+                Log.w(TAG, "No access token available for request: ${original.url}")
+                original
             }
+
+            val response = chain.proceed(request)
+            Log.d(TAG, "Response code: ${response.code} for ${request.url}")
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Request failed with code: ${response.code}, message: ${response.message}")
+            }
+            response
         }
 
-        fun getInstance(): PlaybackManager {
-            return instance ?: throw IllegalStateException(
-                "PlaybackManager must be initialized with getInstance(context, dataStoreManager) first"
-            )
-        }
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context)
+            .setDataSourceFactory(dataSourceFactory)
+
+        return ExoPlayer.Builder(context)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build()
+    }
+
+    /**
+     * Generate the X-Emby-Authorization header required by Jellyfin
+     */
+    private fun createAuthorizationHeader(
+        clientName: String = "Mixtape Haven",
+        deviceName: String = "Android",
+        version: String = "1.0.0"
+    ): String {
+        return "MediaBrowser Client=\"$clientName\", Device=\"$deviceName\", " +
+               "DeviceId=\"$deviceId\", Version=\"$version\""
     }
 }
 

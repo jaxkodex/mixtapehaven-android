@@ -32,9 +32,12 @@ data class Song(
      * Construct the streaming URL for Jellyfin
      * Note: Authentication is handled via HTTP headers (X-Emby-Token)
      * in PlaybackManager's OkHttp interceptor
+     *
+     * Using /Items/{id}/Download endpoint for direct streaming of the original audio file
+     * This is more reliable than /Audio/{id}/stream which requires additional parameters
      */
     fun getStreamUrl(serverUrl: String): String {
-        return "$serverUrl/Audio/$id/stream"
+        return "$serverUrl/Items/$id/Download"
     }
 }
 

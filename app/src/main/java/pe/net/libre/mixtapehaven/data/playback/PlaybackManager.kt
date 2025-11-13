@@ -23,7 +23,9 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.home.Song
+import pe.net.libre.mixtapehaven.ui.home.StreamingQuality
 import java.util.concurrent.TimeUnit
 
 /**
@@ -140,8 +142,12 @@ class PlaybackManager private constructor(
                 currentAccessToken = accessToken
                 Log.d(TAG, "Access token set for interceptor: ${accessToken.take(10)}...")
 
-                // Construct streaming URL (auth handled via OkHttp headers)
-                val streamUrl = song.getStreamUrl(serverUrl)
+                // Detect network type and select appropriate streaming quality
+                val quality = getStreamingQuality()
+                Log.d(TAG, "Network-based streaming quality: $quality")
+
+                // Construct streaming URL with adaptive quality (auth handled via OkHttp headers)
+                val streamUrl = song.getStreamUrl(serverUrl, quality)
                 Log.d(TAG, "Streaming URL: $streamUrl")
 
                 // Create media item
@@ -272,6 +278,32 @@ class PlaybackManager private constructor(
     private fun stopProgressTracking() {
         progressJob?.cancel()
         progressJob = null
+    }
+
+    /**
+     * Determine the appropriate streaming quality based on network conditions
+     */
+    private fun getStreamingQuality(): StreamingQuality {
+        val networkType = NetworkUtil.getNetworkType(context)
+
+        return when (networkType) {
+            NetworkUtil.NetworkType.WIFI,
+            NetworkUtil.NetworkType.ETHERNET -> {
+                // High-speed connections: stream original quality
+                Log.d(TAG, "High-speed connection detected, using ORIGINAL quality")
+                StreamingQuality.ORIGINAL
+            }
+            NetworkUtil.NetworkType.CELLULAR -> {
+                // Cellular connection: use medium quality (192kbps) for data savings
+                Log.d(TAG, "Cellular connection detected, using MEDIUM quality (192kbps)")
+                StreamingQuality.MEDIUM
+            }
+            NetworkUtil.NetworkType.NONE -> {
+                // No connection: attempt original quality (will fail gracefully)
+                Log.w(TAG, "No network connection detected, attempting ORIGINAL quality")
+                StreamingQuality.ORIGINAL
+            }
+        }
     }
 
     /**

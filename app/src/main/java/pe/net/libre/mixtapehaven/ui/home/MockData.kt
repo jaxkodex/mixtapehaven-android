@@ -30,10 +30,11 @@ data class Song(
 ) {
     /**
      * Construct the streaming URL for Jellyfin
-     * Format: {serverUrl}/Audio/{itemId}/stream?api_key={accessToken}
+     * Note: Authentication is handled via HTTP headers (X-Emby-Token)
+     * in PlaybackManager's OkHttp interceptor
      */
-    fun getStreamUrl(serverUrl: String, accessToken: String): String {
-        return "$serverUrl/Audio/$id/stream?api_key=$accessToken"
+    fun getStreamUrl(serverUrl: String): String {
+        return "$serverUrl/Audio/$id/stream"
     }
 }
 

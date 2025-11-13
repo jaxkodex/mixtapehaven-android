@@ -2,7 +2,9 @@ package pe.net.libre.mixtapehaven.data.playback
 
 import android.content.Context
 import android.provider.Settings
+import android.util.Log
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
@@ -38,6 +40,28 @@ class PlaybackManager private constructor(
 
     private val scope = CoroutineScope(Dispatchers.Main)
     private var progressJob: Job? = null
+
+    companion object {
+        private const val TAG = "PlaybackManager"
+
+        @Volatile
+        private var instance: PlaybackManager? = null
+
+        fun getInstance(context: Context, dataStoreManager: DataStoreManager): PlaybackManager {
+            return instance ?: synchronized(this) {
+                instance ?: PlaybackManager(
+                    context.applicationContext,
+                    dataStoreManager
+                ).also { instance = it }
+            }
+        }
+
+        fun getInstance(): PlaybackManager {
+            return instance ?: throw IllegalStateException(
+                "PlaybackManager must be initialized with getInstance(context, dataStoreManager) first"
+            )
+        }
+    }
 
     // Device ID for authentication headers
     private val deviceId: String by lazy {
@@ -81,6 +105,16 @@ class PlaybackManager private constructor(
                     stopProgressTracking()
                 }
             }
+
+            override fun onPlayerError(error: PlaybackException) {
+                Log.e(TAG, "Playback error: ${error.message}", error)
+                Log.e(TAG, "Error code: ${error.errorCode}")
+                if (error.cause != null) {
+                    Log.e(TAG, "Caused by: ${error.cause?.message}", error.cause)
+                }
+                _playbackState.value = _playbackState.value.copy(isPlaying = false)
+                stopProgressTracking()
+            }
         })
     }
 
@@ -90,20 +124,25 @@ class PlaybackManager private constructor(
     fun playSong(song: Song) {
         scope.launch {
             try {
+                Log.d(TAG, "playSong called for: ${song.title} by ${song.artist}")
+
                 // Get server URL and access token from DataStore
                 val serverUrl = dataStoreManager.serverUrl.first()
                 val accessToken = dataStoreManager.accessToken.first()
 
                 if (serverUrl.isNullOrEmpty() || accessToken.isNullOrEmpty()) {
                     // Can't play without server connection
+                    Log.e(TAG, "Cannot play: serverUrl or accessToken is empty")
                     return@launch
                 }
 
                 // Update the current access token for the OkHttp interceptor
                 currentAccessToken = accessToken
+                Log.d(TAG, "Access token set for interceptor: ${accessToken.take(10)}...")
 
-                // Construct streaming URL
-                val streamUrl = song.getStreamUrl(serverUrl, accessToken)
+                // Construct streaming URL (auth handled via OkHttp headers)
+                val streamUrl = song.getStreamUrl(serverUrl)
+                Log.d(TAG, "Streaming URL: $streamUrl")
 
                 // Create media item
                 val mediaItem = MediaItem.fromUri(streamUrl)
@@ -123,6 +162,7 @@ class PlaybackManager private constructor(
 
                 startProgressTracking()
             } catch (e: Exception) {
+                Log.e(TAG, "Error in playSong: ${e.message}", e)
                 e.printStackTrace()
                 // TODO: Handle error (show toast/snackbar)
             }
@@ -265,15 +305,25 @@ class PlaybackManager private constructor(
 
             // Only add auth headers if we have an access token
             val request = if (currentAccessToken != null) {
+                val authHeader = createAuthorizationHeader()
+                Log.d(TAG, "Adding auth headers to request: ${original.url}")
+                Log.d(TAG, "X-Emby-Authorization: $authHeader")
+                Log.d(TAG, "X-Emby-Token: ${currentAccessToken?.take(10)}...")
                 original.newBuilder()
-                    .header("X-Emby-Authorization", createAuthorizationHeader())
+                    .header("X-Emby-Authorization", authHeader)
                     .header("X-Emby-Token", currentAccessToken!!)
                     .build()
             } else {
+                Log.w(TAG, "No access token available for request: ${original.url}")
                 original
             }
 
-            chain.proceed(request)
+            val response = chain.proceed(request)
+            Log.d(TAG, "Response code: ${response.code} for ${request.url}")
+            if (!response.isSuccessful) {
+                Log.w(TAG, "Request failed with code: ${response.code}, message: ${response.message}")
+            }
+            response
         }
 
         val okHttpClient = OkHttpClient.Builder()
@@ -303,26 +353,6 @@ class PlaybackManager private constructor(
     ): String {
         return "MediaBrowser Client=\"$clientName\", Device=\"$deviceName\", " +
                "DeviceId=\"$deviceId\", Version=\"$version\""
-    }
-
-    companion object {
-        @Volatile
-        private var instance: PlaybackManager? = null
-
-        fun getInstance(context: Context, dataStoreManager: DataStoreManager): PlaybackManager {
-            return instance ?: synchronized(this) {
-                instance ?: PlaybackManager(
-                    context.applicationContext,
-                    dataStoreManager
-                ).also { instance = it }
-            }
-        }
-
-        fun getInstance(): PlaybackManager {
-            return instance ?: throw IllegalStateException(
-                "PlaybackManager must be initialized with getInstance(context, dataStoreManager) first"
-            )
-        }
     }
 }
 

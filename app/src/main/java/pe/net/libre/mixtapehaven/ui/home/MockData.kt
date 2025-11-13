@@ -33,11 +33,16 @@ data class Song(
      * Note: Authentication is handled via HTTP headers (X-Emby-Token)
      * in PlaybackManager's OkHttp interceptor
      *
-     * Using /Items/{id}/Download endpoint for direct streaming of the original audio file
-     * This is more reliable than /Audio/{id}/stream which requires additional parameters
+     * Using /Audio/{id}/stream with static=true for direct streaming without transcoding.
+     * This is the proper endpoint for audio streaming in Jellyfin clients.
+     *
+     * Parameters:
+     * - static=true: Stream the original file without transcoding
+     * - mediaSourceId={id}: Specifies which media source to use
+     * - api_key can be in query OR headers (we use headers via OkHttp interceptor)
      */
     fun getStreamUrl(serverUrl: String): String {
-        return "$serverUrl/Items/$id/Download"
+        return "$serverUrl/Audio/$id/stream?static=true&mediaSourceId=$id"
     }
 }
 

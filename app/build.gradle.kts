@@ -66,6 +66,11 @@ dependencies {
     // Image loading
     implementation(libs.coil.compose)
 
+    // Media playback
+    implementation(libs.media3.exoplayer)
+    implementation(libs.media3.ui)
+    implementation(libs.media3.session)
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

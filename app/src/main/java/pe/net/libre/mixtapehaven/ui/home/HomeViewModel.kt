@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 
 /**
@@ -14,9 +15,11 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
  */
 class HomeViewModel(
     private val mediaRepository: MediaRepository,
+    private val playbackManager: PlaybackManager,
     private val onNavigateToAllAlbums: () -> Unit = {},
     private val onNavigateToAllArtists: () -> Unit = {},
     private val onNavigateToAllSongs: () -> Unit = {},
+    private val onNavigateToNowPlaying: () -> Unit = {},
     private val onLogout: () -> Unit = {}
 ) : ViewModel() {
 
@@ -28,6 +31,16 @@ class HomeViewModel(
 
     init {
         loadData()
+        observePlaybackState()
+    }
+
+    private fun observePlaybackState() {
+        viewModelScope.launch {
+            playbackManager.playbackState.collect { playbackState ->
+                // Update UI state when playback changes
+                // This keeps the UI in sync with playback state
+            }
+        }
     }
 
     private fun loadData() {
@@ -80,15 +93,18 @@ class HomeViewModel(
     }
 
     fun onSongClick(song: Song) {
-        // TODO: Play song or navigate to song details
+        // Play the song
+        playbackManager.playSong(song)
     }
 
     fun onPlayPauseClick() {
-        // TODO: Toggle play/pause
+        // Toggle play/pause
+        playbackManager.togglePlayPause()
     }
 
     fun onNowPlayingBarClick() {
-        // TODO: Navigate to now playing screen
+        // Navigate to now playing screen
+        onNavigateToNowPlaying()
     }
 
     fun onSeeMoreClick(section: String) {

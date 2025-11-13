@@ -1,9 +1,12 @@
 package pe.net.libre.mixtapehaven.data.playback
 
 import android.content.Context
+import android.provider.Settings
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -14,8 +17,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import okhttp3.Interceptor
+import okhttp3.OkHttpClient
+import okhttp3.logging.HttpLoggingInterceptor
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.ui.home.Song
+import java.util.concurrent.TimeUnit
 
 /**
  * Manages playback state for the application using ExoPlayer
@@ -23,7 +30,7 @@ import pe.net.libre.mixtapehaven.ui.home.Song
  * and provides methods to control playback
  */
 class PlaybackManager private constructor(
-    context: Context,
+    private val context: Context,
     private val dataStoreManager: DataStoreManager
 ) {
     private val _playbackState = MutableStateFlow(PlaybackState())
@@ -32,8 +39,20 @@ class PlaybackManager private constructor(
     private val scope = CoroutineScope(Dispatchers.Main)
     private var progressJob: Job? = null
 
-    // ExoPlayer instance
-    private val player: ExoPlayer = ExoPlayer.Builder(context).build().apply {
+    // Device ID for authentication headers
+    private val deviceId: String by lazy {
+        Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ANDROID_ID
+        ) ?: "unknown_device"
+    }
+
+    // Current access token for authentication (updated when playing songs)
+    @Volatile
+    private var currentAccessToken: String? = null
+
+    // ExoPlayer instance with custom OkHttp DataSource for authenticated streaming
+    private val player: ExoPlayer = createExoPlayer(context).apply {
         // Set up player listener to track state changes
         addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -79,6 +98,9 @@ class PlaybackManager private constructor(
                     // Can't play without server connection
                     return@launch
                 }
+
+                // Update the current access token for the OkHttp interceptor
+                currentAccessToken = accessToken
 
                 // Construct streaming URL
                 val streamUrl = song.getStreamUrl(serverUrl, accessToken)
@@ -226,6 +248,61 @@ class PlaybackManager private constructor(
             // Default to 3 minutes if parsing fails
             180000L
         }
+    }
+
+    /**
+     * Create ExoPlayer instance with custom OkHttp DataSource for authenticated streaming
+     */
+    private fun createExoPlayer(context: Context): ExoPlayer {
+        // Create OkHttp client with dynamic authentication interceptor
+        val loggingInterceptor = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BASIC
+        }
+
+        // Dynamic auth interceptor that uses the current access token
+        val authInterceptor = Interceptor { chain ->
+            val original = chain.request()
+
+            // Only add auth headers if we have an access token
+            val request = if (currentAccessToken != null) {
+                original.newBuilder()
+                    .header("X-Emby-Authorization", createAuthorizationHeader())
+                    .header("X-Emby-Token", currentAccessToken!!)
+                    .build()
+            } else {
+                original
+            }
+
+            chain.proceed(request)
+        }
+
+        val okHttpClient = OkHttpClient.Builder()
+            .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(30, TimeUnit.SECONDS)
+            .writeTimeout(30, TimeUnit.SECONDS)
+            .build()
+
+        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        val mediaSourceFactory = DefaultMediaSourceFactory(context)
+            .setDataSourceFactory(dataSourceFactory)
+
+        return ExoPlayer.Builder(context)
+            .setMediaSourceFactory(mediaSourceFactory)
+            .build()
+    }
+
+    /**
+     * Generate the X-Emby-Authorization header required by Jellyfin
+     */
+    private fun createAuthorizationHeader(
+        clientName: String = "Mixtape Haven",
+        deviceName: String = "Android",
+        version: String = "1.0.0"
+    ): String {
+        return "MediaBrowser Client=\"$clientName\", Device=\"$deviceName\", " +
+               "DeviceId=\"$deviceId\", Version=\"$version\""
     }
 
     companion object {

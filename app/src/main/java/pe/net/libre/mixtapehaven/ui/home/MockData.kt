@@ -27,7 +27,15 @@ data class Song(
     val duration: String,
     val albumCoverUrl: String? = null,
     val albumCoverPlaceholder: String = ""
-)
+) {
+    /**
+     * Construct the streaming URL for Jellyfin
+     * Format: {serverUrl}/Audio/{itemId}/stream?api_key={accessToken}
+     */
+    fun getStreamUrl(serverUrl: String, accessToken: String): String {
+        return "$serverUrl/Audio/$id/stream?api_key=$accessToken"
+    }
+}
 
 /**
  * Mock data for recently added albums

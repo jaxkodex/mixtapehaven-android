@@ -36,7 +36,7 @@ class MediaPlaybackService : Service() {
         super.onCreate()
         Log.d(TAG, "MediaPlaybackService onCreate")
 
-        playbackManager = PlaybackManager.getInstance(this)
+        playbackManager = PlaybackManager.getInstance()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         createNotificationChannel()
@@ -84,7 +84,7 @@ class MediaPlaybackService : Service() {
     }
 
     private fun setupPlayerListener() {
-        playbackManager.player?.addListener(object : Player.Listener {
+        playbackManager.player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 updateNotification()
                 updateMediaSessionPlaybackState(isPlaying)
@@ -110,7 +110,7 @@ class MediaPlaybackService : Service() {
         }
 
         val playbackState = PlaybackStateCompat.Builder()
-            .setState(state, playbackManager.player?.currentPosition ?: 0, 1.0f)
+            .setState(state, playbackManager.player.currentPosition, 1.0f)
             .setActions(
                 PlaybackStateCompat.ACTION_PLAY_PAUSE or
                         PlaybackStateCompat.ACTION_PLAY or
@@ -166,8 +166,8 @@ class MediaPlaybackService : Service() {
         )
 
         return NotificationCompat.Builder(this, CHANNEL_ID)
-            .setContentTitle(song?.name ?: "Mixtape Haven")
-            .setContentText(song?.artistName ?: "No song playing")
+            .setContentTitle(song?.title ?: "Mixtape Haven")
+            .setContentText(song?.artist ?: "No song playing")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
             .setContentIntent(contentPendingIntent)
             .setStyle(

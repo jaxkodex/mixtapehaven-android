@@ -4,6 +4,54 @@ package pe.net.libre.mixtapehaven.ui.home
  * Mock data models and sample data for the home screen
  */
 
+/**
+ * Streaming quality settings for audio playback
+ */
+enum class StreamingQuality(
+    val maxBitrate: Int?,
+    val useTranscoding: Boolean,
+    val container: String? = null
+) {
+    /**
+     * Original quality - no transcoding, streams original file
+     * Best for WiFi/Ethernet connections
+     */
+    ORIGINAL(
+        maxBitrate = null,
+        useTranscoding = false
+    ),
+
+    /**
+     * High quality - 320kbps MP3 transcoding
+     * Good balance for WiFi when original files are lossless
+     */
+    HIGH(
+        maxBitrate = 320000,
+        useTranscoding = true,
+        container = "mp3"
+    ),
+
+    /**
+     * Medium quality - 192kbps MP3 transcoding
+     * Recommended for cellular connections
+     */
+    MEDIUM(
+        maxBitrate = 192000,
+        useTranscoding = true,
+        container = "mp3"
+    ),
+
+    /**
+     * Low quality - 128kbps MP3 transcoding
+     * Best for poor cellular connections or data saving
+     */
+    LOW(
+        maxBitrate = 128000,
+        useTranscoding = true,
+        container = "mp3"
+    )
+}
+
 data class Album(
     val id: String,
     val title: String,
@@ -29,11 +77,36 @@ data class Song(
     val albumCoverPlaceholder: String = ""
 ) {
     /**
-     * Construct the streaming URL for Jellyfin
-     * Format: {serverUrl}/Audio/{itemId}/stream?api_key={accessToken}
+     * Construct the streaming URL for Jellyfin with adaptive quality settings
+     * Note: Authentication is handled via HTTP headers (X-Emby-Token)
+     * in PlaybackManager's OkHttp interceptor
+     *
+     * @param serverUrl The Jellyfin server base URL
+     * @param quality The desired streaming quality (defaults to ORIGINAL)
+     * @return The complete streaming URL with appropriate parameters
      */
-    fun getStreamUrl(serverUrl: String, accessToken: String): String {
-        return "$serverUrl/Audio/$id/stream?api_key=$accessToken"
+    fun getStreamUrl(
+        serverUrl: String,
+        quality: StreamingQuality = StreamingQuality.ORIGINAL
+    ): String {
+        val baseUrl = "$serverUrl/Audio/$id/stream"
+        val params = buildList {
+            add("mediaSourceId=$id")
+
+            if (quality.useTranscoding) {
+                // Transcoding parameters
+                quality.maxBitrate?.let { add("maxStreamingBitrate=$it") }
+                quality.container?.let {
+                    add("container=$it")
+                    add("audioCodec=$it")
+                }
+            } else {
+                // Static streaming (original file)
+                add("static=true")
+            }
+        }
+
+        return "$baseUrl?${params.joinToString("&")}"
     }
 }
 

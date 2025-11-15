@@ -1,5 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.home.detail
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -8,9 +9,11 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
@@ -35,38 +38,31 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
-import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
-import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
+import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AllSongsScreen(
+fun AllPlaylistsScreen(
     mediaRepository: MediaRepository,
-    playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit,
-    onNavigateToNowPlaying: () -> Unit = {},
+    onPlaylistClick: (String) -> Unit = {},
     onSearchClick: () -> Unit = {}
 ) {
-    val viewModel: AllSongsViewModel = viewModel {
-        AllSongsViewModel(
-            mediaRepository = mediaRepository,
-            playbackManager = playbackManager
-        )
+    val viewModel: AllPlaylistsViewModel = viewModel {
+        AllPlaylistsViewModel(mediaRepository = mediaRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
-    val playbackState by playbackManager.playbackState.collectAsState()
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Text(
-                        text = "All Songs",
+                        text = "All Playlists",
                         style = MaterialTheme.typography.headlineMedium,
                         color = LunarWhite
                     )
@@ -122,12 +118,12 @@ fun AllSongsScreen(
                             textAlign = TextAlign.Center
                         )
                         Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadSongs() }) {
+                        Button(onClick = { viewModel.loadPlaylists() }) {
                             Text("Retry")
                         }
                     }
                 }
-                uiState.songs.isEmpty() -> {
+                uiState.playlists.isEmpty() -> {
                     Column(
                         modifier = Modifier
                             .align(Alignment.Center)
@@ -135,13 +131,13 @@ fun AllSongsScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "No songs found",
+                            text = "No playlists found",
                             style = MaterialTheme.typography.headlineSmall,
                             color = LunarWhite
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Add media to your Jellyfin server",
+                            text = "Create playlists in your Jellyfin server",
                             style = MaterialTheme.typography.bodyMedium,
                             color = LunarWhite.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center
@@ -149,14 +145,14 @@ fun AllSongsScreen(
                     }
                 }
                 else -> {
-                    val listState = rememberLazyListState()
+                    val gridState = rememberLazyGridState()
 
-                    LaunchedEffect(listState) {
+                    LaunchedEffect(gridState) {
                         snapshotFlow {
-                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
+                            gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index
                         }.collect { lastVisibleIndex ->
                             if (lastVisibleIndex != null) {
-                                val totalItems = listState.layoutInfo.totalItemsCount
+                                val totalItems = gridState.layoutInfo.totalItemsCount
                                 if (lastVisibleIndex >= totalItems - 5 && !uiState.isLoadingMore) {
                                     viewModel.loadMore()
                                 }
@@ -169,23 +165,23 @@ fun AllSongsScreen(
                         onRefresh = { viewModel.refresh() },
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        LazyColumn(
-                            state = listState,
+                        LazyVerticalGrid(
+                            columns = GridCells.Fixed(2),
+                            state = gridState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 100.dp)
+                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 16.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
-                            itemsIndexed(uiState.songs) { index, song ->
-                                SongListItem(
-                                    song = song,
-                                    trackNumber = index + 1,
-                                    onClick = { viewModel.onSongClick(song) },
-                                    isPlaying = playbackState.currentSong?.id == song.id,
-                                    onPlayPauseClick = { viewModel.onPlayPauseClick() }
+                            items(uiState.playlists) { playlist ->
+                                PlaylistCard(
+                                    playlist = playlist,
+                                    onClick = { onPlaylistClick(playlist.id) }
                                 )
                             }
 
                             if (uiState.isLoadingMore) {
-                                item {
+                                item(span = { GridItemSpan(2) }) {
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -200,17 +196,6 @@ fun AllSongsScreen(
                     }
                 }
             }
-
-            // Floating Now Playing Bar
-            NowPlayingBar(
-                playbackState = playbackState,
-                onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                onBarClick = { onNavigateToNowPlaying() },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .fillMaxWidth()
-            )
         }
-}
+    }
 }

@@ -6,12 +6,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
-import pe.net.libre.mixtapehaven.ui.home.Song
+import pe.net.libre.mixtapehaven.ui.home.Playlist
 
-data class AllSongsUiState(
-    val songs: List<Song> = emptyList(),
+data class AllPlaylistsUiState(
+    val playlists: List<Playlist> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
     val isRefreshing: Boolean = false,
@@ -19,23 +18,22 @@ data class AllSongsUiState(
     val hasMorePages: Boolean = true
 )
 
-class AllSongsViewModel(
-    private val mediaRepository: MediaRepository,
-    private val playbackManager: PlaybackManager
+class AllPlaylistsViewModel(
+    private val mediaRepository: MediaRepository
 ) : ViewModel() {
 
-    private val _uiState = MutableStateFlow(AllSongsUiState())
-    val uiState: StateFlow<AllSongsUiState> = _uiState.asStateFlow()
+    private val _uiState = MutableStateFlow(AllPlaylistsUiState())
+    val uiState: StateFlow<AllPlaylistsUiState> = _uiState.asStateFlow()
 
     companion object {
         private const val PAGE_SIZE = 50
     }
 
     init {
-        loadSongs()
+        loadPlaylists()
     }
 
-    fun loadSongs() {
+    fun loadPlaylists() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
@@ -43,19 +41,19 @@ class AllSongsViewModel(
                 hasMorePages = true
             )
 
-            mediaRepository.getAllSongs(limit = PAGE_SIZE, startIndex = 0).fold(
-                onSuccess = { songs ->
+            mediaRepository.getUserPlaylists(limit = PAGE_SIZE, startIndex = 0).fold(
+                onSuccess = { playlists ->
                     _uiState.value = _uiState.value.copy(
-                        songs = songs,
+                        playlists = playlists,
                         isLoading = false,
                         errorMessage = null,
-                        hasMorePages = songs.size >= PAGE_SIZE
+                        hasMorePages = playlists.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        errorMessage = error.message ?: "Failed to load songs"
+                        errorMessage = error.message ?: "Failed to load playlists"
                     )
                 }
             )
@@ -70,20 +68,20 @@ class AllSongsViewModel(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoadingMore = true)
 
-            val currentSize = _uiState.value.songs.size
+            val currentSize = _uiState.value.playlists.size
 
-            mediaRepository.getAllSongs(limit = PAGE_SIZE, startIndex = currentSize).fold(
-                onSuccess = { newSongs ->
+            mediaRepository.getUserPlaylists(limit = PAGE_SIZE, startIndex = currentSize).fold(
+                onSuccess = { newPlaylists ->
                     _uiState.value = _uiState.value.copy(
-                        songs = _uiState.value.songs + newSongs,
+                        playlists = _uiState.value.playlists + newPlaylists,
                         isLoadingMore = false,
-                        hasMorePages = newSongs.size >= PAGE_SIZE
+                        hasMorePages = newPlaylists.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isLoadingMore = false,
-                        errorMessage = error.message ?: "Failed to load more songs"
+                        errorMessage = error.message ?: "Failed to load more playlists"
                     )
                 }
             )
@@ -98,19 +96,19 @@ class AllSongsViewModel(
                 hasMorePages = true
             )
 
-            mediaRepository.getAllSongs(limit = PAGE_SIZE, startIndex = 0).fold(
-                onSuccess = { songs ->
+            mediaRepository.getUserPlaylists(limit = PAGE_SIZE, startIndex = 0).fold(
+                onSuccess = { playlists ->
                     _uiState.value = _uiState.value.copy(
-                        songs = songs,
+                        playlists = playlists,
                         isRefreshing = false,
                         errorMessage = null,
-                        hasMorePages = songs.size >= PAGE_SIZE
+                        hasMorePages = playlists.size >= PAGE_SIZE
                     )
                 },
                 onFailure = { error ->
                     _uiState.value = _uiState.value.copy(
                         isRefreshing = false,
-                        errorMessage = error.message ?: "Failed to refresh songs"
+                        errorMessage = error.message ?: "Failed to refresh playlists"
                     )
                 }
             )
@@ -119,21 +117,5 @@ class AllSongsViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
-    }
-
-    fun onSongClick(song: Song) {
-        // Set queue with all songs and start from the clicked song
-        val allSongs = _uiState.value.songs
-        val index = allSongs.indexOf(song)
-        if (index != -1 && allSongs.isNotEmpty()) {
-            playbackManager.setQueue(allSongs, startIndex = index)
-        } else {
-            // Fallback to just playing the song
-            playbackManager.playSong(song)
-        }
-    }
-
-    fun onPlayPauseClick() {
-        playbackManager.togglePlayPause()
     }
 }

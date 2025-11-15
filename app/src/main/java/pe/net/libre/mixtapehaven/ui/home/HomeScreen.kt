@@ -58,6 +58,8 @@ fun HomeScreen(
     onNavigateToAllAlbums: () -> Unit = {},
     onNavigateToAllArtists: () -> Unit = {},
     onNavigateToAllSongs: () -> Unit = {},
+    onNavigateToAllPlaylists: () -> Unit = {},
+    onNavigateToPlaylistDetail: (String) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -68,6 +70,8 @@ fun HomeScreen(
             onNavigateToAllAlbums = onNavigateToAllAlbums,
             onNavigateToAllArtists = onNavigateToAllArtists,
             onNavigateToAllSongs = onNavigateToAllSongs,
+            onNavigateToAllPlaylists = onNavigateToAllPlaylists,
+            onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
             onNavigateToNowPlaying = onNavigateToNowPlaying,
             onLogout = onLogout
         )
@@ -235,7 +239,9 @@ fun HomeScreen(
                         SongListItem(
                             song = song,
                             trackNumber = index + 1,
-                            onClick = { viewModel.onSongClick(song) }
+                            onClick = { viewModel.onSongClick(song) },
+                            isPlaying = playbackState.currentSong?.id == song.id,
+                            onPlayPauseClick = { viewModel.onPlayPauseClick() }
                         )
                     }
                 }

@@ -43,6 +43,10 @@ class PlaybackManager private constructor(
     private val scope = CoroutineScope(Dispatchers.Main)
     private var progressJob: Job? = null
 
+    // Queue management
+    private val queue = mutableListOf<Song>()
+    private var currentIndex: Int = -1
+
     companion object {
         private const val TAG = "PlaybackManager"
 
@@ -85,9 +89,17 @@ class PlaybackManager private constructor(
                 when (state) {
                     Player.STATE_ENDED -> {
                         // Song finished
+                        Log.d(TAG, "Song ended")
                         _playbackState.value = _playbackState.value.copy(isPlaying = false)
                         stopProgressTracking()
-                        // TODO: Auto-play next song
+
+                        // Auto-play next song if available
+                        if (currentIndex < queue.size - 1) {
+                            Log.d(TAG, "Auto-playing next song in queue")
+                            playNext()
+                        } else {
+                            Log.d(TAG, "End of queue reached")
+                        }
                     }
                     Player.STATE_READY -> {
                         // Media is ready to play
@@ -166,7 +178,11 @@ class PlaybackManager private constructor(
                     currentSong = song,
                     isPlaying = true,
                     currentPosition = 0L,
-                    duration = parseDurationToMillis(song.duration) // Initial duration from song metadata
+                    duration = parseDurationToMillis(song.duration), // Initial duration from song metadata
+                    queue = queue.toList(),
+                    currentIndex = currentIndex,
+                    hasNext = currentIndex < queue.size - 1,
+                    hasPrevious = currentIndex > 0
                 )
 
                 startProgressTracking()
@@ -204,28 +220,33 @@ class PlaybackManager private constructor(
     }
 
     /**
-     * Play next track
-     * TODO: Implement queue management
+     * Play next track in queue
      */
     fun playNext() {
-        // For now, just stop playback
-        // In the future, this will play the next song in the queue
-        stop()
+        if (currentIndex < queue.size - 1) {
+            Log.d(TAG, "Playing next track")
+            playSongFromQueue(currentIndex + 1)
+        } else {
+            Log.d(TAG, "No next track available")
+        }
     }
 
     /**
-     * Play previous track
-     * TODO: Implement queue management
+     * Play previous track in queue
      */
     fun playPrevious() {
-        // For now, restart the current song
         val currentPosition = _player.currentPosition
         if (currentPosition > 3000) {
-            // If more than 3 seconds, restart current song
+            // If more than 3 seconds into the song, restart current song
+            Log.d(TAG, "Restarting current track")
             seekTo(0L)
-        } else {
+        } else if (currentIndex > 0) {
             // Otherwise, play previous song in queue
-            // For now, just restart
+            Log.d(TAG, "Playing previous track")
+            playSongFromQueue(currentIndex - 1)
+        } else {
+            // At the first song, just restart
+            Log.d(TAG, "At first track, restarting")
             seekTo(0L)
         }
     }
@@ -244,6 +265,95 @@ class PlaybackManager private constructor(
         _player.stop()
         _playbackState.value = PlaybackState()
         stopProgressTracking()
+    }
+
+    /**
+     * Set queue and start playing from a specific index
+     */
+    fun setQueue(songs: List<Song>, startIndex: Int = 0) {
+        Log.d(TAG, "setQueue called with ${songs.size} songs, startIndex=$startIndex")
+        queue.clear()
+        queue.addAll(songs)
+        currentIndex = startIndex.coerceIn(0, songs.size - 1)
+
+        if (queue.isNotEmpty()) {
+            playSongFromQueue(currentIndex)
+        }
+    }
+
+    /**
+     * Add song to the end of the queue
+     */
+    fun addToQueue(song: Song) {
+        Log.d(TAG, "addToQueue: ${song.title}")
+        queue.add(song)
+        updateQueueState()
+    }
+
+    /**
+     * Add multiple songs to the end of the queue
+     */
+    fun addToQueue(songs: List<Song>) {
+        Log.d(TAG, "addToQueue: ${songs.size} songs")
+        queue.addAll(songs)
+        updateQueueState()
+    }
+
+    /**
+     * Remove song from queue at index
+     */
+    fun removeFromQueue(index: Int) {
+        if (index in queue.indices) {
+            Log.d(TAG, "removeFromQueue at index $index")
+            queue.removeAt(index)
+
+            // Adjust current index if needed
+            if (index < currentIndex) {
+                currentIndex--
+            } else if (index == currentIndex && currentIndex >= queue.size) {
+                currentIndex = queue.size - 1
+            }
+
+            updateQueueState()
+        }
+    }
+
+    /**
+     * Clear the queue
+     */
+    fun clearQueue() {
+        Log.d(TAG, "clearQueue")
+        queue.clear()
+        currentIndex = -1
+        updateQueueState()
+    }
+
+    /**
+     * Get the current queue
+     */
+    fun getQueue(): List<Song> = queue.toList()
+
+    /**
+     * Play song from queue at specific index
+     */
+    private fun playSongFromQueue(index: Int) {
+        if (index in queue.indices) {
+            currentIndex = index
+            playSong(queue[index])
+            updateQueueState()
+        }
+    }
+
+    /**
+     * Update playback state with queue information
+     */
+    private fun updateQueueState() {
+        _playbackState.value = _playbackState.value.copy(
+            queue = queue.toList(),
+            currentIndex = currentIndex,
+            hasNext = currentIndex < queue.size - 1,
+            hasPrevious = currentIndex > 0
+        )
     }
 
     /**
@@ -398,7 +508,11 @@ data class PlaybackState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
     val currentPosition: Long = 0L, // milliseconds
-    val duration: Long = 0L // milliseconds
+    val duration: Long = 0L, // milliseconds
+    val queue: List<Song> = emptyList(),
+    val currentIndex: Int = -1,
+    val hasNext: Boolean = false,
+    val hasPrevious: Boolean = false
 ) {
     /**
      * Get progress as a float between 0.0 and 1.0

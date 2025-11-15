@@ -14,7 +14,7 @@ lifecycleViewmodelCompose = "2.9.4"
 retrofit = "3.0.0"
 okhttp = "5.3.0"
 kotlinxSerialization = "1.9.0"
-coil = "2.5.0"
+coil = "2.7.0"
 media3 = "1.8.0"
 media = "1.7.1"
 

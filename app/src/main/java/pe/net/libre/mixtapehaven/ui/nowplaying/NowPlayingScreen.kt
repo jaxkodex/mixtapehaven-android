@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -225,23 +226,38 @@ fun NowPlayingScreen(
 
                     Spacer(modifier = Modifier.width(32.dp))
 
-                    // Play/Pause button
-                    IconButton(
-                        onClick = { viewModel.onPlayPauseClick() },
+                    // Play/Pause button or loading indicator
+                    Box(
                         modifier = Modifier
                             .size(80.dp)
-                            .background(CyberNeonBlue, CircleShape)
+                            .background(CyberNeonBlue, CircleShape),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            imageVector = if (playbackState.isPlaying) {
-                                Icons.Default.Pause
-                            } else {
-                                Icons.Default.PlayArrow
-                            },
-                            contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                            tint = DeepSpaceBlack,
-                            modifier = Modifier.size(48.dp)
-                        )
+                        if (playbackState.isBuffering) {
+                            // Show loading indicator
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = DeepSpaceBlack,
+                                strokeWidth = 4.dp
+                            )
+                        } else {
+                            // Show play/pause button
+                            IconButton(
+                                onClick = { viewModel.onPlayPauseClick() },
+                                modifier = Modifier.fillMaxSize()
+                            ) {
+                                Icon(
+                                    imageVector = if (playbackState.isPlaying) {
+                                        Icons.Default.Pause
+                                    } else {
+                                        Icons.Default.PlayArrow
+                                    },
+                                    contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
+                                    tint = DeepSpaceBlack,
+                                    modifier = Modifier.size(48.dp)
+                                )
+                            }
+                        }
                     }
 
                     Spacer(modifier = Modifier.width(32.dp))

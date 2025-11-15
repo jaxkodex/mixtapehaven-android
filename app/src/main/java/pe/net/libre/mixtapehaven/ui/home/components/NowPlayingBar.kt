@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -109,23 +110,38 @@ fun NowPlayingBar(
                     )
                 }
 
-                // Play/Pause button
-                IconButton(
-                    onClick = onPlayPauseClick,
+                // Play/Pause button or loading indicator
+                Box(
                     modifier = Modifier
                         .size(56.dp)
-                        .background(CyberNeonBlue, CircleShape)
+                        .background(CyberNeonBlue, CircleShape),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = if (playbackState.isPlaying) {
-                            Icons.Default.Pause
-                        } else {
-                            Icons.Default.PlayArrow
-                        },
-                        contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                        tint = DeepSpaceBlack,
-                        modifier = Modifier.size(32.dp)
-                    )
+                    if (playbackState.isBuffering) {
+                        // Show loading indicator
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = DeepSpaceBlack,
+                            strokeWidth = 3.dp
+                        )
+                    } else {
+                        // Show play/pause button
+                        IconButton(
+                            onClick = onPlayPauseClick,
+                            modifier = Modifier.fillMaxSize()
+                        ) {
+                            Icon(
+                                imageVector = if (playbackState.isPlaying) {
+                                    Icons.Default.Pause
+                                } else {
+                                    Icons.Default.PlayArrow
+                                },
+                                contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
+                                tint = DeepSpaceBlack,
+                                modifier = Modifier.size(32.dp)
+                            )
+                        }
+                    }
                 }
             }
 

@@ -89,10 +89,27 @@ class PlaybackManager private constructor(
         addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
                 when (state) {
+                    Player.STATE_BUFFERING -> {
+                        // Player is buffering/loading
+                        Log.d(TAG, "Player is buffering")
+                        _playbackState.value = _playbackState.value.copy(isBuffering = true)
+                    }
+                    Player.STATE_READY -> {
+                        // Media is ready to play
+                        Log.d(TAG, "Player is ready")
+                        val duration = _player.duration
+                        _playbackState.value = _playbackState.value.copy(
+                            isBuffering = false,
+                            duration = if (duration > 0) duration else _playbackState.value.duration
+                        )
+                    }
                     Player.STATE_ENDED -> {
                         // Song finished
                         Log.d(TAG, "Song ended")
-                        _playbackState.value = _playbackState.value.copy(isPlaying = false)
+                        _playbackState.value = _playbackState.value.copy(
+                            isPlaying = false,
+                            isBuffering = false
+                        )
                         stopProgressTracking()
 
                         // Auto-play next song if available
@@ -101,13 +118,6 @@ class PlaybackManager private constructor(
                             playNext()
                         } else {
                             Log.d(TAG, "End of queue reached")
-                        }
-                    }
-                    Player.STATE_READY -> {
-                        // Media is ready to play
-                        val duration = _player.duration
-                        if (duration > 0) {
-                            _playbackState.value = _playbackState.value.copy(duration = duration)
                         }
                     }
                 }
@@ -128,7 +138,10 @@ class PlaybackManager private constructor(
                 if (error.cause != null) {
                     Log.e(TAG, "Caused by: ${error.cause?.message}", error.cause)
                 }
-                _playbackState.value = _playbackState.value.copy(isPlaying = false)
+                _playbackState.value = _playbackState.value.copy(
+                    isPlaying = false,
+                    isBuffering = false
+                )
                 stopProgressTracking()
             }
         })
@@ -175,10 +188,11 @@ class PlaybackManager private constructor(
                 _player.prepare()
                 _player.play()
 
-                // Update state
+                // Update state - set isBuffering true until player is ready
                 _playbackState.value = PlaybackState(
                     currentSong = song,
                     isPlaying = true,
+                    isBuffering = true,
                     currentPosition = 0L,
                     duration = parseDurationToMillis(song.duration), // Initial duration from song metadata
                     queue = queue.toList(),
@@ -510,6 +524,7 @@ class PlaybackManager private constructor(
 data class PlaybackState(
     val currentSong: Song? = null,
     val isPlaying: Boolean = false,
+    val isBuffering: Boolean = false,
     val currentPosition: Long = 0L, // milliseconds
     val duration: Long = 0L, // milliseconds
     val queue: List<Song> = emptyList(),

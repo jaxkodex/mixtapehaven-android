@@ -110,6 +110,14 @@ data class Song(
     }
 }
 
+data class Playlist(
+    val id: String,
+    val name: String,
+    val songCount: Int,
+    val coverUrl: String? = null,
+    val coverPlaceholder: String = ""
+)
+
 /**
  * Mock data for recently added albums
  */

@@ -9,6 +9,7 @@ import pe.net.libre.mixtapehaven.data.api.JellyfinApiService
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.ui.home.Album
 import pe.net.libre.mixtapehaven.ui.home.Artist
+import pe.net.libre.mixtapehaven.ui.home.Playlist
 import pe.net.libre.mixtapehaven.ui.home.Song
 
 class MediaRepository(
@@ -211,6 +212,32 @@ class MediaRepository(
     }
 
     /**
+     * Get user playlists
+     */
+    suspend fun getUserPlaylists(limit: Int = 10): Result<List<Playlist>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                includeItemTypes = "Playlist",
+                recursive = true,
+                sortBy = "SortName",
+                sortOrder = "Ascending",
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,ChildCount"
+            )
+
+            val playlists = response.items.map { item -> mapToPlaylist(item) }
+            Result.success(playlists)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Map BaseItemDto to Album
      */
     private fun mapToAlbum(item: BaseItemDto): Album {
@@ -261,6 +288,19 @@ class MediaRepository(
                 item.imageTags?.get("Primary")
             ),
             albumCoverPlaceholder = getPlaceholderEmoji(item.album ?: item.name)
+        )
+    }
+
+    /**
+     * Map BaseItemDto to Playlist
+     */
+    private fun mapToPlaylist(item: BaseItemDto): Playlist {
+        return Playlist(
+            id = item.id,
+            name = item.name,
+            songCount = item.childCount ?: 0,
+            coverUrl = getImageUrl(item.id, "Primary", item.imageTags?.get("Primary")),
+            coverPlaceholder = getPlaceholderEmoji(item.name)
         )
     }
 

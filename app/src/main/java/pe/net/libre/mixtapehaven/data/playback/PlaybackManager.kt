@@ -3,6 +3,7 @@ package pe.net.libre.mixtapehaven.data.playback
 import android.content.Context
 import android.provider.Settings
 import android.util.Log
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -12,6 +13,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,7 +42,7 @@ class PlaybackManager private constructor(
     private val _playbackState = MutableStateFlow(PlaybackState())
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
 
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var progressJob: Job? = null
 
     // Queue management
@@ -372,7 +374,7 @@ class PlaybackManager private constructor(
 
         progressJob = scope.launch {
             while (isActive && _player.isPlaying) {
-                delay(100) // Update every 100ms
+                delay(500) // Update every 500ms - reduces battery drain
 
                 val currentPosition = _player.currentPosition
                 val duration = _player.duration
@@ -485,6 +487,7 @@ class PlaybackManager private constructor(
 
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
+            .setWakeMode(C.WAKE_MODE_NETWORK) // Efficient wake lock management for network streaming
             .build()
     }
 

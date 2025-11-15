@@ -240,7 +240,8 @@ fun HomeScreen(
                             song = song,
                             trackNumber = index + 1,
                             onClick = { viewModel.onSongClick(song) },
-                            isPlaying = playbackState.currentSong?.id == song.id,
+                            isCurrentSong = playbackState.currentSong?.id == song.id,
+                            isPlaying = playbackState.isPlaying,
                             onPlayPauseClick = { viewModel.onPlayPauseClick() }
                         )
                     }

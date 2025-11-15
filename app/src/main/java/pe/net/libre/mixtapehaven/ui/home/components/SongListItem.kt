@@ -37,6 +37,7 @@ fun SongListItem(
     trackNumber: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    isCurrentSong: Boolean = false,
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null
 ) {
@@ -48,11 +49,11 @@ fun SongListItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Track number (highlight if playing)
+        // Track number (highlight if current song)
         Text(
             text = trackNumber.toString().padStart(2, '0'),
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isPlaying) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0.6f),
+            color = if (isCurrentSong) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0.6f),
             modifier = Modifier.padding(end = 4.dp)
         )
 
@@ -108,8 +109,8 @@ fun SongListItem(
             color = GunmetalGray
         )
 
-        // Play/Pause button (only show if callback is provided)
-        if (onPlayPauseClick != null) {
+        // Play/Pause button (only show for current song)
+        if (onPlayPauseClick != null && isCurrentSong) {
             IconButton(
                 onClick = onPlayPauseClick,
                 modifier = Modifier.size(40.dp)

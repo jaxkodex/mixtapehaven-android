@@ -117,134 +117,140 @@ fun HomeScreen(
                 )
             )
         },
-        bottomBar = {
+        containerColor = DeepSpaceBlack
+    ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
+            if (uiState.isLoading) {
+                // Loading state
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center
+                    ) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(48.dp),
+                            color = CyberNeonBlue,
+                            strokeWidth = 4.dp
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "Loading your library...",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = LunarWhite.copy(alpha = 0.7f)
+                        )
+                    }
+                }
+            } else {
+                // Content state
+                LazyColumn(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(paddingValues),
+                    contentPadding = PaddingValues(bottom = 100.dp)
+                ) {
+                    // Recently Added Section
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        SectionHeader(
+                            title = "Recently Added",
+                            onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") }
+                        )
+                    }
+
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.recentlyAddedAlbums) { album ->
+                                AlbumCard(
+                                    album = album,
+                                    onClick = { viewModel.onAlbumClick(album) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Top Artists Section
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        SectionHeader(
+                            title = "Top Artists",
+                            onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
+                        )
+                    }
+
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.topArtists) { artist ->
+                                ArtistCircle(
+                                    artist = artist,
+                                    onClick = { viewModel.onArtistClick(artist) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Your Playlist Section
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        SectionHeader(
+                            title = "Your Playlist",
+                            onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
+                        )
+                    }
+
+                    item {
+                        LazyRow(
+                            contentPadding = PaddingValues(horizontal = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(uiState.playlists) { playlist ->
+                                PlaylistCard(
+                                    playlist = playlist,
+                                    onClick = { viewModel.onPlaylistClick(playlist) }
+                                )
+                            }
+                        }
+                    }
+
+                    // Popular Songs Section
+                    item {
+                        Spacer(modifier = Modifier.height(24.dp))
+                        SectionHeader(
+                            title = "Popular Songs",
+                            onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
+                        )
+                    }
+
+                    itemsIndexed(uiState.popularSongs) { index, song ->
+                        SongListItem(
+                            song = song,
+                            trackNumber = index + 1,
+                            onClick = { viewModel.onSongClick(song) }
+                        )
+                    }
+                }
+            }
+
+            // Floating Now Playing Bar
             NowPlayingBar(
                 playbackState = playbackState,
                 onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                onBarClick = { viewModel.onNowPlayingBarClick() }
+                onBarClick = { viewModel.onNowPlayingBarClick() },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxWidth()
             )
-        },
-        containerColor = DeepSpaceBlack
-    ) { paddingValues ->
-        if (uiState.isLoading) {
-            // Loading state
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(48.dp),
-                        color = CyberNeonBlue,
-                        strokeWidth = 4.dp
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Text(
-                        text = "Loading your library...",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = LunarWhite.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        } else {
-            // Content state
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 16.dp)
-            ) {
-                // Recently Added Section
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                    SectionHeader(
-                        title = "Recently Added",
-                        onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") }
-                    )
-                }
-
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.recentlyAddedAlbums) { album ->
-                            AlbumCard(
-                                album = album,
-                                onClick = { viewModel.onAlbumClick(album) }
-                            )
-                        }
-                    }
-                }
-
-                // Top Artists Section
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    SectionHeader(
-                        title = "Top Artists",
-                        onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
-                    )
-                }
-
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.topArtists) { artist ->
-                            ArtistCircle(
-                                artist = artist,
-                                onClick = { viewModel.onArtistClick(artist) }
-                            )
-                        }
-                    }
-                }
-
-                // Your Playlist Section
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    SectionHeader(
-                        title = "Your Playlist",
-                        onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
-                    )
-                }
-
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        items(uiState.playlists) { playlist ->
-                            PlaylistCard(
-                                playlist = playlist,
-                                onClick = { viewModel.onPlaylistClick(playlist) }
-                            )
-                        }
-                    }
-                }
-
-                // Popular Songs Section
-                item {
-                    Spacer(modifier = Modifier.height(24.dp))
-                    SectionHeader(
-                        title = "Popular Songs",
-                        onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
-                    )
-                }
-
-                itemsIndexed(uiState.popularSongs) { index, song ->
-                    SongListItem(
-                        song = song,
-                        trackNumber = index + 1,
-                        onClick = { viewModel.onSongClick(song) }
-                    )
-                }
-            }
         }
     }
 }

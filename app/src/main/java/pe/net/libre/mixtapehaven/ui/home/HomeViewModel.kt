@@ -20,6 +20,7 @@ class HomeViewModel(
     private val onNavigateToAllArtists: () -> Unit = {},
     private val onNavigateToAllSongs: () -> Unit = {},
     private val onNavigateToAllPlaylists: () -> Unit = {},
+    private val onNavigateToPlaylistDetail: (String) -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
     private val onLogout: () -> Unit = {}
 ) : ViewModel() {
@@ -112,7 +113,7 @@ class HomeViewModel(
     }
 
     fun onPlaylistClick(playlist: Playlist) {
-        // TODO: Navigate to playlist details
+        onNavigateToPlaylistDetail(playlist.id)
     }
 
     fun onSeeMoreClick(section: String) {

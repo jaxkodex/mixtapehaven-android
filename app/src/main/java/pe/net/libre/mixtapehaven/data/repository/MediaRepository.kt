@@ -239,6 +239,53 @@ class MediaRepository(
     }
 
     /**
+     * Get playlist items (songs in a playlist)
+     */
+    suspend fun getPlaylistItems(playlistId: String): Result<List<Song>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                parentId = playlistId,
+                includeItemTypes = "Audio",
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+
+            val songs = response.items.map { item -> mapToSong(item) }
+            Result.success(songs)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get playlist by ID
+     */
+    suspend fun getPlaylistById(playlistId: String): Result<Playlist> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                includeItemTypes = "Playlist",
+                fields = "PrimaryImageAspectRatio,ChildCount"
+            )
+
+            val playlist = response.items.find { it.id == playlistId }
+                ?: throw IllegalStateException("Playlist not found")
+
+            Result.success(mapToPlaylist(playlist))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Map BaseItemDto to Album
      */
     private fun mapToAlbum(item: BaseItemDto): Album {

@@ -59,6 +59,7 @@ fun HomeScreen(
     onNavigateToAllArtists: () -> Unit = {},
     onNavigateToAllSongs: () -> Unit = {},
     onNavigateToAllPlaylists: () -> Unit = {},
+    onNavigateToPlaylistDetail: (String) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
@@ -70,6 +71,7 @@ fun HomeScreen(
             onNavigateToAllArtists = onNavigateToAllArtists,
             onNavigateToAllSongs = onNavigateToAllSongs,
             onNavigateToAllPlaylists = onNavigateToAllPlaylists,
+            onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
             onNavigateToNowPlaying = onNavigateToNowPlaying,
             onLogout = onLogout
         )

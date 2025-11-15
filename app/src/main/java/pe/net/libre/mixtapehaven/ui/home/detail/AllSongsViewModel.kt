@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.Song
 
@@ -19,7 +20,8 @@ data class AllSongsUiState(
 )
 
 class AllSongsViewModel(
-    private val mediaRepository: MediaRepository
+    private val mediaRepository: MediaRepository,
+    private val playbackManager: PlaybackManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AllSongsUiState())
@@ -117,5 +119,13 @@ class AllSongsViewModel(
 
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+
+    fun onSongClick(song: Song) {
+        playbackManager.playSong(song)
+    }
+
+    fun onPlayPauseClick() {
+        playbackManager.togglePlayPause()
     }
 }

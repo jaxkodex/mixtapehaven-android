@@ -122,7 +122,15 @@ class AllSongsViewModel(
     }
 
     fun onSongClick(song: Song) {
-        playbackManager.playSong(song)
+        // Set queue with all songs and start from the clicked song
+        val allSongs = _uiState.value.songs
+        val index = allSongs.indexOf(song)
+        if (index != -1 && allSongs.isNotEmpty()) {
+            playbackManager.setQueue(allSongs, startIndex = index)
+        } else {
+            // Fallback to just playing the song
+            playbackManager.playSong(song)
+        }
     }
 
     fun onPlayPauseClick() {

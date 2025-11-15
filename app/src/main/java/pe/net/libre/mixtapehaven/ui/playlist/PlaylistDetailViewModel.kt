@@ -81,8 +81,7 @@ class PlaylistDetailViewModel(
     fun onPlayAllClick() {
         val songs = _uiState.value.songs
         if (songs.isNotEmpty()) {
-            playbackManager.playSong(songs.first())
-            // TODO: Queue remaining songs
+            playbackManager.setQueue(songs, startIndex = 0)
         }
     }
 
@@ -90,13 +89,20 @@ class PlaylistDetailViewModel(
         val songs = _uiState.value.songs
         if (songs.isNotEmpty()) {
             val shuffledSongs = songs.shuffled()
-            playbackManager.playSong(shuffledSongs.first())
-            // TODO: Queue remaining shuffled songs
+            playbackManager.setQueue(shuffledSongs, startIndex = 0)
         }
     }
 
     fun onSongClick(song: Song) {
-        playbackManager.playSong(song)
+        val songs = _uiState.value.songs
+        val index = songs.indexOf(song)
+        if (index != -1) {
+            // Set queue starting from the clicked song
+            playbackManager.setQueue(songs, startIndex = index)
+        } else {
+            // Fallback to just playing the song
+            playbackManager.playSong(song)
+        }
     }
 
     fun onPlayPauseClick() {

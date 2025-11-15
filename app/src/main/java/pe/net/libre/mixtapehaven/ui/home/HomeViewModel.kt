@@ -98,8 +98,15 @@ class HomeViewModel(
     }
 
     fun onSongClick(song: Song) {
-        // Play the song
-        playbackManager.playSong(song)
+        // Set queue with popular songs and start from the clicked song
+        val popularSongs = _uiState.value.popularSongs
+        val index = popularSongs.indexOf(song)
+        if (index != -1 && popularSongs.isNotEmpty()) {
+            playbackManager.setQueue(popularSongs, startIndex = index)
+        } else {
+            // Fallback to just playing the song
+            playbackManager.playSong(song)
+        }
     }
 
     fun onPlayPauseClick() {

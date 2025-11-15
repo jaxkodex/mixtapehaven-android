@@ -93,10 +93,8 @@ class MediaPlaybackService : Service() {
             override fun onPlaybackStateChanged(playbackState: Int) {
                 when (playbackState) {
                     Player.STATE_READY -> updateNotification()
-                    Player.STATE_ENDED -> {
-                        stopForeground(STOP_FOREGROUND_REMOVE)
-                        stopSelf()
-                    }
+                    // Don't stop service on STATE_ENDED - let PlaybackManager handle auto-play
+                    // The service will be stopped when user explicitly stops playback
                 }
             }
         })

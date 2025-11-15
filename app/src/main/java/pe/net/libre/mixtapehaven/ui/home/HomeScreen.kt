@@ -42,6 +42,7 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
+import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.home.components.SectionHeader
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -199,6 +200,29 @@ fun HomeScreen(
                             ArtistCircle(
                                 artist = artist,
                                 onClick = { viewModel.onArtistClick(artist) }
+                            )
+                        }
+                    }
+                }
+
+                // Your Playlist Section
+                item {
+                    Spacer(modifier = Modifier.height(24.dp))
+                    SectionHeader(
+                        title = "Your Playlist",
+                        onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
+                    )
+                }
+
+                item {
+                    LazyRow(
+                        contentPadding = PaddingValues(horizontal = 8.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(uiState.playlists) { playlist ->
+                            PlaylistCard(
+                                playlist = playlist,
+                                onClick = { viewModel.onPlaylistClick(playlist) }
                             )
                         }
                     }

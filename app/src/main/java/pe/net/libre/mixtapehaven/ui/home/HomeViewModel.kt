@@ -51,12 +51,14 @@ class HomeViewModel(
                 // Load all data in parallel
                 val recentAlbumsResult = mediaRepository.getRecentlyAddedAlbums(limit = 10)
                 val topArtistsResult = mediaRepository.getTopArtists(limit = 10)
+                val playlistsResult = mediaRepository.getUserPlaylists(limit = 10)
                 val popularSongsResult = mediaRepository.getPopularSongs(limit = 20)
 
                 // Update UI state with results
                 _uiState.value = HomeUiState(
                     recentlyAddedAlbums = recentAlbumsResult.getOrElse { emptyList() },
                     topArtists = topArtistsResult.getOrElse { emptyList() },
+                    playlists = playlistsResult.getOrElse { emptyList() },
                     popularSongs = popularSongsResult.getOrElse { emptyList() },
                     nowPlayingSong = null, // TODO: Implement now playing
                     isLoading = false
@@ -66,6 +68,7 @@ class HomeViewModel(
                 val errors = listOfNotNull(
                     recentAlbumsResult.exceptionOrNull(),
                     topArtistsResult.exceptionOrNull(),
+                    playlistsResult.exceptionOrNull(),
                     popularSongsResult.exceptionOrNull()
                 )
 
@@ -107,10 +110,15 @@ class HomeViewModel(
         onNavigateToNowPlaying()
     }
 
+    fun onPlaylistClick(playlist: Playlist) {
+        // TODO: Navigate to playlist details
+    }
+
     fun onSeeMoreClick(section: String) {
         when (section) {
             "recently_added" -> onNavigateToAllAlbums()
             "top_artists" -> onNavigateToAllArtists()
+            "playlists" -> {} // TODO: Navigate to all playlists
             "popular_songs" -> onNavigateToAllSongs()
         }
     }
@@ -131,6 +139,7 @@ class HomeViewModel(
 data class HomeUiState(
     val recentlyAddedAlbums: List<Album> = emptyList(),
     val topArtists: List<Artist> = emptyList(),
+    val playlists: List<Playlist> = emptyList(),
     val popularSongs: List<Song> = emptyList(),
     val nowPlayingSong: Song? = null,
     val isLoading: Boolean = true

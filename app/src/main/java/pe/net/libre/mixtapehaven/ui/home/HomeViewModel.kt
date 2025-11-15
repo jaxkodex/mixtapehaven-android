@@ -19,6 +19,8 @@ class HomeViewModel(
     private val onNavigateToAllAlbums: () -> Unit = {},
     private val onNavigateToAllArtists: () -> Unit = {},
     private val onNavigateToAllSongs: () -> Unit = {},
+    private val onNavigateToAllPlaylists: () -> Unit = {},
+    private val onNavigateToPlaylistDetail: (String) -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
     private val onLogout: () -> Unit = {}
 ) : ViewModel() {
@@ -96,8 +98,15 @@ class HomeViewModel(
     }
 
     fun onSongClick(song: Song) {
-        // Play the song
-        playbackManager.playSong(song)
+        // Set queue with popular songs and start from the clicked song
+        val popularSongs = _uiState.value.popularSongs
+        val index = popularSongs.indexOf(song)
+        if (index != -1 && popularSongs.isNotEmpty()) {
+            playbackManager.setQueue(popularSongs, startIndex = index)
+        } else {
+            // Fallback to just playing the song
+            playbackManager.playSong(song)
+        }
     }
 
     fun onPlayPauseClick() {
@@ -111,14 +120,14 @@ class HomeViewModel(
     }
 
     fun onPlaylistClick(playlist: Playlist) {
-        // TODO: Navigate to playlist details
+        onNavigateToPlaylistDetail(playlist.id)
     }
 
     fun onSeeMoreClick(section: String) {
         when (section) {
             "recently_added" -> onNavigateToAllAlbums()
             "top_artists" -> onNavigateToAllArtists()
-            "playlists" -> {} // TODO: Navigate to all playlists
+            "playlists" -> onNavigateToAllPlaylists()
             "popular_songs" -> onNavigateToAllSongs()
         }
     }

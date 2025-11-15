@@ -11,6 +11,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,7 +36,9 @@ fun SongListItem(
     song: Song,
     trackNumber: Int,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isPlaying: Boolean = false,
+    onPlayPauseClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -41,11 +48,11 @@ fun SongListItem(
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Track number
+        // Track number (highlight if playing)
         Text(
             text = trackNumber.toString().padStart(2, '0'),
             style = MaterialTheme.typography.bodyLarge,
-            color = CyberNeonBlue,
+            color = if (isPlaying) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0.6f),
             modifier = Modifier.padding(end = 4.dp)
         )
 
@@ -100,5 +107,19 @@ fun SongListItem(
             style = MaterialTheme.typography.bodySmall,
             color = GunmetalGray
         )
+
+        // Play/Pause button (only show if callback is provided)
+        if (onPlayPauseClick != null) {
+            IconButton(
+                onClick = onPlayPauseClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
+                    tint = CyberNeonBlue
+                )
+            }
+        }
     }
 }

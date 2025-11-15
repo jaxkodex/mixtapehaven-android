@@ -214,7 +214,7 @@ class MediaRepository(
     /**
      * Get user playlists
      */
-    suspend fun getUserPlaylists(limit: Int = 10): Result<List<Playlist>> {
+    suspend fun getUserPlaylists(limit: Int = 10, startIndex: Int = 0): Result<List<Playlist>> {
         return try {
             val service = ensureApiService()
             val userId = dataStoreManager.userId.first()
@@ -227,11 +227,59 @@ class MediaRepository(
                 sortBy = "SortName",
                 sortOrder = "Ascending",
                 limit = limit,
+                startIndex = startIndex,
                 fields = "PrimaryImageAspectRatio,ChildCount"
             )
 
             val playlists = response.items.map { item -> mapToPlaylist(item) }
             Result.success(playlists)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get playlist items (songs in a playlist)
+     */
+    suspend fun getPlaylistItems(playlistId: String): Result<List<Song>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                parentId = playlistId,
+                includeItemTypes = "Audio",
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+
+            val songs = response.items.map { item -> mapToSong(item) }
+            Result.success(songs)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get playlist by ID
+     */
+    suspend fun getPlaylistById(playlistId: String): Result<Playlist> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                includeItemTypes = "Playlist",
+                fields = "PrimaryImageAspectRatio,ChildCount"
+            )
+
+            val playlist = response.items.find { it.id == playlistId }
+                ?: throw IllegalStateException("Playlist not found")
+
+            Result.success(mapToPlaylist(playlist))
         } catch (e: Exception) {
             Result.failure(e)
         }

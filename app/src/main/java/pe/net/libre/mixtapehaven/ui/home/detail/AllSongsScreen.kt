@@ -93,13 +93,6 @@ fun AllSongsScreen(
                 )
             )
         },
-        bottomBar = {
-            NowPlayingBar(
-                playbackState = playbackState,
-                onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                onBarClick = { onNavigateToNowPlaying() }
-            )
-        },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
         Box(
@@ -177,7 +170,8 @@ fun AllSongsScreen(
                     ) {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(bottom = 100.dp)
                         ) {
                             itemsIndexed(uiState.songs) { index, song ->
                                 SongListItem(
@@ -204,5 +198,16 @@ fun AllSongsScreen(
                 }
             }
         }
+
+        // Floating Now Playing Bar
+        NowPlayingBar(
+            playbackState = playbackState,
+            onPlayPauseClick = { viewModel.onPlayPauseClick() },
+            onBarClick = { onNavigateToNowPlaying() },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .fillMaxWidth()
+        )
     }
 }

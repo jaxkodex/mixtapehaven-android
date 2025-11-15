@@ -117,15 +117,9 @@ fun HomeScreen(
                 )
             )
         },
-        bottomBar = {
-            NowPlayingBar(
-                playbackState = playbackState,
-                onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                onBarClick = { viewModel.onNowPlayingBarClick() }
-            )
-        },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
+        Box(modifier = Modifier.fillMaxSize()) {
         if (uiState.isLoading) {
             // Loading state
             Box(
@@ -157,7 +151,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues),
-                contentPadding = PaddingValues(bottom = 16.dp)
+                contentPadding = PaddingValues(bottom = 100.dp)
             ) {
                 // Recently Added Section
                 item {
@@ -245,6 +239,18 @@ fun HomeScreen(
                     )
                 }
             }
+        }
+
+        // Floating Now Playing Bar
+        NowPlayingBar(
+            playbackState = playbackState,
+            onPlayPauseClick = { viewModel.onPlayPauseClick() },
+            onBarClick = { viewModel.onNowPlayingBarClick() },
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(horizontal = 16.dp, vertical = 16.dp)
+                .fillMaxWidth()
+        )
         }
     }
 }

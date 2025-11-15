@@ -47,9 +47,10 @@ fun NowPlayingBar(
     if (song == null) return
 
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier,
         color = GunmetalGray,
-        shadowElevation = 8.dp
+        shadowElevation = 12.dp,
+        shape = RoundedCornerShape(16.dp)
     ) {
         Column(
             modifier = Modifier
@@ -133,7 +134,8 @@ fun NowPlayingBar(
                 progress = { playbackState.progress },
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(3.dp),
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)),
                 color = CyberNeonBlue,
                 trackColor = DeepSpaceBlack,
             )

@@ -239,7 +239,9 @@ fun HomeScreen(
                         SongListItem(
                             song = song,
                             trackNumber = index + 1,
-                            onClick = { viewModel.onSongClick(song) }
+                            onClick = { viewModel.onSongClick(song) },
+                            isPlaying = playbackState.currentSong?.id == song.id,
+                            onPlayPauseClick = { viewModel.onPlayPauseClick() }
                         )
                     }
                 }

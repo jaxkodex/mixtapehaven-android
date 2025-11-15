@@ -78,7 +78,7 @@ class PlaybackManager private constructor(
     private var currentAccessToken: String? = null
 
     // ExoPlayer instance with custom OkHttp DataSource for authenticated streaming
-    private val player: ExoPlayer = createExoPlayer(context).apply {
+    private val _player: ExoPlayer = createExoPlayer(context).apply {
         // Set up player listener to track state changes
         addListener(object : Player.Listener {
             override fun onPlaybackStateChanged(state: Int) {
@@ -91,7 +91,7 @@ class PlaybackManager private constructor(
                     }
                     Player.STATE_READY -> {
                         // Media is ready to play
-                        val duration = player.duration
+                        val duration = _player.duration
                         if (duration > 0) {
                             _playbackState.value = _playbackState.value.copy(duration = duration)
                         }
@@ -119,6 +119,9 @@ class PlaybackManager private constructor(
             }
         })
     }
+
+    // Expose player for MediaPlaybackService
+    internal val player: ExoPlayer get() = _player
 
     /**
      * Play a song
@@ -154,9 +157,9 @@ class PlaybackManager private constructor(
                 val mediaItem = MediaItem.fromUri(streamUrl)
 
                 // Set media item and prepare
-                player.setMediaItem(mediaItem)
-                player.prepare()
-                player.play()
+                _player.setMediaItem(mediaItem)
+                _player.prepare()
+                _player.play()
 
                 // Update state
                 _playbackState.value = PlaybackState(
@@ -179,7 +182,7 @@ class PlaybackManager private constructor(
      * Toggle play/pause
      */
     fun togglePlayPause() {
-        if (player.isPlaying) {
+        if (_player.isPlaying) {
             pause()
         } else {
             resume()
@@ -190,14 +193,14 @@ class PlaybackManager private constructor(
      * Pause playback
      */
     fun pause() {
-        player.pause()
+        _player.pause()
     }
 
     /**
      * Resume playback
      */
     fun resume() {
-        player.play()
+        _player.play()
     }
 
     /**
@@ -216,7 +219,7 @@ class PlaybackManager private constructor(
      */
     fun playPrevious() {
         // For now, restart the current song
-        val currentPosition = player.currentPosition
+        val currentPosition = _player.currentPosition
         if (currentPosition > 3000) {
             // If more than 3 seconds, restart current song
             seekTo(0L)
@@ -231,14 +234,14 @@ class PlaybackManager private constructor(
      * Seek to a specific position
      */
     fun seekTo(positionMs: Long) {
-        player.seekTo(positionMs)
+        _player.seekTo(positionMs)
     }
 
     /**
      * Stop playback
      */
     fun stop() {
-        player.stop()
+        _player.stop()
         _playbackState.value = PlaybackState()
         stopProgressTracking()
     }
@@ -247,7 +250,7 @@ class PlaybackManager private constructor(
      * Release resources
      */
     fun release() {
-        player.release()
+        _player.release()
         stopProgressTracking()
     }
 
@@ -258,11 +261,11 @@ class PlaybackManager private constructor(
         stopProgressTracking()
 
         progressJob = scope.launch {
-            while (isActive && player.isPlaying) {
+            while (isActive && _player.isPlaying) {
                 delay(100) // Update every 100ms
 
-                val currentPosition = player.currentPosition
-                val duration = player.duration
+                val currentPosition = _player.currentPosition
+                val duration = _player.duration
 
                 _playbackState.value = _playbackState.value.copy(
                     currentPosition = currentPosition,

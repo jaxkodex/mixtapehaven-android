@@ -19,6 +19,7 @@ class HomeViewModel(
     private val onNavigateToAllAlbums: () -> Unit = {},
     private val onNavigateToAllArtists: () -> Unit = {},
     private val onNavigateToAllSongs: () -> Unit = {},
+    private val onNavigateToAllPlaylists: () -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
     private val onLogout: () -> Unit = {}
 ) : ViewModel() {
@@ -118,7 +119,7 @@ class HomeViewModel(
         when (section) {
             "recently_added" -> onNavigateToAllAlbums()
             "top_artists" -> onNavigateToAllArtists()
-            "playlists" -> {} // TODO: Navigate to all playlists
+            "playlists" -> onNavigateToAllPlaylists()
             "popular_songs" -> onNavigateToAllSongs()
         }
     }

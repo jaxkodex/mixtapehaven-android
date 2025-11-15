@@ -214,7 +214,7 @@ class MediaRepository(
     /**
      * Get user playlists
      */
-    suspend fun getUserPlaylists(limit: Int = 10): Result<List<Playlist>> {
+    suspend fun getUserPlaylists(limit: Int = 10, startIndex: Int = 0): Result<List<Playlist>> {
         return try {
             val service = ensureApiService()
             val userId = dataStoreManager.userId.first()
@@ -227,6 +227,7 @@ class MediaRepository(
                 sortBy = "SortName",
                 sortOrder = "Ascending",
                 limit = limit,
+                startIndex = startIndex,
                 fields = "PrimaryImageAspectRatio,ChildCount"
             )
 

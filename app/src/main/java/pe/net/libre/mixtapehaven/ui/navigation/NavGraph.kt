@@ -12,6 +12,7 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllArtistsScreen
+import pe.net.libre.mixtapehaven.ui.home.detail.AllPlaylistsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllSongsScreen
 import pe.net.libre.mixtapehaven.ui.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingScreen
@@ -25,6 +26,7 @@ sealed class Screen(val route: String) {
     data object AllAlbums : Screen("all_albums")
     data object AllArtists : Screen("all_artists")
     data object AllSongs : Screen("all_songs")
+    data object AllPlaylists : Screen("all_playlists")
     data object NowPlaying : Screen("now_playing")
 }
 
@@ -70,6 +72,9 @@ fun NavGraph(
                 onNavigateToAllSongs = {
                     navController.navigate(Screen.AllSongs.route)
                 },
+                onNavigateToAllPlaylists = {
+                    navController.navigate(Screen.AllPlaylists.route)
+                },
                 onNavigateToNowPlaying = {
                     navController.navigate(Screen.NowPlaying.route)
                 },
@@ -111,6 +116,15 @@ fun NavGraph(
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Screen.NowPlaying.route)
+                }
+            )
+        }
+
+        composable(Screen.AllPlaylists.route) {
+            AllPlaylistsScreen(
+                mediaRepository = mediaRepository,
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

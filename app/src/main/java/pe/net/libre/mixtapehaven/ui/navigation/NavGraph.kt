@@ -105,8 +105,12 @@ fun NavGraph(
         composable(Screen.AllSongs.route) {
             AllSongsScreen(
                 mediaRepository = mediaRepository,
+                playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }

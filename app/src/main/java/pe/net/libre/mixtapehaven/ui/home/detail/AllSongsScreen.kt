@@ -34,7 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
@@ -44,14 +46,19 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun AllSongsScreen(
     mediaRepository: MediaRepository,
+    playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit,
-    onSongClick: (String) -> Unit = {},
+    onNavigateToNowPlaying: () -> Unit = {},
     onSearchClick: () -> Unit = {}
 ) {
     val viewModel: AllSongsViewModel = viewModel {
-        AllSongsViewModel(mediaRepository = mediaRepository)
+        AllSongsViewModel(
+            mediaRepository = mediaRepository,
+            playbackManager = playbackManager
+        )
     }
     val uiState by viewModel.uiState.collectAsState()
+    val playbackState by playbackManager.playbackState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -84,6 +91,13 @@ fun AllSongsScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = DeepSpaceBlack
                 )
+            )
+        },
+        bottomBar = {
+            NowPlayingBar(
+                playbackState = playbackState,
+                onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                onBarClick = { onNavigateToNowPlaying() }
             )
         },
         containerColor = DeepSpaceBlack
@@ -169,7 +183,7 @@ fun AllSongsScreen(
                                 SongListItem(
                                     song = song,
                                     trackNumber = index + 1,
-                                    onClick = { onSongClick(song.id) }
+                                    onClick = { viewModel.onSongClick(song) }
                                 )
                             }
 

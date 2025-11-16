@@ -303,6 +303,7 @@ fun PlaylistDetailScreen(
                         Spacer(modifier = Modifier.height(160.dp))
                     }
                 }
+                }
             }
 
             // Floating Now Playing Bar

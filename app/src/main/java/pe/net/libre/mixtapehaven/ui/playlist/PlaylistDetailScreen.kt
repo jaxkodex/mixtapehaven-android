@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
@@ -64,7 +65,8 @@ fun PlaylistDetailScreen(
     playlistId: String,
     mediaRepository: MediaRepository,
     playbackManager: PlaybackManager,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onNavigateToNowPlaying: () -> Unit = {}
 ) {
     val viewModel: PlaylistDetailViewModel = viewModel {
         PlaylistDetailViewModel(
@@ -118,47 +120,46 @@ fun PlaylistDetailScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        when {
-            uiState.isLoading -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(color = CyberNeonBlue)
-                }
-            }
-            uiState.errorMessage != null -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.padding(16.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            when {
+                uiState.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = uiState.errorMessage ?: "An error occurred",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = LunarWhite,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.retry() }) {
-                            Text("Retry")
+                        CircularProgressIndicator(color = CyberNeonBlue)
+                    }
+                }
+                uiState.errorMessage != null -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            modifier = Modifier.padding(16.dp)
+                        ) {
+                            Text(
+                                text = uiState.errorMessage ?: "An error occurred",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = LunarWhite,
+                                textAlign = TextAlign.Center
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Button(onClick = { viewModel.retry() }) {
+                                Text("Retry")
+                            }
                         }
                     }
                 }
-            }
-            else -> {
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues)
-                ) {
+                else -> {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize()
+                    ) {
                     // Playlist header with cover image
                     item {
                         Box(
@@ -297,12 +298,24 @@ fun PlaylistDetailScreen(
                         )
                     }
 
-                    // Bottom spacing for FAB
+                    // Bottom spacing for FAB and Now Playing Bar
                     item {
-                        Spacer(modifier = Modifier.height(80.dp))
+                        Spacer(modifier = Modifier.height(160.dp))
                     }
                 }
+                }
             }
+
+            // Floating Now Playing Bar
+            NowPlayingBar(
+                playbackState = playbackState,
+                onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                onBarClick = onNavigateToNowPlaying,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxWidth()
+            )
         }
     }
 }

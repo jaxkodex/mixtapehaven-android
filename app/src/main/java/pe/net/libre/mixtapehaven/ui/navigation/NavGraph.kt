@@ -101,8 +101,12 @@ fun NavGraph(
         composable(Screen.AllAlbums.route) {
             AllAlbumsScreen(
                 mediaRepository = mediaRepository,
+                playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -110,8 +114,12 @@ fun NavGraph(
         composable(Screen.AllArtists.route) {
             AllArtistsScreen(
                 mediaRepository = mediaRepository,
+                playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -132,11 +140,15 @@ fun NavGraph(
         composable(Screen.AllPlaylists.route) {
             AllPlaylistsScreen(
                 mediaRepository = mediaRepository,
+                playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
                 },
                 onPlaylistClick = { playlistId ->
                     navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -154,6 +166,9 @@ fun NavGraph(
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onNavigateToNowPlaying = {
+                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }

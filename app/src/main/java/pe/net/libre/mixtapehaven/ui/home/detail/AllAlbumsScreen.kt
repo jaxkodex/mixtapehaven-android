@@ -38,8 +38,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
+import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
@@ -48,14 +50,17 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun AllAlbumsScreen(
     mediaRepository: MediaRepository,
+    playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit,
     onAlbumClick: (String) -> Unit = {},
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {},
+    onNavigateToNowPlaying: () -> Unit = {}
 ) {
     val viewModel: AllAlbumsViewModel = viewModel {
         AllAlbumsViewModel(mediaRepository = mediaRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
+    val playbackState by playbackManager.playbackState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -169,7 +174,12 @@ fun AllAlbumsScreen(
                             columns = GridCells.Fixed(2),
                             state = gridState,
                             modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(horizontal = 8.dp, vertical = 16.dp),
+                            contentPadding = PaddingValues(
+                                start = 8.dp,
+                                end = 8.dp,
+                                top = 16.dp,
+                                bottom = 96.dp
+                            ),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
@@ -196,6 +206,17 @@ fun AllAlbumsScreen(
                     }
                 }
             }
+
+            // Floating Now Playing Bar
+            NowPlayingBar(
+                playbackState = playbackState,
+                onPlayPauseClick = { playbackManager.togglePlayPause() },
+                onBarClick = onNavigateToNowPlaying,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxWidth()
+            )
         }
     }
 }

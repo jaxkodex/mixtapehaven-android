@@ -3,6 +3,7 @@ package pe.net.libre.mixtapehaven.ui.home.detail
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -37,8 +38,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistListItem
+import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
@@ -47,15 +50,18 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun AllArtistsScreen(
     mediaRepository: MediaRepository,
+    playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit,
     onArtistClick: (String) -> Unit = {},
     onSearchClick: () -> Unit = {},
-    onArtistMenuClick: (String) -> Unit = {}
+    onArtistMenuClick: (String) -> Unit = {},
+    onNavigateToNowPlaying: () -> Unit = {}
 ) {
     val viewModel: AllArtistsViewModel = viewModel {
         AllArtistsViewModel(mediaRepository = mediaRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
+    val playbackState by playbackManager.playbackState.collectAsState()
 
     Scaffold(
         topBar = {
@@ -169,7 +175,8 @@ fun AllArtistsScreen(
                             // Artist list
                             LazyColumn(
                                 state = listState,
-                                modifier = Modifier.fillMaxSize()
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 96.dp)
                             ) {
                                 items(uiState.artists) { artist ->
                                     ArtistListItem(
@@ -203,6 +210,17 @@ fun AllArtistsScreen(
                     }
                 }
             }
+
+            // Floating Now Playing Bar
+            NowPlayingBar(
+                playbackState = playbackState,
+                onPlayPauseClick = { playbackManager.togglePlayPause() },
+                onBarClick = onNavigateToNowPlaying,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxWidth()
+            )
         }
     }
 }

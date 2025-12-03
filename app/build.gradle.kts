@@ -15,19 +15,33 @@ android {
         applicationId = "pe.net.libre.mixtapehaven"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+
+        // Version can be overridden by environment variables (used in CI/CD)
+        versionCode = System.getenv("VERSION_CODE")?.toIntOrNull() ?: 1
+        versionName = System.getenv("VERSION_NAME") ?: "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        create("release") {
+            // Keystore file path (in CI, this is created from base64 secret)
+            storeFile = file(System.getenv("KEYSTORE_FILE") ?: "${rootProject.projectDir}/release-keystore.jks")
+            storePassword = System.getenv("KEYSTORE_PASSWORD")
+            keyAlias = System.getenv("KEY_ALIAS")
+            keyPassword = System.getenv("KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.getByName("release")
         }
     }
     compileOptions {

@@ -1,0 +1,5 @@
+Initial alpha release of Mixtape Haven
+- Stream your favorite music
+- Create and manage playlists
+- Beautiful Material 3 design
+- Smooth playback experience

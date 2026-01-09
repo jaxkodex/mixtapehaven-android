@@ -43,28 +43,4 @@ class NowPlayingViewModel(
     fun onSeek(positionMs: Long) {
         playbackManager.seekTo(positionMs)
     }
-
-    /**
-     * Show lyrics
-     * TODO: Implement lyrics display
-     */
-    fun onLyricsClick() {
-        // TODO: Navigate to lyrics screen or show lyrics dialog
-    }
-
-    /**
-     * Open equalizer
-     * TODO: Implement equalizer
-     */
-    fun onEqualizerClick() {
-        // TODO: Navigate to equalizer screen or show equalizer dialog
-    }
-
-    /**
-     * Add to playlist
-     * TODO: Implement add to playlist
-     */
-    fun onAddToPlaylistClick() {
-        // TODO: Show playlist selection dialog
-    }
 }

@@ -247,17 +247,6 @@ fun HomeScreen(
                     }
                 }
             }
-
-            // Floating Now Playing Bar
-            NowPlayingBar(
-                playbackState = playbackState,
-                onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                onBarClick = { viewModel.onNowPlayingBarClick() },
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .fillMaxWidth()
-            )
         }
     }
 }

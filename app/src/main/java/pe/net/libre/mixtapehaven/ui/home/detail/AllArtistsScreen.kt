@@ -54,8 +54,7 @@ fun AllArtistsScreen(
     onNavigateBack: () -> Unit,
     onArtistClick: (String) -> Unit = {},
     onSearchClick: () -> Unit = {},
-    onArtistMenuClick: (String) -> Unit = {},
-    onNavigateToNowPlaying: () -> Unit = {}
+    onArtistMenuClick: (String) -> Unit = {}
 ) {
     val viewModel: AllArtistsViewModel = viewModel {
         AllArtistsViewModel(mediaRepository = mediaRepository)
@@ -210,17 +209,6 @@ fun AllArtistsScreen(
                     }
                 }
             }
-
-            // Floating Now Playing Bar
-            NowPlayingBar(
-                playbackState = playbackState,
-                onPlayPauseClick = { playbackManager.togglePlayPause() },
-                onBarClick = onNavigateToNowPlaying,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .fillMaxWidth()
-            )
         }
     }
 }

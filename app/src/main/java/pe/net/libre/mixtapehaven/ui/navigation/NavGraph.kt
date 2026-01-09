@@ -1,17 +1,28 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
+import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllArtistsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllPlaylistsScreen
@@ -47,10 +58,26 @@ fun NavGraph(
 ) {
     val coroutineScope = rememberCoroutineScope()
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination
-    ) {
+    // Observe current route for conditional visibility
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.destination?.route
+
+    // Collect playback state for persistent bar
+    val playbackState by playbackManager.playbackState.collectAsState()
+
+    // Determine if bar should be visible based on route
+    val shouldShowNowPlayingBar = when {
+        currentRoute == null -> false
+        currentRoute == Screen.Onboarding.route -> false
+        currentRoute == Screen.NowPlaying.route -> false
+        else -> true  // Show on Home, AllSongs, AllAlbums, AllArtists, AllPlaylists, PlaylistDetail, Troubleshoot
+    }
+
+    Box(modifier = Modifier.fillMaxSize()) {
+        NavHost(
+            navController = navController,
+            startDestination = startDestination
+        ) {
         composable(Screen.Onboarding.route) {
             OnboardingScreen(
                 viewModel = onboardingViewModel,
@@ -104,9 +131,6 @@ fun NavGraph(
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
-                },
-                onNavigateToNowPlaying = {
-                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -117,9 +141,6 @@ fun NavGraph(
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
-                },
-                onNavigateToNowPlaying = {
-                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -130,9 +151,6 @@ fun NavGraph(
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
-                },
-                onNavigateToNowPlaying = {
-                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -146,9 +164,6 @@ fun NavGraph(
                 },
                 onPlaylistClick = { playlistId ->
                     navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
-                },
-                onNavigateToNowPlaying = {
-                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -166,9 +181,6 @@ fun NavGraph(
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
-                },
-                onNavigateToNowPlaying = {
-                    navController.navigate(Screen.NowPlaying.route)
                 }
             )
         }
@@ -187,6 +199,20 @@ fun NavGraph(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
+            )
+        }
+    }
+
+        // Persistent NowPlayingBar outside NavHost
+        if (shouldShowNowPlayingBar) {
+            NowPlayingBar(
+                playbackState = playbackState,
+                onPlayPauseClick = { playbackManager.togglePlayPause() },
+                onBarClick = { navController.navigate(Screen.NowPlaying.route) },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(horizontal = 16.dp, vertical = 16.dp)
+                    .fillMaxWidth()
             )
         }
     }

@@ -24,18 +24,25 @@ import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,6 +72,11 @@ fun NowPlayingScreen(
     val playbackState by viewModel.playbackState.collectAsState()
     val song = playbackState.currentSong
 
+    // Local state for seeking to prevent UI jitter during drag
+    var isSeeking by remember { mutableStateOf(false) }
+    var seekPosition by remember { mutableFloatStateOf(0f) }
+    val displayProgress = if (isSeeking) seekPosition else playbackState.progress
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -84,16 +96,6 @@ fun NowPlayingScreen(
                             contentDescription = "Back",
                             tint = CyberNeonBlue,
                             modifier = Modifier.size(32.dp)
-                        )
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { /* TODO: Show more options */ }) {
-                        Icon(
-                            imageVector = Icons.Default.MoreVert,
-                            contentDescription = "More options",
-                            tint = CyberNeonBlue,
-                            modifier = Modifier.size(28.dp)
                         )
                     }
                 },
@@ -137,6 +139,22 @@ fun NowPlayingScreen(
                             fontSize = MaterialTheme.typography.displayLarge.fontSize * 2
                         )
                     }
+
+                    // Show buffering indicator when loading
+                    if (playbackState.isBuffering) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(DeepSpaceBlack.copy(alpha = 0.7f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = CyberNeonBlue,
+                                modifier = Modifier.size(64.dp),
+                                strokeWidth = 4.dp
+                            )
+                        }
+                    }
                 }
 
                 Spacer(modifier = Modifier.height(48.dp))
@@ -171,16 +189,68 @@ fun NowPlayingScreen(
                 Column(
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    // Progress bar
-                    LinearProgressIndicator(
-                        progress = { playbackState.progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(4.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = CyberNeonBlue,
-                        trackColor = LunarWhite.copy(alpha = 0.2f),
-                    )
+                    // Progress bar - show indeterminate progress when buffering
+                    if (playbackState.isBuffering) {
+                        LinearProgressIndicator(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(4.dp)
+                                .clip(RoundedCornerShape(2.dp)),
+                            color = CyberNeonBlue,
+                            trackColor = LunarWhite.copy(alpha = 0.2f)
+                        )
+                    } else {
+                        Slider(
+                            value = displayProgress,
+                            onValueChange = { newValue ->
+                                isSeeking = true
+                                seekPosition = newValue  // Update local state for smooth visual feedback
+                            },
+                            onValueChangeFinished = {
+                                // Perform actual seek only when user releases slider
+                                if (playbackState.duration > 0) {
+                                    val targetPositionMs = (seekPosition * playbackState.duration)
+                                        .toLong()
+                                        .coerceIn(0L, playbackState.duration)
+                                    viewModel.onSeek(targetPositionMs)
+                                }
+                                isSeeking = false
+                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(8.dp),
+                            enabled = playbackState.duration > 0 && playbackState.currentSong != null && !playbackState.isBuffering,
+                            colors = SliderDefaults.colors(
+                                thumbColor = if (isSeeking) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0f),
+                                activeTrackColor = CyberNeonBlue,
+                                inactiveTrackColor = LunarWhite.copy(alpha = 0.2f),
+                                disabledThumbColor = LunarWhite.copy(alpha = 0f),
+                                disabledActiveTrackColor = CyberNeonBlue.copy(alpha = 0.3f),
+                                disabledInactiveTrackColor = LunarWhite.copy(alpha = 0.1f)
+                            ),
+                            track = { sliderState ->
+                                SliderDefaults.Track(
+                                    sliderState = sliderState,
+                                    modifier = Modifier
+                                        .height(3.dp)
+                                        .clip(RoundedCornerShape(1.5.dp)),
+                                    colors = SliderDefaults.colors(
+                                        activeTrackColor = CyberNeonBlue,
+                                        inactiveTrackColor = LunarWhite.copy(alpha = 0.2f)
+                                    )
+                                )
+                            },
+                            thumb = {
+                                if (isSeeking) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(12.dp)
+                                            .background(CyberNeonBlue, CircleShape)
+                                    )
+                                }
+                            }
+                        )
+                    }
 
                     Spacer(modifier = Modifier.height(8.dp))
 
@@ -213,12 +283,14 @@ fun NowPlayingScreen(
                     // Previous button
                     IconButton(
                         onClick = { viewModel.onPreviousClick() },
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(64.dp),
+                        enabled = !playbackState.isBuffering && playbackState.hasPrevious
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipPrevious,
                             contentDescription = "Previous",
-                            tint = LunarWhite,
+                            tint = if (playbackState.isBuffering || !playbackState.hasPrevious)
+                                LunarWhite.copy(alpha = 0.3f) else LunarWhite,
                             modifier = Modifier.size(48.dp)
                         )
                     }
@@ -230,7 +302,11 @@ fun NowPlayingScreen(
                         onClick = { viewModel.onPlayPauseClick() },
                         modifier = Modifier
                             .size(80.dp)
-                            .background(CyberNeonBlue, CircleShape)
+                            .background(
+                                if (playbackState.isBuffering) CyberNeonBlue.copy(alpha = 0.5f) else CyberNeonBlue,
+                                CircleShape
+                            ),
+                        enabled = !playbackState.isBuffering
                     ) {
                         Icon(
                             imageVector = if (playbackState.isPlaying) {
@@ -239,7 +315,7 @@ fun NowPlayingScreen(
                                 Icons.Default.PlayArrow
                             },
                             contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                            tint = DeepSpaceBlack,
+                            tint = if (playbackState.isBuffering) DeepSpaceBlack.copy(alpha = 0.5f) else DeepSpaceBlack,
                             modifier = Modifier.size(48.dp)
                         )
                     }
@@ -249,91 +325,20 @@ fun NowPlayingScreen(
                     // Next button
                     IconButton(
                         onClick = { viewModel.onNextClick() },
-                        modifier = Modifier.size(64.dp)
+                        modifier = Modifier.size(64.dp),
+                        enabled = !playbackState.isBuffering && playbackState.hasNext
                     ) {
                         Icon(
                             imageVector = Icons.Default.SkipNext,
                             contentDescription = "Next",
-                            tint = LunarWhite,
+                            tint = if (playbackState.isBuffering || !playbackState.hasNext)
+                                LunarWhite.copy(alpha = 0.3f) else LunarWhite,
                             modifier = Modifier.size(48.dp)
                         )
                     }
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
-
-                // Bottom actions
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Lyrics button
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        IconButton(
-                            onClick = { viewModel.onLyricsClick() },
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Lyrics,
-                                contentDescription = "Lyrics",
-                                tint = CyberNeonBlue,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Text(
-                            text = "Lyrics",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = CyberNeonBlue
-                        )
-                    }
-
-                    // Equalizer button
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        IconButton(
-                            onClick = { viewModel.onEqualizerClick() },
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.BarChart,
-                                contentDescription = "Equalizer",
-                                tint = CyberNeonBlue,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Text(
-                            text = "Equalizer",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = CyberNeonBlue
-                        )
-                    }
-
-                    // Add to playlist button
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        IconButton(
-                            onClick = { viewModel.onAddToPlaylistClick() },
-                            modifier = Modifier.size(48.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.QueueMusic,
-                                contentDescription = "Add to playlist",
-                                tint = CyberNeonBlue,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        Text(
-                            text = "Add to playlist",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = CyberNeonBlue
-                        )
-                    }
-                }
 
                 Spacer(modifier = Modifier.height(32.dp))
             }

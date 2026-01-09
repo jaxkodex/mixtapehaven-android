@@ -286,6 +286,85 @@ class MediaRepository(
     }
 
     /**
+     * Get artist by ID
+     */
+    suspend fun getArtistById(artistId: String): Result<Artist> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                includeItemTypes = "MusicArtist",
+                ids = artistId,
+                fields = "PrimaryImageAspectRatio,ChildCount"
+            )
+
+            val artist = response.items.firstOrNull()
+                ?: throw IllegalStateException("Artist not found")
+
+            Result.success(mapToArtist(artist))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get artist's albums
+     */
+    suspend fun getArtistAlbums(artistId: String, limit: Int = 50): Result<List<Album>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                artistIds = artistId,
+                includeItemTypes = "MusicAlbum",
+                recursive = true,
+                sortBy = "ProductionYear,SortName",
+                sortOrder = "Descending",
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+            )
+
+            val albums = response.items.map { item -> mapToAlbum(item) }
+            Result.success(albums)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Get artist's songs
+     */
+    suspend fun getArtistSongs(artistId: String, limit: Int = 100): Result<List<Song>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                artistIds = artistId,
+                includeItemTypes = "Audio",
+                recursive = true,
+                sortBy = "ParentIndexNumber,IndexNumber",
+                sortOrder = "Ascending",
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+
+            val songs = response.items.map { item -> mapToSong(item) }
+            Result.success(songs)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Map BaseItemDto to Album
      */
     private fun mapToAlbum(item: BaseItemDto): Album {

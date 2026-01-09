@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.artist.ArtistDetailScreen
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
@@ -43,6 +44,9 @@ sealed class Screen(val route: String) {
     data object AllPlaylists : Screen("all_playlists")
     data object PlaylistDetail : Screen("playlist_detail/{playlistId}") {
         fun createRoute(playlistId: String) = "playlist_detail/$playlistId"
+    }
+    data object ArtistDetail : Screen("artist_detail/{artistId}") {
+        fun createRoute(artistId: String) = "artist_detail/$artistId"
     }
     data object NowPlaying : Screen("now_playing")
 }
@@ -70,7 +74,7 @@ fun NavGraph(
         currentRoute == null -> false
         currentRoute == Screen.Onboarding.route -> false
         currentRoute == Screen.NowPlaying.route -> false
-        else -> true  // Show on Home, AllSongs, AllAlbums, AllArtists, AllPlaylists, PlaylistDetail, Troubleshoot
+        else -> true  // Show on Home, AllSongs, AllAlbums, AllArtists, AllPlaylists, PlaylistDetail, ArtistDetail, Troubleshoot
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -111,6 +115,9 @@ fun NavGraph(
                 onNavigateToPlaylistDetail = { playlistId ->
                     navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
                 },
+                onNavigateToArtistDetail = { artistId ->
+                    navController.navigate(Screen.ArtistDetail.createRoute(artistId))
+                },
                 onNavigateToNowPlaying = {
                     navController.navigate(Screen.NowPlaying.route)
                 },
@@ -141,6 +148,9 @@ fun NavGraph(
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()
+                },
+                onArtistClick = { artistId ->
+                    navController.navigate(Screen.ArtistDetail.createRoute(artistId))
                 }
             )
         }
@@ -177,6 +187,23 @@ fun NavGraph(
             val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
             PlaylistDetailScreen(
                 playlistId = playlistId,
+                mediaRepository = mediaRepository,
+                playbackManager = playbackManager,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(
+            route = Screen.ArtistDetail.route,
+            arguments = listOf(
+                navArgument("artistId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val artistId = backStackEntry.arguments?.getString("artistId") ?: return@composable
+            ArtistDetailScreen(
+                artistId = artistId,
                 mediaRepository = mediaRepository,
                 playbackManager = playbackManager,
                 onNavigateBack = {

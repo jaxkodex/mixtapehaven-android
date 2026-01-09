@@ -16,6 +16,7 @@ import androidx.core.app.NotificationCompat
 import androidx.media3.common.Player
 import pe.net.libre.mixtapehaven.MainActivity
 import pe.net.libre.mixtapehaven.R
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 
 /**
  * Foreground service that manages audio playback in the background.
@@ -36,7 +37,9 @@ class MediaPlaybackService : Service() {
         super.onCreate()
         Log.d(TAG, "MediaPlaybackService onCreate")
 
-        playbackManager = PlaybackManager.getInstance()
+        // Initialize PlaybackManager if not already initialized
+        val dataStoreManager = DataStoreManager(applicationContext)
+        playbackManager = PlaybackManager.getInstance(applicationContext, dataStoreManager)
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         createNotificationChannel()

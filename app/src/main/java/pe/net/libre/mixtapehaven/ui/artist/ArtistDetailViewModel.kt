@@ -2,6 +2,7 @@ package pe.net.libre.mixtapehaven.ui.artist
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -46,9 +47,17 @@ class ArtistDetailViewModel(
                 errorMessage = null
             )
 
-            // Load artist details
-            val artistResult = mediaRepository.getArtistById(artistId)
+            // Load artist details, albums, and songs in parallel
+            val artistDeferred = async { mediaRepository.getArtistById(artistId) }
+            val albumsDeferred = async { mediaRepository.getArtistAlbums(artistId) }
+            val songsDeferred = async { mediaRepository.getArtistSongs(artistId) }
 
+            // Wait for all results
+            val artistResult = artistDeferred.await()
+            val albumsResult = albumsDeferred.await()
+            val songsResult = songsDeferred.await()
+
+            // Handle artist result
             artistResult.fold(
                 onSuccess = { artist ->
                     _uiState.value = _uiState.value.copy(artist = artist)
@@ -62,8 +71,7 @@ class ArtistDetailViewModel(
                 }
             )
 
-            // Load artist's albums
-            val albumsResult = mediaRepository.getArtistAlbums(artistId)
+            // Handle albums result (don't fail if albums fail to load)
             albumsResult.fold(
                 onSuccess = { albums ->
                     _uiState.value = _uiState.value.copy(albums = albums)
@@ -73,8 +81,7 @@ class ArtistDetailViewModel(
                 }
             )
 
-            // Load artist's songs
-            val songsResult = mediaRepository.getArtistSongs(artistId)
+            // Handle songs result
             songsResult.fold(
                 onSuccess = { songs ->
                     _uiState.value = _uiState.value.copy(

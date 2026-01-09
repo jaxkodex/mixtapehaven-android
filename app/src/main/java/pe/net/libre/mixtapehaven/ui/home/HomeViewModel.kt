@@ -21,6 +21,7 @@ class HomeViewModel(
     private val onNavigateToAllSongs: () -> Unit = {},
     private val onNavigateToAllPlaylists: () -> Unit = {},
     private val onNavigateToPlaylistDetail: (String) -> Unit = {},
+    private val onNavigateToArtistDetail: (String) -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
     private val onLogout: () -> Unit = {}
 ) : ViewModel() {
@@ -94,7 +95,7 @@ class HomeViewModel(
     }
 
     fun onArtistClick(artist: Artist) {
-        // TODO: Navigate to artist details
+        onNavigateToArtistDetail(artist.id)
     }
 
     fun onSongClick(song: Song) {

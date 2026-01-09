@@ -39,7 +39,9 @@ interface JellyfinApiService {
         @Query("Fields") fields: String? = null,
         @Query("ParentId") parentId: String? = null,
         @Query("ImageTypeLimit") imageTypeLimit: Int? = 1,
-        @Query("EnableImageTypes") enableImageTypes: String? = "Primary,Backdrop,Thumb"
+        @Query("EnableImageTypes") enableImageTypes: String? = "Primary,Backdrop,Thumb",
+        @Query("Ids") ids: String? = null,
+        @Query("ArtistIds") artistIds: String? = null
     ): ItemsResponse
 
     /**

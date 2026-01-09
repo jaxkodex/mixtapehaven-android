@@ -53,8 +53,7 @@ fun AllPlaylistsScreen(
     playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit,
     onPlaylistClick: (String) -> Unit = {},
-    onSearchClick: () -> Unit = {},
-    onNavigateToNowPlaying: () -> Unit = {}
+    onSearchClick: () -> Unit = {}
 ) {
     val viewModel: AllPlaylistsViewModel = viewModel {
         AllPlaylistsViewModel(mediaRepository = mediaRepository)
@@ -206,17 +205,6 @@ fun AllPlaylistsScreen(
                     }
                 }
             }
-
-            // Floating Now Playing Bar
-            NowPlayingBar(
-                playbackState = playbackState,
-                onPlayPauseClick = { playbackManager.togglePlayPause() },
-                onBarClick = onNavigateToNowPlaying,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .fillMaxWidth()
-            )
         }
     }
 }

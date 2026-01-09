@@ -1,5 +1,6 @@
-import com.google.wireless.android.sdk.stats.GradleBuildVariant
-import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+kotlin {
+    jvmToolchain(17)
+}
 
 plugins {
     alias(libs.plugins.android.application)

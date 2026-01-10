@@ -37,9 +37,8 @@ class MediaPlaybackService : Service() {
         super.onCreate()
         Log.d(TAG, "MediaPlaybackService onCreate")
 
-        // Initialize PlaybackManager if not already initialized
-        val dataStoreManager = DataStoreManager(applicationContext)
-        playbackManager = PlaybackManager.getInstance(applicationContext, dataStoreManager)
+        // Get PlaybackManager instance (should already be initialized by MainActivity)
+        playbackManager = PlaybackManager.getInstance()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
         createNotificationChannel()

@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,10 +20,16 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.ui.artist.ArtistDetailScreen
+import pe.net.libre.mixtapehaven.ui.downloads.DownloadsScreen
+import pe.net.libre.mixtapehaven.ui.downloads.DownloadsViewModel
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
+import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
+import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllArtistsScreen
@@ -49,6 +56,8 @@ sealed class Screen(val route: String) {
         fun createRoute(artistId: String) = "artist_detail/$artistId"
     }
     data object NowPlaying : Screen("now_playing")
+    data object Settings : Screen("settings")
+    data object Downloads : Screen("downloads")
 }
 
 @Composable
@@ -58,6 +67,8 @@ fun NavGraph(
     mediaRepository: MediaRepository,
     connectionRepository: ConnectionRepository,
     playbackManager: PlaybackManager,
+    dataStoreManager: DataStoreManager,
+    offlineRepository: OfflineRepository,
     startDestination: String = Screen.Onboarding.route
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -100,6 +111,8 @@ fun NavGraph(
             HomeScreen(
                 mediaRepository = mediaRepository,
                 playbackManager = playbackManager,
+                offlineRepository = offlineRepository,
+                dataStoreManager = dataStoreManager,
                 onNavigateToAllAlbums = {
                     navController.navigate(Screen.AllAlbums.route)
                 },
@@ -120,6 +133,12 @@ fun NavGraph(
                 },
                 onNavigateToNowPlaying = {
                     navController.navigate(Screen.NowPlaying.route)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Screen.Settings.route)
+                },
+                onNavigateToDownloads = {
+                    navController.navigate(Screen.Downloads.route)
                 },
                 onLogout = {
                     coroutineScope.launch {
@@ -223,6 +242,30 @@ fun NavGraph(
         composable(Screen.NowPlaying.route) {
             NowPlayingScreen(
                 playbackManager = playbackManager,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Settings.route) {
+            val settingsViewModel = remember {
+                SettingsViewModel(dataStoreManager, offlineRepository)
+            }
+            SettingsScreen(
+                viewModel = settingsViewModel,
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Downloads.route) {
+            val downloadsViewModel = remember {
+                DownloadsViewModel(offlineRepository, playbackManager)
+            }
+            DownloadsScreen(
+                viewModel = downloadsViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

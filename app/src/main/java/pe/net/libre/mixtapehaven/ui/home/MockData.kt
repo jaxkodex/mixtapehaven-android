@@ -74,7 +74,9 @@ data class Song(
     val artist: String,
     val duration: String,
     val albumCoverUrl: String? = null,
-    val albumCoverPlaceholder: String = ""
+    val albumCoverPlaceholder: String = "",
+    var isDownloaded: Boolean = false,
+    var downloadProgress: Float? = null
 ) {
     /**
      * Construct the streaming URL for Jellyfin with adaptive quality settings

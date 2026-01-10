@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.ksp)
 }
 
 android {
@@ -73,6 +74,11 @@ dependencies {
     implementation(libs.media3.session)
     implementation(libs.media3.datasource.okhttp)
     implementation(libs.androidx.media)
+
+    // Room database
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
+    ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

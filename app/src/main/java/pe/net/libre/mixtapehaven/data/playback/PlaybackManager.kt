@@ -1,12 +1,15 @@
 package pe.net.libre.mixtapehaven.data.playback
 
 import android.content.Context
+import android.net.Uri
 import android.provider.Settings
 import android.util.Log
+import java.io.File
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -25,6 +28,7 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.home.Song
 import pe.net.libre.mixtapehaven.ui.home.StreamingQuality
@@ -37,7 +41,8 @@ import java.util.concurrent.TimeUnit
  */
 class PlaybackManager private constructor(
     private val context: Context,
-    private val dataStoreManager: DataStoreManager
+    private val dataStoreManager: DataStoreManager,
+    private val offlineRepository: OfflineRepository
 ) {
     private val _playbackState = MutableStateFlow(PlaybackState())
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
@@ -55,18 +60,23 @@ class PlaybackManager private constructor(
         @Volatile
         private var instance: PlaybackManager? = null
 
-        fun getInstance(context: Context, dataStoreManager: DataStoreManager): PlaybackManager {
+        fun getInstance(
+            context: Context,
+            dataStoreManager: DataStoreManager,
+            offlineRepository: OfflineRepository
+        ): PlaybackManager {
             return instance ?: synchronized(this) {
                 instance ?: PlaybackManager(
                     context.applicationContext,
-                    dataStoreManager
+                    dataStoreManager,
+                    offlineRepository
                 ).also { instance = it }
             }
         }
 
         fun getInstance(): PlaybackManager {
             return instance ?: throw IllegalStateException(
-                "PlaybackManager must be initialized with getInstance(context, dataStoreManager) first"
+                "PlaybackManager must be initialized with getInstance(context, dataStoreManager, offlineRepository) first"
             )
         }
     }
@@ -155,30 +165,56 @@ class PlaybackManager private constructor(
             try {
                 Log.d(TAG, "playSong called for: ${song.title} by ${song.artist}")
 
-                // Get server URL and access token from DataStore
-                val serverUrl = dataStoreManager.serverUrl.first()
-                val accessToken = dataStoreManager.accessToken.first()
+                // Check if song is available offline first
+                val offlineSong = offlineRepository.getDownloadedSong(song.id)
+                val isOffline = offlineSong != null && File(offlineSong.filePath).exists()
 
-                if (serverUrl.isNullOrEmpty() || accessToken.isNullOrEmpty()) {
-                    // Can't play without server connection
-                    Log.e(TAG, "Cannot play: serverUrl or accessToken is empty")
-                    return@launch
+                val mediaItem = if (isOffline && offlineSong != null) {
+                    // Play from local storage
+                    val file = File(offlineSong.filePath)
+                    Log.d(TAG, "Playing from offline storage: ${offlineSong.filePath}")
+                    Log.d(TAG, "File exists: ${file.exists()}, size: ${file.length()} bytes")
+
+                    if (!file.exists()) {
+                        Log.e(TAG, "File doesn't exist at path: ${offlineSong.filePath}")
+                        return@launch
+                    }
+
+                    if (file.length() == 0L) {
+                        Log.e(TAG, "File is empty: ${offlineSong.filePath}")
+                        return@launch
+                    }
+
+                    offlineRepository.updateLastAccessTime(song.id)
+                    MediaItem.fromUri(Uri.fromFile(file))
+                } else {
+                    // Stream from network
+                    Log.d(TAG, "Streaming from network")
+
+                    // Get server URL and access token from DataStore
+                    val serverUrl = dataStoreManager.serverUrl.first()
+                    val accessToken = dataStoreManager.accessToken.first()
+
+                    if (serverUrl.isNullOrEmpty() || accessToken.isNullOrEmpty()) {
+                        // Can't play without server connection
+                        Log.e(TAG, "Cannot play: serverUrl or accessToken is empty")
+                        return@launch
+                    }
+
+                    // Update the current access token for the OkHttp interceptor
+                    currentAccessToken = accessToken
+                    Log.d(TAG, "Access token set for interceptor: ${accessToken.take(10)}...")
+
+                    // Detect network type and select appropriate streaming quality
+                    val quality = getStreamingQuality()
+                    Log.d(TAG, "Network-based streaming quality: $quality")
+
+                    // Construct streaming URL with adaptive quality
+                    val streamUrl = song.getStreamUrl(serverUrl, quality)
+                    Log.d(TAG, "Streaming URL: $streamUrl")
+
+                    MediaItem.fromUri(streamUrl)
                 }
-
-                // Update the current access token for the OkHttp interceptor
-                currentAccessToken = accessToken
-                Log.d(TAG, "Access token set for interceptor: ${accessToken.take(10)}...")
-
-                // Detect network type and select appropriate streaming quality
-                val quality = getStreamingQuality()
-                Log.d(TAG, "Network-based streaming quality: $quality")
-
-                // Construct streaming URL with adaptive quality (auth handled via OkHttp headers)
-                val streamUrl = song.getStreamUrl(serverUrl, quality)
-                Log.d(TAG, "Streaming URL: $streamUrl")
-
-                // Create media item
-                val mediaItem = MediaItem.fromUri(streamUrl)
 
                 // Set media item and prepare
                 _player.setMediaItem(mediaItem)
@@ -195,7 +231,8 @@ class PlaybackManager private constructor(
                     queue = queue.toList(),
                     currentIndex = currentIndex,
                     hasNext = currentIndex < queue.size - 1,
-                    hasPrevious = currentIndex > 0
+                    hasPrevious = currentIndex > 0,
+                    isOffline = isOffline
                 )
 
                 startProgressTracking()
@@ -492,7 +529,12 @@ class PlaybackManager private constructor(
             .writeTimeout(30, TimeUnit.SECONDS)
             .build()
 
-        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+        // Use OkHttpDataSource for HTTP/HTTPS
+        val httpDataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+
+        // Use DefaultDataSource which can handle both HTTP and local files
+        val dataSourceFactory = DefaultDataSource.Factory(context, httpDataSourceFactory)
+
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
             .setDataSourceFactory(dataSourceFactory)
 
@@ -527,7 +569,8 @@ data class PlaybackState(
     val queue: List<Song> = emptyList(),
     val currentIndex: Int = -1,
     val hasNext: Boolean = false,
-    val hasPrevious: Boolean = false
+    val hasPrevious: Boolean = false,
+    val isOffline: Boolean = false
 ) {
     /**
      * Get progress as a float between 0.0 and 1.0

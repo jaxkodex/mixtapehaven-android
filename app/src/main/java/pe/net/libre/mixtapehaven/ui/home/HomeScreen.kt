@@ -18,9 +18,14 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -32,6 +37,9 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -55,6 +63,8 @@ import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 fun HomeScreen(
     mediaRepository: MediaRepository,
     playbackManager: PlaybackManager,
+    offlineRepository: pe.net.libre.mixtapehaven.data.repository.OfflineRepository,
+    dataStoreManager: pe.net.libre.mixtapehaven.data.preferences.DataStoreManager,
     onNavigateToAllAlbums: () -> Unit = {},
     onNavigateToAllArtists: () -> Unit = {},
     onNavigateToAllSongs: () -> Unit = {},
@@ -62,12 +72,16 @@ fun HomeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit = {},
     onNavigateToArtistDetail: (String) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
+    onNavigateToDownloads: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val viewModel: HomeViewModel = viewModel {
         HomeViewModel(
             mediaRepository = mediaRepository,
             playbackManager = playbackManager,
+            offlineRepository = offlineRepository,
+            dataStoreManager = dataStoreManager,
             onNavigateToAllAlbums = onNavigateToAllAlbums,
             onNavigateToAllArtists = onNavigateToAllArtists,
             onNavigateToAllSongs = onNavigateToAllSongs,
@@ -80,6 +94,7 @@ fun HomeScreen(
     }
     val uiState by viewModel.uiState.collectAsState()
     val playbackState by playbackManager.playbackState.collectAsState()
+    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -116,6 +131,59 @@ fun HomeScreen(
                             tint = CyberNeonBlue,
                             modifier = Modifier.size(28.dp)
                         )
+                    }
+                    Box {
+                        IconButton(onClick = { showMenu = true }) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = "Menu",
+                                tint = LunarWhite,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Settings,
+                                            contentDescription = null,
+                                            tint = LunarWhite
+                                        )
+                                        Text("Settings", color = LunarWhite)
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onNavigateToSettings()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.CloudDownload,
+                                            contentDescription = null,
+                                            tint = LunarWhite
+                                        )
+                                        Text("Downloads", color = LunarWhite)
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onNavigateToDownloads()
+                                }
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -244,7 +312,8 @@ fun HomeScreen(
                             onClick = { viewModel.onSongClick(song) },
                             isCurrentSong = playbackState.currentSong?.id == song.id,
                             isPlaying = playbackState.isPlaying,
-                            onPlayPauseClick = { viewModel.onPlayPauseClick() }
+                            onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                            onDownloadClick = { viewModel.onDownloadClick(song) }
                         )
                     }
                 }

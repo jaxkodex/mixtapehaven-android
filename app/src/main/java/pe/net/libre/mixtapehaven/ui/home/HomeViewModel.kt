@@ -5,9 +5,12 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 
 /**
  * ViewModel for the home screen
@@ -16,6 +19,8 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 class HomeViewModel(
     private val mediaRepository: MediaRepository,
     private val playbackManager: PlaybackManager,
+    private val offlineRepository: OfflineRepository,
+    private val dataStoreManager: DataStoreManager,
     private val onNavigateToAllAlbums: () -> Unit = {},
     private val onNavigateToAllArtists: () -> Unit = {},
     private val onNavigateToAllSongs: () -> Unit = {},
@@ -35,6 +40,7 @@ class HomeViewModel(
     init {
         loadData()
         observePlaybackState()
+        observeDownloadedSongs()
     }
 
     private fun observePlaybackState() {
@@ -42,6 +48,19 @@ class HomeViewModel(
             playbackManager.playbackState.collect { playbackState ->
                 // Update UI state when playback changes
                 // This keeps the UI in sync with playback state
+            }
+        }
+    }
+
+    private fun observeDownloadedSongs() {
+        viewModelScope.launch {
+            offlineRepository.getAllDownloaded().collect { downloadedSongs ->
+                // Update songs to reflect download status
+                val downloadedIds = downloadedSongs.map { it.id }.toSet()
+                val updatedSongs = _uiState.value.popularSongs.map { song ->
+                    song.copy(isDownloaded = downloadedIds.contains(song.id))
+                }
+                _uiState.value = _uiState.value.copy(popularSongs = updatedSongs)
             }
         }
     }
@@ -140,6 +159,19 @@ class HomeViewModel(
     fun onProfileClick() {
         // Trigger logout
         onLogout()
+    }
+
+    fun onDownloadClick(song: Song) {
+        viewModelScope.launch {
+            try {
+                // Get user's preferred download quality
+                val quality = dataStoreManager.downloadQuality.first()
+                // Trigger download
+                offlineRepository.downloadSong(song, quality)
+            } catch (e: Exception) {
+                _errorMessage.value = "Failed to download song: ${e.message}"
+            }
+        }
     }
 }
 

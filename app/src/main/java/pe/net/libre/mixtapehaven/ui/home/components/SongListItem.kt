@@ -12,8 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -39,7 +42,8 @@ fun SongListItem(
     modifier: Modifier = Modifier,
     isCurrentSong: Boolean = false,
     isPlaying: Boolean = false,
-    onPlayPauseClick: (() -> Unit)? = null
+    onPlayPauseClick: (() -> Unit)? = null,
+    onDownloadClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -108,6 +112,48 @@ fun SongListItem(
             style = MaterialTheme.typography.bodySmall,
             color = GunmetalGray
         )
+
+        // Download button
+        if (onDownloadClick != null) {
+            Box(
+                modifier = Modifier.size(40.dp),
+                contentAlignment = Alignment.Center
+            ) {
+                when {
+                    song.downloadProgress != null -> {
+                        // Show progress indicator when downloading
+                        CircularProgressIndicator(
+                            progress = { song.downloadProgress!! },
+                            modifier = Modifier.size(24.dp),
+                            color = CyberNeonBlue,
+                            strokeWidth = 2.dp
+                        )
+                    }
+                    song.isDownloaded -> {
+                        // Show checkmark when downloaded
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = "Downloaded",
+                            tint = CyberNeonBlue,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    else -> {
+                        // Show download button
+                        IconButton(
+                            onClick = onDownloadClick,
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CloudDownload,
+                                contentDescription = "Download",
+                                tint = GunmetalGray
+                            )
+                        }
+                    }
+                }
+            }
+        }
 
         // Play/Pause button (only show for current song)
         if (onPlayPauseClick != null && isCurrentSong) {

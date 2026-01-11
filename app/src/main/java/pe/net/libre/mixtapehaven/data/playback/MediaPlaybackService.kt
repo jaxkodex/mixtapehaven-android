@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -13,10 +14,19 @@ import android.support.v4.media.session.MediaSessionCompat
 import android.support.v4.media.session.PlaybackStateCompat
 import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.media3.common.Player
+import coil.ImageLoader
+import coil.request.ImageRequest
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
+import okhttp3.OkHttpClient
 import pe.net.libre.mixtapehaven.MainActivity
 import pe.net.libre.mixtapehaven.R
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
+import java.util.concurrent.TimeUnit
 
 /**
  * Foreground service that manages audio playback in the background.
@@ -28,6 +38,10 @@ class MediaPlaybackService : Service() {
     private lateinit var playbackManager: PlaybackManager
     private lateinit var mediaSession: MediaSessionCompat
     private lateinit var notificationManager: NotificationManager
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
+    private lateinit var imageLoader: ImageLoader
+    private var coverArtBitmap: Bitmap? = null
+    private var currentCoverUrl: String? = null
 
     inner class LocalBinder : Binder() {
         fun getService(): MediaPlaybackService = this@MediaPlaybackService
@@ -37,7 +51,22 @@ class MediaPlaybackService : Service() {
         super.onCreate()
         Log.d(TAG, "MediaPlaybackService onCreate")
 
-        // Get PlaybackManager instance (should already be initialized by MainActivity)
+        // Initialize ImageLoader after service is fully initialized
+        val okHttpClient = OkHttpClient.Builder()
+            .connectTimeout(5, TimeUnit.SECONDS)
+            .readTimeout(5, TimeUnit.SECONDS)
+            .writeTimeout(5, TimeUnit.SECONDS)
+            .build()
+
+        imageLoader = ImageLoader.Builder(this)
+            .okHttpClient(okHttpClient)
+            .networkCachePolicy(coil.request.CachePolicy.ENABLED)
+            .diskCachePolicy(coil.request.CachePolicy.ENABLED)
+            .memoryCachePolicy(coil.request.CachePolicy.ENABLED)
+            .build()
+
+        // Initialize PlaybackManager if not already initialized
+        val dataStoreManager = DataStoreManager(applicationContext)
         playbackManager = PlaybackManager.getInstance()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 
@@ -132,6 +161,14 @@ class MediaPlaybackService : Service() {
         val playbackState = playbackManager.playbackState.value
         val song = playbackState.currentSong
 
+        // Load cover art if available and URL has changed
+        song?.albumCoverUrl?.let { coverUrl ->
+            if (coverUrl != currentCoverUrl) {
+                currentCoverUrl = coverUrl
+                loadCoverArt(coverUrl)
+            }
+        }
+
         // Intent to open the app when notification is clicked
         val contentIntent = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
@@ -165,7 +202,7 @@ class MediaPlaybackService : Service() {
             createPendingIntent(ACTION_STOP)
         )
 
-        return NotificationCompat.Builder(this, CHANNEL_ID)
+        val notificationBuilder = NotificationCompat.Builder(this, CHANNEL_ID)
             .setContentTitle(song?.title ?: "Mixtape Haven")
             .setContentText(song?.artist ?: "No song playing")
             .setSmallIcon(R.drawable.ic_launcher_foreground)
@@ -179,7 +216,34 @@ class MediaPlaybackService : Service() {
             .addAction(stopAction)
             .setOngoing(playbackState.isPlaying)
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .build()
+
+        // Set large icon (cover art) if available
+        coverArtBitmap?.let {
+            notificationBuilder.setLargeIcon(it)
+        }
+
+        return notificationBuilder.build()
+    }
+
+    private fun loadCoverArt(url: String) {
+        serviceScope.launch {
+            try {
+                val request = ImageRequest.Builder(this@MediaPlaybackService)
+                    .data(url)
+                    .build()
+                val result = imageLoader.execute(request)
+                val bitmap = result.drawable?.toBitmap()
+                if (bitmap != null) {
+                    coverArtBitmap = bitmap
+                    // Don't call updateNotification() here to avoid recursive calls
+                    // The notification will be updated on the next player event
+                } else {
+                    Log.e(TAG, "Failed to load cover art: drawable is null")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error loading cover art: ${e.message}", e)
+            }
+        }
     }
 
     private fun createPendingIntent(action: String): PendingIntent {

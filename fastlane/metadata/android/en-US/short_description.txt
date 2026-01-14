@@ -1,0 +1,1 @@
+A modern Jellyfin client for Android with Material 3 design

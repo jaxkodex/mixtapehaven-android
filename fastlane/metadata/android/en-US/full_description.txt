@@ -1,0 +1,19 @@
+Mixtape Haven is a modern Android client for Jellyfin media servers, built with Jetpack Compose and Material 3 design system.
+
+<b>Features:</b>
+• Connect to your Jellyfin server
+• Clean, modern Material 3 interface
+• Media playback with foreground service
+• Secure local credential storage
+• Network troubleshooting tools
+
+<b>Privacy:</b>
+All connection data and credentials are stored locally on your device and never shared with third parties.
+
+<b>Requirements:</b>
+• A running Jellyfin server (self-hosted or remote)
+• Android 13 or higher
+• Network access to your Jellyfin server
+
+<b>Open Source:</b>
+Mixtape Haven is free and open source software. Visit the project repository for source code, bug reports, and feature requests.

@@ -1,5 +1,6 @@
 package pe.net.libre.mixtapehaven.data.playback
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.content.BroadcastReceiver
 import android.content.Context
@@ -17,6 +18,7 @@ class BluetoothDisconnectionReceiver(
     private val playbackManager: PlaybackManager
 ) : BroadcastReceiver() {
 
+    @SuppressLint("MissingPermission")
     override fun onReceive(context: Context?, intent: Intent?) {
         when (intent?.action) {
             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {

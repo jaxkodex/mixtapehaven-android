@@ -88,7 +88,7 @@ class HomeViewModel(
                     popularSongsResult.exceptionOrNull()
                 )
 
-                if (errors.isNotEmpty() && !NetworkUtil.isConnected(context)) {
+                if (errors.size == 4 && !NetworkUtil.isConnected(context)) {
                     // Device is offline, load downloaded songs instead
                     loadOfflineData()
                     return@launch

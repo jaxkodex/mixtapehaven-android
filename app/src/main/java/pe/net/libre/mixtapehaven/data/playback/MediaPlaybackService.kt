@@ -93,6 +93,10 @@ class MediaPlaybackService : Service() {
         mediaSession = MediaSessionCompat(this, "MediaPlaybackService").apply {
             setCallback(object : MediaSessionCompat.Callback() {
                 override fun onPlay() {
+                    if (playbackManager.manuallyStoppedByUser) {
+                        Log.d(TAG, "Ignoring MediaSession onPlay: user manually stopped")
+                        return
+                    }
                     playbackManager.resume()
                 }
 
@@ -102,6 +106,7 @@ class MediaPlaybackService : Service() {
 
                 override fun onStop() {
                     playbackManager.stop()
+                    this@MediaPlaybackService.mediaSession.isActive = false
                     stopForeground(STOP_FOREGROUND_REMOVE)
                     stopSelf()
                 }
@@ -117,6 +122,9 @@ class MediaPlaybackService : Service() {
     private fun setupPlayerListener() {
         playbackManager.player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying && !mediaSession.isActive) {
+                    mediaSession.isActive = true
+                }
                 updateNotification()
                 updateMediaSessionPlaybackState(isPlaying)
             }
@@ -265,16 +273,23 @@ class MediaPlaybackService : Service() {
             ACTION_START_FOREGROUND -> {
                 startForeground(NOTIFICATION_ID, createNotification())
             }
-            ACTION_PLAY -> playbackManager.resume()
+            ACTION_PLAY -> {
+                if (!playbackManager.manuallyStoppedByUser) {
+                    playbackManager.resume()
+                } else {
+                    Log.d(TAG, "Ignoring ACTION_PLAY: user manually stopped")
+                }
+            }
             ACTION_PAUSE -> playbackManager.pause()
             ACTION_STOP -> {
                 playbackManager.stop()
+                mediaSession.isActive = false
                 stopForeground(STOP_FOREGROUND_REMOVE)
                 stopSelf()
             }
         }
 
-        return START_STICKY
+        return START_NOT_STICKY
     }
 
     override fun onBind(intent: Intent?): IBinder {

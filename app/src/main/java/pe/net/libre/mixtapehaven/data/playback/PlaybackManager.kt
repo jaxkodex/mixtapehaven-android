@@ -5,6 +5,7 @@ import android.net.Uri
 import android.provider.Settings
 import android.util.Log
 import java.io.File
+import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
@@ -53,6 +54,11 @@ class PlaybackManager private constructor(
     // Queue management
     private val queue = mutableListOf<Song>()
     private var currentIndex: Int = -1
+
+    // Tracks whether the user explicitly stopped playback (vs losing audio focus)
+    @Volatile
+    var manuallyStoppedByUser: Boolean = false
+        private set
 
     companion object {
         private const val TAG = "PlaybackManager"
@@ -134,6 +140,11 @@ class PlaybackManager private constructor(
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying && manuallyStoppedByUser) {
+                    Log.w(TAG, "Playback started despite manual stop flag; pausing")
+                    _player.pause()
+                    return
+                }
                 _playbackState.value = _playbackState.value.copy(isPlaying = isPlaying)
                 if (isPlaying) {
                     startProgressTracking()
@@ -161,6 +172,7 @@ class PlaybackManager private constructor(
      * Play a song
      */
     fun playSong(song: Song) {
+        manuallyStoppedByUser = false
         scope.launch {
             try {
                 Log.d(TAG, "playSong called for: ${song.title} by ${song.artist}")
@@ -266,6 +278,10 @@ class PlaybackManager private constructor(
      * Resume playback
      */
     fun resume() {
+        if (manuallyStoppedByUser) {
+            Log.d(TAG, "Ignoring resume: playback was manually stopped by user")
+            return
+        }
         _player.play()
     }
 
@@ -312,6 +328,7 @@ class PlaybackManager private constructor(
      * Stop playback
      */
     fun stop() {
+        manuallyStoppedByUser = true
         _player.stop()
         _playbackState.value = PlaybackState()
         stopProgressTracking()
@@ -321,6 +338,7 @@ class PlaybackManager private constructor(
      * Set queue and start playing from a specific index
      */
     fun setQueue(songs: List<Song>, startIndex: Int = 0) {
+        manuallyStoppedByUser = false
         Log.d(TAG, "setQueue called with ${songs.size} songs, startIndex=$startIndex")
         queue.clear()
         queue.addAll(songs)
@@ -538,8 +556,14 @@ class PlaybackManager private constructor(
         val mediaSourceFactory = DefaultMediaSourceFactory(context)
             .setDataSourceFactory(dataSourceFactory)
 
+        val audioAttributes = AudioAttributes.Builder()
+            .setUsage(C.USAGE_MEDIA)
+            .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
+            .build()
+
         return ExoPlayer.Builder(context)
             .setMediaSourceFactory(mediaSourceFactory)
+            .setAudioAttributes(audioAttributes, /* handleAudioFocus = */ true)
             .setWakeMode(C.WAKE_MODE_NETWORK) // Efficient wake lock management for network streaming
             .build()
     }

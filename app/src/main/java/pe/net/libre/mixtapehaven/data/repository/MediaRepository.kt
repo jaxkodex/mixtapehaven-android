@@ -365,6 +365,127 @@ class MediaRepository(
     }
 
     /**
+     * Search hints for autocomplete
+     */
+    suspend fun searchHints(query: String, limit: Int = 10): Result<List<pe.net.libre.mixtapehaven.data.api.SearchHint>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val result = service.searchHints(
+                userId = userId,
+                searchTerm = query,
+                limit = limit
+            )
+
+            Result.success(result.searchHints)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Search songs
+     */
+    suspend fun searchSongs(query: String, limit: Int = 20): Result<List<Song>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                searchTerm = query,
+                includeItemTypes = "Audio",
+                recursive = true,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+
+            val songs = response.items.map { item -> mapToSong(item) }
+            Result.success(songs)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Search albums
+     */
+    suspend fun searchAlbums(query: String, limit: Int = 20): Result<List<Album>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                searchTerm = query,
+                includeItemTypes = "MusicAlbum",
+                recursive = true,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+            )
+
+            val albums = response.items.map { item -> mapToAlbum(item) }
+            Result.success(albums)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Search artists
+     */
+    suspend fun searchArtists(query: String, limit: Int = 20): Result<List<Artist>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                searchTerm = query,
+                includeItemTypes = "MusicArtist",
+                recursive = true,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,SortName,ChildCount"
+            )
+
+            val artists = response.items.map { item -> mapToArtist(item) }
+            Result.success(artists)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Search playlists
+     */
+    suspend fun searchPlaylists(query: String, limit: Int = 20): Result<List<Playlist>> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val response = service.getItems(
+                userId = userId,
+                searchTerm = query,
+                includeItemTypes = "Playlist",
+                recursive = true,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,ChildCount"
+            )
+
+            val playlists = response.items.map { item -> mapToPlaylist(item) }
+            Result.success(playlists)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Map BaseItemDto to Album
      */
     private fun mapToAlbum(item: BaseItemDto): Album {

@@ -56,4 +56,8 @@ class OfflineRepository(
     fun getPendingDownloads() = downloadManager.getPendingDownloads()
 
     fun getFailedDownloads() = downloadManager.getFailedDownloads()
+
+    suspend fun searchDownloadedSongs(query: String): List<DownloadedSongEntity> {
+        return database.downloadedSongDao().searchSongs(query)
+    }
 }

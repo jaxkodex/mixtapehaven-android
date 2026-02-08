@@ -325,7 +325,12 @@ class MediaPlaybackService : Service() {
     }
 
     private fun registerBluetoothReceiver() {
-        bluetoothReceiver = BluetoothDisconnectionReceiver(playbackManager)
+        bluetoothReceiver = BluetoothDisconnectionReceiver {
+            if (playbackManager.playbackState.value.isPlaying) {
+                Log.d(TAG, "Pausing playback due to audio output disconnection")
+                playbackManager.pause()
+            }
+        }
         val filter = IntentFilter().apply {
             addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
             addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)

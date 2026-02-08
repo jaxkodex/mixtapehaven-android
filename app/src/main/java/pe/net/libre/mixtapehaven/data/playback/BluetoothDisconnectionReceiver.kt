@@ -14,38 +14,25 @@ import android.util.Log
  * - Wired headphones are unplugged (via ACTION_AUDIO_BECOMING_NOISY)
  */
 class BluetoothDisconnectionReceiver(
-    private val playbackManager: PlaybackManager
+    private val onDisconnect: () -> Unit
 ) : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         when (intent?.action) {
             BluetoothDevice.ACTION_ACL_DISCONNECTED -> {
-                // Bluetooth device disconnected
                 val device = intent.getParcelableExtra<BluetoothDevice>(BluetoothDevice.EXTRA_DEVICE)
 
-                // Log device name, catching SecurityException if BLUETOOTH_CONNECT permission is missing
                 val deviceName = try {
                     device?.name ?: "Unknown"
                 } catch (e: SecurityException) {
                     "Unknown (no permission)"
                 }
                 Log.d(TAG, "Bluetooth device disconnected: $deviceName")
-
-                // Pause playback if currently playing
-                if (playbackManager.playbackState.value.isPlaying) {
-                    Log.d(TAG, "Pausing playback due to Bluetooth disconnection")
-                    playbackManager.pause()
-                }
+                onDisconnect()
             }
             AudioManager.ACTION_AUDIO_BECOMING_NOISY -> {
-                // Audio output became noisy (e.g., headphones unplugged)
                 Log.d(TAG, "Audio became noisy (headphones unplugged)")
-                
-                // Pause playback if currently playing
-                if (playbackManager.playbackState.value.isPlaying) {
-                    Log.d(TAG, "Pausing playback due to audio becoming noisy")
-                    playbackManager.pause()
-                }
+                onDisconnect()
             }
         }
     }

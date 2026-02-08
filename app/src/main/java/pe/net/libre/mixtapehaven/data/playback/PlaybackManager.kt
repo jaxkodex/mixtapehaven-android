@@ -51,13 +51,6 @@ class PlaybackManager private constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private var progressJob: Job? = null
 
-    // Audio focus management
-    private val audioFocusManager = AudioFocusManager(
-        context,
-        onAudioFocusLost = { pause() },
-        onAudioFocusGained = { resume() }
-    )
-
     // Queue management
     private val queue = mutableListOf<Song>()
     private var currentIndex: Int = -1
@@ -183,12 +176,6 @@ class PlaybackManager private constructor(
         scope.launch {
             try {
                 Log.d(TAG, "playSong called for: ${song.title} by ${song.artist}")
-
-                // Request audio focus before playing
-                if (!audioFocusManager.requestAudioFocus()) {
-                    Log.w(TAG, "Could not acquire audio focus")
-                    return@launch
-                }
 
                 // Check if song is available offline first
                 val offlineSong = offlineRepository.getDownloadedSong(song.id)
@@ -343,7 +330,6 @@ class PlaybackManager private constructor(
     fun stop() {
         manuallyStoppedByUser = true
         _player.stop()
-        audioFocusManager.abandonAudioFocus()
         _playbackState.value = PlaybackState()
         stopProgressTracking()
     }

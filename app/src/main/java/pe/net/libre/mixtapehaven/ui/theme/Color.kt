@@ -19,3 +19,6 @@ val VaporwaveMagenta = Color(0xFFFF00FF)
 
 // Surface/Divider Color
 val GunmetalGray = Color(0xFF333333)
+
+// Warning/Offline Indicator Color
+val WarningAmber = Color(0xFFFFA000)

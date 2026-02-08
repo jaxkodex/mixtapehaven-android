@@ -1,5 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.home
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -9,8 +10,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
+import pe.net.libre.mixtapehaven.data.repository.DownloadedSongMapper
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 
 /**
  * ViewModel for the home screen
@@ -21,6 +24,7 @@ class HomeViewModel(
     private val playbackManager: PlaybackManager,
     private val offlineRepository: OfflineRepository,
     private val dataStoreManager: DataStoreManager,
+    private val context: Context,
     private val onNavigateToAllAlbums: () -> Unit = {},
     private val onNavigateToAllArtists: () -> Unit = {},
     private val onNavigateToAllSongs: () -> Unit = {},
@@ -67,7 +71,7 @@ class HomeViewModel(
 
     private fun loadData() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
+            _uiState.value = _uiState.value.copy(isLoading = true, isOfflineMode = false)
 
             try {
                 // Load all data in parallel
@@ -76,17 +80,7 @@ class HomeViewModel(
                 val playlistsResult = mediaRepository.getUserPlaylists(limit = 10)
                 val popularSongsResult = mediaRepository.getPopularSongs(limit = 20)
 
-                // Update UI state with results
-                _uiState.value = HomeUiState(
-                    recentlyAddedAlbums = recentAlbumsResult.getOrElse { emptyList() },
-                    topArtists = topArtistsResult.getOrElse { emptyList() },
-                    playlists = playlistsResult.getOrElse { emptyList() },
-                    popularSongs = popularSongsResult.getOrElse { emptyList() },
-                    nowPlayingSong = null, // TODO: Implement now playing
-                    isLoading = false
-                )
-
-                // Handle errors
+                // Check if all results failed and device is offline
                 val errors = listOfNotNull(
                     recentAlbumsResult.exceptionOrNull(),
                     topArtistsResult.exceptionOrNull(),
@@ -94,18 +88,66 @@ class HomeViewModel(
                     popularSongsResult.exceptionOrNull()
                 )
 
+                if (errors.size == 4 && !NetworkUtil.isConnected(context)) {
+                    // Device is offline, load downloaded songs instead
+                    loadOfflineData()
+                    return@launch
+                }
+
+                // Update UI state with results
+                _uiState.value = HomeUiState(
+                    recentlyAddedAlbums = recentAlbumsResult.getOrElse { emptyList() },
+                    topArtists = topArtistsResult.getOrElse { emptyList() },
+                    playlists = playlistsResult.getOrElse { emptyList() },
+                    popularSongs = popularSongsResult.getOrElse { emptyList() },
+                    nowPlayingSong = null, // TODO: Implement now playing
+                    isLoading = false,
+                    isOfflineMode = false
+                )
+
                 if (errors.isNotEmpty()) {
                     _errorMessage.value = "Failed to load some content: ${errors.first().message}"
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-                _errorMessage.value = "Failed to load data: ${e.message}"
+                // Check if offline and load downloaded songs
+                if (!NetworkUtil.isConnected(context)) {
+                    loadOfflineData()
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoading = false)
+                    _errorMessage.value = "Failed to load data: ${e.message}"
+                }
             }
+        }
+    }
+
+    private suspend fun loadOfflineData() {
+        try {
+            val downloadedEntities = offlineRepository.getAllDownloaded().first()
+            val downloadedSongs = DownloadedSongMapper.toSongList(downloadedEntities)
+
+            _uiState.value = HomeUiState(
+                recentlyAddedAlbums = emptyList(),
+                topArtists = emptyList(),
+                playlists = emptyList(),
+                popularSongs = emptyList(),
+                nowPlayingSong = null,
+                isLoading = false,
+                isOfflineMode = true,
+                downloadedSongs = downloadedSongs
+            )
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                isOfflineMode = true,
+                downloadedSongs = emptyList()
+            )
+            _errorMessage.value = "Offline mode: ${e.message}"
         }
     }
 
     fun retry() {
         _errorMessage.value = null
+        _uiState.value = _uiState.value.copy(isOfflineMode = false, downloadedSongs = emptyList())
         loadData()
     }
 
@@ -184,5 +226,7 @@ data class HomeUiState(
     val playlists: List<Playlist> = emptyList(),
     val popularSongs: List<Song> = emptyList(),
     val nowPlayingSong: Song? = null,
-    val isLoading: Boolean = true
+    val isLoading: Boolean = true,
+    val isOfflineMode: Boolean = false,
+    val downloadedSongs: List<Song> = emptyList()
 )

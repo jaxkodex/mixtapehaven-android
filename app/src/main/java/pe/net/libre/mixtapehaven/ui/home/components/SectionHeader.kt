@@ -17,7 +17,7 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun SectionHeader(
     title: String,
-    onSeeMoreClick: () -> Unit,
+    onSeeMoreClick: (() -> Unit)?,
     modifier: Modifier = Modifier
 ) {
     Row(
@@ -33,12 +33,14 @@ fun SectionHeader(
             color = LunarWhite
         )
 
-        TextButton(onClick = onSeeMoreClick) {
-            Text(
-                text = "See More",
-                style = MaterialTheme.typography.bodyMedium,
-                color = CyberNeonBlue
-            )
+        if (onSeeMoreClick != null) {
+            TextButton(onClick = onSeeMoreClick) {
+                Text(
+                    text = "See More",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = CyberNeonBlue
+                )
+            }
         }
     }
 }

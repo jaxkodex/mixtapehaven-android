@@ -1,13 +1,18 @@
 package pe.net.libre.mixtapehaven.ui.home.detail
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.repository.DownloadedSongMapper
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.home.Song
 
 data class AllSongsUiState(
@@ -16,12 +21,15 @@ data class AllSongsUiState(
     val errorMessage: String? = null,
     val isRefreshing: Boolean = false,
     val isLoadingMore: Boolean = false,
-    val hasMorePages: Boolean = true
+    val hasMorePages: Boolean = true,
+    val isOfflineMode: Boolean = false
 )
 
 class AllSongsViewModel(
     private val mediaRepository: MediaRepository,
-    private val playbackManager: PlaybackManager
+    private val playbackManager: PlaybackManager,
+    private val offlineRepository: OfflineRepository,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(AllSongsUiState())
@@ -40,7 +48,8 @@ class AllSongsViewModel(
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
                 errorMessage = null,
-                hasMorePages = true
+                hasMorePages = true,
+                isOfflineMode = false
             )
 
             mediaRepository.getAllSongs(limit = PAGE_SIZE, startIndex = 0).fold(
@@ -49,21 +58,49 @@ class AllSongsViewModel(
                         songs = songs,
                         isLoading = false,
                         errorMessage = null,
-                        hasMorePages = songs.size >= PAGE_SIZE
+                        hasMorePages = songs.size >= PAGE_SIZE,
+                        isOfflineMode = false
                     )
                 },
                 onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        errorMessage = error.message ?: "Failed to load songs"
-                    )
+                    // Check if offline and load downloaded songs
+                    if (!NetworkUtil.isConnected(context)) {
+                        loadOfflineSongs()
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            errorMessage = error.message ?: "Failed to load songs"
+                        )
+                    }
                 }
             )
         }
     }
 
+    private suspend fun loadOfflineSongs() {
+        try {
+            val downloadedEntities = offlineRepository.getAllDownloaded().first()
+            val downloadedSongs = DownloadedSongMapper.toSongList(downloadedEntities)
+
+            _uiState.value = _uiState.value.copy(
+                songs = downloadedSongs,
+                isLoading = false,
+                errorMessage = null,
+                hasMorePages = false,
+                isOfflineMode = true
+            )
+        } catch (e: Exception) {
+            _uiState.value = _uiState.value.copy(
+                isLoading = false,
+                errorMessage = "Offline mode: ${e.message}",
+                isOfflineMode = true
+            )
+        }
+    }
+
     fun loadMore() {
-        if (_uiState.value.isLoadingMore || !_uiState.value.hasMorePages) {
+        // Skip pagination in offline mode
+        if (_uiState.value.isOfflineMode || _uiState.value.isLoadingMore || !_uiState.value.hasMorePages) {
             return
         }
 
@@ -95,7 +132,8 @@ class AllSongsViewModel(
             _uiState.value = _uiState.value.copy(
                 isRefreshing = true,
                 errorMessage = null,
-                hasMorePages = true
+                hasMorePages = true,
+                isOfflineMode = false
             )
 
             mediaRepository.getAllSongs(limit = PAGE_SIZE, startIndex = 0).fold(
@@ -104,14 +142,21 @@ class AllSongsViewModel(
                         songs = songs,
                         isRefreshing = false,
                         errorMessage = null,
-                        hasMorePages = songs.size >= PAGE_SIZE
+                        hasMorePages = songs.size >= PAGE_SIZE,
+                        isOfflineMode = false
                     )
                 },
                 onFailure = { error ->
-                    _uiState.value = _uiState.value.copy(
-                        isRefreshing = false,
-                        errorMessage = error.message ?: "Failed to refresh songs"
-                    )
+                    // Check if offline and load downloaded songs
+                    if (!NetworkUtil.isConnected(context)) {
+                        loadOfflineSongs()
+                        _uiState.value = _uiState.value.copy(isRefreshing = false)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isRefreshing = false,
+                            errorMessage = error.message ?: "Failed to refresh songs"
+                        )
+                    }
                 }
             )
         }

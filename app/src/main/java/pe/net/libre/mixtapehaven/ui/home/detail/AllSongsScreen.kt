@@ -1,8 +1,10 @@
 package pe.net.libre.mixtapehaven.ui.home.detail
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,8 +15,11 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -32,11 +37,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -48,13 +55,17 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 fun AllSongsScreen(
     mediaRepository: MediaRepository,
     playbackManager: PlaybackManager,
+    offlineRepository: OfflineRepository,
     onNavigateBack: () -> Unit,
     onSearchClick: () -> Unit = {}
 ) {
+    val context = LocalContext.current
     val viewModel: AllSongsViewModel = viewModel {
         AllSongsViewModel(
             mediaRepository = mediaRepository,
-            playbackManager = playbackManager
+            playbackManager = playbackManager,
+            offlineRepository = offlineRepository,
+            context = context
         )
     }
     val uiState by viewModel.uiState.collectAsState()
@@ -65,7 +76,7 @@ fun AllSongsScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "All Songs",
+                        text = if (uiState.isOfflineMode) "All Songs (Offline)" else "All Songs",
                         style = MaterialTheme.typography.headlineMedium,
                         color = LunarWhite
                     )
@@ -140,7 +151,7 @@ fun AllSongsScreen(
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "Add media to your Jellyfin server",
+                            text = if (uiState.isOfflineMode) "No downloaded songs available" else "Add media to your Jellyfin server",
                             style = MaterialTheme.typography.bodyMedium,
                             color = LunarWhite.copy(alpha = 0.7f),
                             textAlign = TextAlign.Center
@@ -173,6 +184,39 @@ fun AllSongsScreen(
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(bottom = 100.dp)
                         ) {
+                            // Offline Mode Banner
+                            if (uiState.isOfflineMode) {
+                                item {
+                                    Card(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                                        colors = CardDefaults.cardColors(
+                                            containerColor = androidx.compose.ui.graphics.Color(0xFFFFA000).copy(alpha = 0.2f)
+                                        )
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(12.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.CloudOff,
+                                                contentDescription = null,
+                                                tint = androidx.compose.ui.graphics.Color(0xFFFFA000)
+                                            )
+                                            Text(
+                                                text = "Offline Mode - Showing downloaded content",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = LunarWhite
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
                             itemsIndexed(uiState.songs) { index, song ->
                                 SongListItem(
                                     song = song,

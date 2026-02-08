@@ -178,6 +178,7 @@ fun NavGraph(
             AllSongsScreen(
                 mediaRepository = mediaRepository,
                 playbackManager = playbackManager,
+                offlineRepository = offlineRepository,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

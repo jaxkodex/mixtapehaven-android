@@ -8,8 +8,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.local.entity.DownloadedSongEntity
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.repository.DownloadedSongMapper
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
-import pe.net.libre.mixtapehaven.ui.home.Song
 
 class DownloadsViewModel(
     private val offlineRepository: OfflineRepository,
@@ -62,17 +62,7 @@ class DownloadsViewModel(
     }
 
     fun playDownloadedSongs() {
-        val songs = _downloadedSongs.value.map { entity ->
-            Song(
-                id = entity.id,
-                title = entity.title,
-                artist = entity.artist,
-                duration = entity.duration,
-                albumCoverUrl = entity.imagePath,
-                albumCoverPlaceholder = "",
-                isDownloaded = true
-            )
-        }
+        val songs = DownloadedSongMapper.toSongList(_downloadedSongs.value)
 
         if (songs.isNotEmpty()) {
             playbackManager.setQueue(songs, 0)
@@ -80,15 +70,7 @@ class DownloadsViewModel(
     }
 
     fun playSong(entity: DownloadedSongEntity) {
-        val song = Song(
-            id = entity.id,
-            title = entity.title,
-            artist = entity.artist,
-            duration = entity.duration,
-            albumCoverUrl = entity.imagePath,
-            albumCoverPlaceholder = "",
-            isDownloaded = true
-        )
+        val song = DownloadedSongMapper.toSong(entity)
         playbackManager.playSong(song)
     }
 }

@@ -5,8 +5,11 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
+import android.bluetooth.BluetoothDevice
 import android.content.Intent
+import android.content.IntentFilter
 import android.graphics.Bitmap
+import android.media.AudioManager
 import android.os.Binder
 import android.os.Build
 import android.os.IBinder
@@ -42,6 +45,7 @@ class MediaPlaybackService : Service() {
     private lateinit var imageLoader: ImageLoader
     private var coverArtBitmap: Bitmap? = null
     private var currentCoverUrl: String? = null
+    private lateinit var bluetoothReceiver: BluetoothDisconnectionReceiver
 
     inner class LocalBinder : Binder() {
         fun getService(): MediaPlaybackService = this@MediaPlaybackService
@@ -73,6 +77,7 @@ class MediaPlaybackService : Service() {
         createNotificationChannel()
         initializeMediaSession()
         setupPlayerListener()
+        registerBluetoothReceiver()
     }
 
     private fun createNotificationChannel() {
@@ -300,6 +305,15 @@ class MediaPlaybackService : Service() {
     override fun onDestroy() {
         super.onDestroy()
         Log.d(TAG, "onDestroy")
+        
+        // Unregister Bluetooth receiver
+        try {
+            unregisterReceiver(bluetoothReceiver)
+        } catch (e: IllegalArgumentException) {
+            // Receiver was not registered
+            Log.w(TAG, "Bluetooth receiver was not registered: ${e.message}")
+        }
+        
         mediaSession.release()
         playbackManager.release()
     }
@@ -308,6 +322,21 @@ class MediaPlaybackService : Service() {
 
     fun startForegroundService() {
         startForeground(NOTIFICATION_ID, createNotification())
+    }
+
+    private fun registerBluetoothReceiver() {
+        bluetoothReceiver = BluetoothDisconnectionReceiver {
+            if (playbackManager.playbackState.value.isPlaying) {
+                Log.d(TAG, "Pausing playback due to audio output disconnection")
+                playbackManager.pause()
+            }
+        }
+        val filter = IntentFilter().apply {
+            addAction(BluetoothDevice.ACTION_ACL_DISCONNECTED)
+            addAction(AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+        }
+        registerReceiver(bluetoothReceiver, filter)
+        Log.d(TAG, "Bluetooth receiver registered")
     }
 
     companion object {

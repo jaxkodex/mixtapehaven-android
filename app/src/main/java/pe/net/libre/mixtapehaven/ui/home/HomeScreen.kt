@@ -62,6 +62,7 @@ import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
+import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -242,7 +243,7 @@ fun HomeScreen(
                                     .fillMaxWidth()
                                     .padding(horizontal = 16.dp, vertical = 8.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = androidx.compose.ui.graphics.Color(0xFFFFA000).copy(alpha = 0.2f)
+                                    containerColor = WarningAmber.copy(alpha = 0.2f)
                                 )
                             ) {
                                 Row(
@@ -255,7 +256,7 @@ fun HomeScreen(
                                     Icon(
                                         imageVector = Icons.Default.CloudOff,
                                         contentDescription = null,
-                                        tint = androidx.compose.ui.graphics.Color(0xFFFFA000)
+                                        tint = WarningAmber
                                     )
                                     Text(
                                         text = "Offline Mode - Showing downloaded content",

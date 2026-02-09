@@ -32,6 +32,7 @@ class HomeViewModel(
     private val onNavigateToPlaylistDetail: (String) -> Unit = {},
     private val onNavigateToArtistDetail: (String) -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
+    private val onNavigateToSearch: () -> Unit = {},
     private val onLogout: () -> Unit = {}
 ) : ViewModel() {
 
@@ -195,7 +196,7 @@ class HomeViewModel(
     }
 
     fun onSearchClick() {
-        // TODO: Navigate to search screen
+        onNavigateToSearch()
     }
 
     fun onProfileClick() {

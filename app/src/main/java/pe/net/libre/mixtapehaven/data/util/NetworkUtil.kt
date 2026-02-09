@@ -58,4 +58,20 @@ object NetworkUtil {
     fun isConnected(context: Context): Boolean {
         return getNetworkType(context) != NetworkType.NONE
     }
+
+    /**
+     * Create a NetworkConnectivityProvider instance that wraps the application context.
+     * Use this to inject into ViewModels instead of passing Context directly.
+     */
+    fun createProvider(context: Context): NetworkConnectivityProvider {
+        return object : NetworkConnectivityProvider {
+            override fun isConnected(): Boolean {
+                return NetworkUtil.isConnected(context)
+            }
+
+            override fun isHighSpeedConnection(): Boolean {
+                return NetworkUtil.isHighSpeedConnection(context)
+            }
+        }
+    }
 }

@@ -41,7 +41,8 @@ interface JellyfinApiService {
         @Query("ImageTypeLimit") imageTypeLimit: Int? = 1,
         @Query("EnableImageTypes") enableImageTypes: String? = "Primary,Backdrop,Thumb",
         @Query("Ids") ids: String? = null,
-        @Query("ArtistIds") artistIds: String? = null
+        @Query("ArtistIds") artistIds: String? = null,
+        @Query("SearchTerm") searchTerm: String? = null
     ): ItemsResponse
 
     /**
@@ -56,4 +57,15 @@ interface JellyfinApiService {
         @Query("ImageTypeLimit") imageTypeLimit: Int? = 1,
         @Query("EnableImageTypes") enableImageTypes: String? = "Primary,Backdrop,Thumb"
     ): List<BaseItemDto>
+
+    /**
+     * Get search hints for autocomplete
+     */
+    @GET("Search/Hints")
+    suspend fun searchHints(
+        @Query("UserId") userId: String,
+        @Query("SearchTerm") searchTerm: String,
+        @Query("Limit") limit: Int? = 10,
+        @Query("IncludeItemTypes") includeItemTypes: String? = null
+    ): SearchHintResult
 }

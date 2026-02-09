@@ -39,4 +39,7 @@ interface DownloadedSongDao {
 
     @Query("SELECT * FROM downloaded_songs WHERE albumId = :albumId")
     suspend fun getSongsByAlbumId(albumId: String): List<DownloadedSongEntity>
+
+    @Query("SELECT * FROM downloaded_songs WHERE title LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%' OR album LIKE '%' || :query || '%' ORDER BY title ASC")
+    suspend fun searchSongs(query: String): List<DownloadedSongEntity>
 }

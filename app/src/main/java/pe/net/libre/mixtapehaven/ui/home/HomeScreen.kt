@@ -80,6 +80,7 @@ fun HomeScreen(
     onNavigateToNowPlaying: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToDownloads: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
     onLogout: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -97,6 +98,7 @@ fun HomeScreen(
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail,
             onNavigateToArtistDetail = onNavigateToArtistDetail,
             onNavigateToNowPlaying = onNavigateToNowPlaying,
+            onNavigateToSearch = onNavigateToSearch,
             onLogout = onLogout
         )
     }

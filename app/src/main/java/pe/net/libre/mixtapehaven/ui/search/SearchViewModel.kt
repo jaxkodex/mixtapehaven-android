@@ -1,6 +1,5 @@
 package pe.net.libre.mixtapehaven.ui.search
 
-import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.FlowPreview
@@ -19,7 +18,7 @@ import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.DownloadedSongMapper
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
-import pe.net.libre.mixtapehaven.data.util.NetworkUtil
+import pe.net.libre.mixtapehaven.data.util.NetworkConnectivityProvider
 import pe.net.libre.mixtapehaven.ui.home.Album
 import pe.net.libre.mixtapehaven.ui.home.Artist
 import pe.net.libre.mixtapehaven.ui.home.Playlist
@@ -57,7 +56,7 @@ class SearchViewModel(
     private val mediaRepository: MediaRepository,
     private val offlineRepository: OfflineRepository,
     private val playbackManager: PlaybackManager,
-    private val context: Context,
+    private val networkProvider: NetworkConnectivityProvider,
     private val onNavigateToArtistDetail: (String) -> Unit = {},
     private val onNavigateToPlaylistDetail: (String) -> Unit = {}
 ) : ViewModel() {
@@ -66,7 +65,6 @@ class SearchViewModel(
     val uiState: StateFlow<SearchUiState> = _uiState.asStateFlow()
 
     private val _queryFlow = MutableStateFlow("")
-    private var hintJob: kotlinx.coroutines.Job? = null
 
     init {
         // Setup debounced hints search
@@ -98,9 +96,6 @@ class SearchViewModel(
         val query = _uiState.value.query
         if (query.isBlank()) return
 
-        // Cancel any pending hint job
-        hintJob?.cancel()
-
         _uiState.value = _uiState.value.copy(
             isLoading = true,
             hasSearched = true,
@@ -109,7 +104,7 @@ class SearchViewModel(
         )
 
         viewModelScope.launch {
-            if (!NetworkUtil.isConnected(context)) {
+            if (!networkProvider.isConnected()) {
                 // Offline mode: search only downloaded songs
                 performOfflineSearch(query)
             } else {
@@ -123,7 +118,7 @@ class SearchViewModel(
      * Search hints for autocomplete
      */
     private suspend fun searchHints(query: String) {
-        if (!NetworkUtil.isConnected(context)) return
+        if (!networkProvider.isConnected()) return
 
         val result = mediaRepository.searchHints(query, limit = 10)
         result.onSuccess { hints ->

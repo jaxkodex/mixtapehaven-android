@@ -84,6 +84,11 @@ import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
+
+// Constants for grid calculations (in dp)
+private const val ALBUM_CARD_HEIGHT_DP = 200
+private const val MAX_GRID_HEIGHT_DP = 1000
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,12 +101,13 @@ fun SearchScreen(
     onNavigateToPlaylistDetail: (String) -> Unit
 ) {
     val context = LocalContext.current
+    val networkProvider = remember { NetworkUtil.createProvider(context) }
     val viewModel: SearchViewModel = viewModel {
         SearchViewModel(
             mediaRepository = mediaRepository,
             offlineRepository = offlineRepository,
             playbackManager = playbackManager,
-            context = context,
+            networkProvider = networkProvider,
             onNavigateToArtistDetail = onNavigateToArtistDetail,
             onNavigateToPlaylistDetail = onNavigateToPlaylistDetail
         )
@@ -470,7 +476,7 @@ private fun SearchResults(
                             contentPadding = PaddingValues(8.dp),
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                             verticalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.height((uiState.albums.size * 200).coerceAtMost(1000).dp)
+                            modifier = Modifier.height((uiState.albums.size * ALBUM_CARD_HEIGHT_DP).coerceAtMost(MAX_GRID_HEIGHT_DP).dp)
                         ) {
                             items(uiState.albums) { album ->
                                 AlbumCard(

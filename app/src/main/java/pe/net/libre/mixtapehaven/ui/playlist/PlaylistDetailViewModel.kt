@@ -15,6 +15,7 @@ data class PlaylistDetailUiState(
     val playlist: Playlist? = null,
     val songs: List<Song> = emptyList(),
     val isLoading: Boolean = true,
+    val isLoadingMix: Boolean = false,
     val errorMessage: String? = null,
     val totalDuration: String = "0 hr 0 min"
 )
@@ -90,6 +91,24 @@ class PlaylistDetailViewModel(
         if (songs.isNotEmpty()) {
             val shuffledSongs = songs.shuffled()
             playbackManager.setQueue(shuffledSongs, startIndex = 0)
+        }
+    }
+
+    fun onInstantMixClick() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoadingMix = true, errorMessage = null)
+            mediaRepository.getPlaylistInstantMix(playlistId)
+                .onSuccess { songs ->
+                    if (songs.isNotEmpty()) {
+                        playbackManager.setQueue(songs, 0)
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        errorMessage = error.message ?: "Failed to generate instant mix"
+                    )
+                }
+            _uiState.value = _uiState.value.copy(isLoadingMix = false)
         }
     }
 

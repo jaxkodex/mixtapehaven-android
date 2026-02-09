@@ -378,6 +378,21 @@ class MediaRepository(
             result.id
         }
     }
+    
+     /**
+     * Get instant mix based on a song
+     */
+    suspend fun getSongInstantMix(songId: String, limit: Int = 200): Result<List<Song>> {
+        return apiCall { service, userId ->
+            val response = service.getSongInstantMix(
+                itemId = songId,
+                userId = userId,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+            response.items.map { item -> mapToSong(item) }
+        }
+    }
 
     /**
      * Add a song to an existing playlist
@@ -385,6 +400,51 @@ class MediaRepository(
     suspend fun addSongToPlaylist(playlistId: String, songId: String): Result<Unit> {
         return apiCall { service, userId ->
             service.addToPlaylist(playlistId, ids = songId, userId = userId)
+        }
+    }
+
+    /**
+     * Get instant mix based on an album
+     */
+    suspend fun getAlbumInstantMix(albumId: String, limit: Int = 200): Result<List<Song>> {
+        return apiCall { service, userId ->
+            val response = service.getAlbumInstantMix(
+                itemId = albumId,
+                userId = userId,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+            response.items.map { item -> mapToSong(item) }
+        }
+    }
+
+    /**
+     * Get instant mix based on an artist
+     */
+    suspend fun getArtistInstantMix(artistId: String, limit: Int = 200): Result<List<Song>> {
+        return apiCall { service, userId ->
+            val response = service.getArtistInstantMix(
+                itemId = artistId,
+                userId = userId,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+            response.items.map { item -> mapToSong(item) }
+        }
+    }
+
+    /**
+     * Get instant mix based on a playlist
+     */
+    suspend fun getPlaylistInstantMix(playlistId: String, limit: Int = 200): Result<List<Song>> {
+        return apiCall { service, userId ->
+            val response = service.getPlaylistInstantMix(
+                itemId = playlistId,
+                userId = userId,
+                limit = limit,
+                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+            )
+            response.items.map { item -> mapToSong(item) }
         }
     }
 

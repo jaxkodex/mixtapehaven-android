@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -49,6 +50,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
@@ -57,15 +59,18 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun NowPlayingScreen(
     playbackManager: PlaybackManager,
+    mediaRepository: MediaRepository,
     onNavigateBack: () -> Unit
 ) {
     val viewModel: NowPlayingViewModel = viewModel {
         NowPlayingViewModel(
             playbackManager = playbackManager,
+            mediaRepository = mediaRepository,
             onNavigateBack = onNavigateBack
         )
     }
     val playbackState by viewModel.playbackState.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
     val song = playbackState.currentSong
 
     // Local state for seeking to prevent UI jitter during drag
@@ -335,6 +340,28 @@ fun NowPlayingScreen(
                 }
 
                 Spacer(modifier = Modifier.height(32.dp))
+
+                // Instant Mix button
+                IconButton(
+                    onClick = { viewModel.startInstantMix() },
+                    modifier = Modifier.size(48.dp),
+                    enabled = !uiState.isLoadingMix && song != null
+                ) {
+                    if (uiState.isLoadingMix) {
+                        CircularProgressIndicator(
+                            color = CyberNeonBlue,
+                            modifier = Modifier.size(24.dp),
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                            contentDescription = "Instant Mix",
+                            tint = if (song != null) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0.3f),
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
 
                 Spacer(modifier = Modifier.height(32.dp))
             }

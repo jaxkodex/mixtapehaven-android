@@ -52,10 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
-import pe.net.libre.mixtapehaven.ui.components.AddToPlaylistSheet
-import pe.net.libre.mixtapehaven.ui.components.NewPlaylistDialog
-import pe.net.libre.mixtapehaven.ui.components.PlaylistActionViewModel
-import pe.net.libre.mixtapehaven.ui.components.SongContextMenuBottomSheet
+import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
@@ -110,30 +107,7 @@ fun HomeScreen(
     val playbackState by playbackManager.playbackState.collectAsState()
     var showMenu by remember { mutableStateOf(false) }
 
-    // Playlist action state
-    var selectedSong by remember { mutableStateOf<Song?>(null) }
-    var showContextMenu by remember { mutableStateOf(false) }
-    var showAddToPlaylist by remember { mutableStateOf(false) }
-    var showNewPlaylistDialog by remember { mutableStateOf(false) }
-
-    val playlistActionViewModel: PlaylistActionViewModel = viewModel {
-        PlaylistActionViewModel(mediaRepository)
-    }
-    val playlistActionState by playlistActionViewModel.uiState.collectAsState()
-
-    // Snackbar for result feedback
-    val snackbarHostState = remember { androidx.compose.material3.SnackbarHostState() }
-
-    // Show snackbar for playlist action results
-    androidx.compose.runtime.LaunchedEffect(playlistActionState.resultMessage) {
-        playlistActionState.resultMessage?.let { message ->
-            snackbarHostState.showSnackbar(message)
-            playlistActionViewModel.clearResult()
-        }
-    }
-
     Scaffold(
-        snackbarHost = { androidx.compose.material3.SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -230,8 +204,12 @@ fun HomeScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (uiState.isLoading) {
+        PlaylistActionHandler(
+            mediaRepository = mediaRepository,
+            enabled = !uiState.isOfflineMode
+        ) { onSongMoreClick ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (uiState.isLoading) {
                 // Loading state
                 Box(
                     modifier = Modifier
@@ -443,63 +421,11 @@ fun HomeScreen(
                                 isPlaying = playbackState.isPlaying,
                                 onPlayPauseClick = { viewModel.onPlayPauseClick() },
                                 onDownloadClick = { viewModel.onDownloadClick(song) },
-                                onMoreClick = {
-                                    selectedSong = song
-                                    showContextMenu = true
-                                }
+                                onMoreClick = { onSongMoreClick(song) }
                             )
+                        }
                     }
                 }
-            }
-
-            // 1. Song context menu
-            if (showContextMenu && selectedSong != null) {
-                SongContextMenuBottomSheet(
-                    song = selectedSong!!,
-                    onDismiss = { showContextMenu = false },
-                    onAddToPlaylist = {
-                        showContextMenu = false
-                        playlistActionViewModel.loadPlaylists()
-                        showAddToPlaylist = true
-                    }
-                )
-            }
-
-            // 2. Playlist picker
-            if (showAddToPlaylist && selectedSong != null) {
-                AddToPlaylistSheet(
-                    playlists = playlistActionState.playlists,
-                    isLoading = playlistActionState.isLoadingPlaylists,
-                    onSelectPlaylist = { playlist ->
-                        playlistActionViewModel.addSongToPlaylist(selectedSong!!.id, playlist.id)
-                        showAddToPlaylist = false
-                        selectedSong = null
-                    },
-                    onCreateNew = {
-                        showAddToPlaylist = false
-                        showNewPlaylistDialog = true
-                    },
-                    onDismiss = {
-                        showAddToPlaylist = false
-                        selectedSong = null
-                    }
-                )
-            }
-
-            // 3. New playlist dialog
-            if (showNewPlaylistDialog && selectedSong != null) {
-                NewPlaylistDialog(
-                    isCreating = playlistActionState.isCreatingPlaylist,
-                    onConfirm = { name ->
-                        playlistActionViewModel.createPlaylistAndAddSong(name, selectedSong!!.id)
-                        showNewPlaylistDialog = false
-                        selectedSong = null
-                    },
-                    onDismiss = {
-                        showNewPlaylistDialog = false
-                        selectedSong = null
-                    }
-                )
             }
         }
     }

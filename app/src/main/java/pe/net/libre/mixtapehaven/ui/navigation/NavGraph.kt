@@ -26,6 +26,7 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.ui.artist.ArtistDetailScreen
 import pe.net.libre.mixtapehaven.ui.downloads.DownloadsScreen
+import pe.net.libre.mixtapehaven.ui.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.downloads.DownloadsViewModel
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
@@ -58,6 +59,7 @@ sealed class Screen(val route: String) {
     data object NowPlaying : Screen("now_playing")
     data object Settings : Screen("settings")
     data object Downloads : Screen("downloads")
+    data object Search : Screen("search")
 }
 
 @Composable
@@ -139,6 +141,9 @@ fun NavGraph(
                 },
                 onNavigateToDownloads = {
                     navController.navigate(Screen.Downloads.route)
+                },
+                onNavigateToSearch = {
+                    navController.navigate(Screen.Search.route)
                 },
                 onLogout = {
                     coroutineScope.launch {
@@ -269,6 +274,23 @@ fun NavGraph(
                 viewModel = downloadsViewModel,
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Search.route) {
+            SearchScreen(
+                mediaRepository = mediaRepository,
+                offlineRepository = offlineRepository,
+                playbackManager = playbackManager,
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToArtistDetail = { artistId ->
+                    navController.navigate(Screen.ArtistDetail.createRoute(artistId))
+                },
+                onNavigateToPlaylistDetail = { playlistId ->
+                    navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
                 }
             )
         }

@@ -125,3 +125,32 @@ data class UserItemDataDto(
     @SerialName("Key")
     val key: String? = null
 )
+
+// Search hint models
+@Serializable
+data class SearchHintResult(
+    @SerialName("SearchHints")
+    val searchHints: List<SearchHint> = emptyList(),
+    @SerialName("TotalRecordCount")
+    val totalRecordCount: Int = 0
+)
+
+@Serializable
+data class SearchHint(
+    @SerialName("Id")
+    val id: String,
+    @SerialName("Name")
+    val name: String,
+    @SerialName("Type")
+    val type: String,
+    @SerialName("Album")
+    val album: String? = null,
+    @SerialName("AlbumArtist")
+    val albumArtist: String? = null,
+    @SerialName("Artists")
+    val artists: List<String>? = null,
+    @SerialName("RunTimeTicks")
+    val runTimeTicks: Long? = null,
+    @SerialName("PrimaryImageTag")
+    val primaryImageTag: String? = null
+)

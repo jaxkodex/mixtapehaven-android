@@ -365,6 +365,44 @@ class MediaRepository(
     }
 
     /**
+     * Create a new playlist
+     */
+    suspend fun createPlaylist(name: String, songIds: List<String> = emptyList()): Result<String> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            val request = pe.net.libre.mixtapehaven.data.api.CreatePlaylistRequest(
+                name = name,
+                ids = songIds,
+                userId = userId
+            )
+
+            val result = service.createPlaylist(request)
+            Result.success(result.id)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
+     * Add a song to an existing playlist
+     */
+    suspend fun addSongToPlaylist(playlistId: String, songId: String): Result<Unit> {
+        return try {
+            val service = ensureApiService()
+            val userId = dataStoreManager.userId.first()
+                ?: throw IllegalStateException("No user ID found")
+
+            service.addToPlaylist(playlistId, ids = songId, userId = userId)
+            Result.success(Unit)
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Map BaseItemDto to Album
      */
     private fun mapToAlbum(item: BaseItemDto): Album {

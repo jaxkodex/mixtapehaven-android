@@ -24,6 +24,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
+import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 
@@ -55,7 +56,13 @@ fun NewPlaylistDialog(
                     label = {
                         Text(
                             text = "Playlist name",
-                            color = GunmetalGray
+                            color = LunarWhite.copy(alpha = 0.6f)
+                        )
+                    },
+                    placeholder = {
+                        Text(
+                            text = "Enter playlist name",
+                            color = LunarWhite.copy(alpha = 0.4f)
                         )
                     },
                     singleLine = true,
@@ -64,7 +71,9 @@ fun NewPlaylistDialog(
                         focusedTextColor = LunarWhite,
                         unfocusedTextColor = LunarWhite,
                         focusedBorderColor = CyberNeonBlue,
-                        unfocusedBorderColor = GunmetalGray,
+                        unfocusedBorderColor = LunarWhite.copy(alpha = 0.4f),
+                        focusedLabelColor = CyberNeonBlue,
+                        unfocusedLabelColor = LunarWhite.copy(alpha = 0.6f),
                         cursorColor = CyberNeonBlue
                     ),
                     modifier = Modifier.fillMaxWidth()
@@ -92,7 +101,7 @@ fun NewPlaylistDialog(
                 } else {
                     Text(
                         text = "Create",
-                        color = if (isCreateEnabled) CyberNeonBlue else GunmetalGray
+                        color = if (isCreateEnabled) CyberNeonBlue else LunarWhite.copy(alpha = 0.3f)
                     )
                 }
             }
@@ -108,6 +117,6 @@ fun NewPlaylistDialog(
                 )
             }
         },
-        containerColor = GunmetalGray.copy(alpha = 0.95f)
+        containerColor = DeepSpaceBlack.copy(alpha = 0.95f)
     )
 }

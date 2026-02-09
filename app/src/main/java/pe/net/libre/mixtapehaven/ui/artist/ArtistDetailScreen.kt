@@ -412,3 +412,4 @@ fun ArtistDetailScreen(
         }
     }
 }
+}

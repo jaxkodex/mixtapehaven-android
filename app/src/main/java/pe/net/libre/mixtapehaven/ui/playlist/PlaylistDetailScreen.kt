@@ -306,10 +306,11 @@ fun PlaylistDetailScreen(
                     // Bottom spacing for FAB and Now Playing Bar
                     item {
                         Spacer(modifier = Modifier.height(160.dp))
-                    }
-                }
-                }
             }
         }
     }
+}
+}
+}
+}
 }

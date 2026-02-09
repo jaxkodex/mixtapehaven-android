@@ -1,5 +1,10 @@
 package pe.net.libre.mixtapehaven.ui.components
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -8,9 +13,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.Song
+import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
+import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 
 /**
  * A reusable component that handles the complete playlist action flow.
@@ -18,12 +29,14 @@ import pe.net.libre.mixtapehaven.ui.home.Song
  *
  * @param mediaRepository The media repository for playlist operations
  * @param enabled Whether the playlist actions are enabled (false in offline mode)
+ * @param onPlaylistChanged Called when a playlist is created or a song is added, so the parent can refresh
  * @param content The content composable that receives the onMoreClick callback
  */
 @Composable
 fun PlaylistActionHandler(
     mediaRepository: MediaRepository,
     enabled: Boolean = true,
+    onPlaylistChanged: () -> Unit = {},
     content: @Composable (onSongMoreClick: (Song) -> Unit) -> Unit
 ) {
     // State management
@@ -45,6 +58,10 @@ fun PlaylistActionHandler(
     LaunchedEffect(playlistActionState.resultMessage) {
         playlistActionState.resultMessage?.let { message ->
             snackbarHostState.showSnackbar(message)
+            // Notify parent to refresh if the action succeeded (not an error message)
+            if (!message.startsWith("Failed")) {
+                onPlaylistChanged()
+            }
             playlistActionViewModel.clearResult()
         }
     }
@@ -57,8 +74,25 @@ fun PlaylistActionHandler(
         }
     }
 
-    // Render content with the callback
-    content(onSongMoreClick)
+    // Render content with snackbar host
+    Box(modifier = Modifier.fillMaxSize()) {
+        content(onSongMoreClick)
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 80.dp),
+            snackbar = { data ->
+                Snackbar(
+                    snackbarData = data,
+                    containerColor = DeepSpaceBlack,
+                    contentColor = LunarWhite,
+                    actionColor = CyberNeonBlue
+                )
+            }
+        )
+    }
 
     // Render playlist action UI
     PlaylistActionFlow(

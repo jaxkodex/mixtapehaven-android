@@ -143,12 +143,10 @@ class SearchViewModel(
             val playlistsDeferred = viewModelScope.async { mediaRepository.searchPlaylists(query) }
 
             // Wait for all results
-            val results = awaitAll(songsDeferred, albumsDeferred, artistsDeferred, playlistsDeferred)
-
-            val songsResult = results[0] as Result<List<Song>>
-            val albumsResult = results[1] as Result<List<Album>>
-            val artistsResult = results[2] as Result<List<Artist>>
-            val playlistsResult = results[3] as Result<List<Playlist>>
+            val songsResult = songsDeferred.await()
+            val albumsResult = albumsDeferred.await()
+            val artistsResult = artistsDeferred.await()
+            val playlistsResult = playlistsDeferred.await()
 
             _uiState.value = _uiState.value.copy(
                 songs = songsResult.getOrElse { emptyList() },

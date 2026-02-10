@@ -20,7 +20,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
@@ -234,11 +236,39 @@ fun PlaylistDetailScreen(
                                 color = LunarWhite
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "${uiState.songs.size} Tracks, ${uiState.totalDuration}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = LunarWhite.copy(alpha = 0.6f)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "${uiState.songs.size} Tracks, ${uiState.totalDuration}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = LunarWhite.copy(alpha = 0.6f)
+                                )
+                                if (uiState.downloadedCount > 0) {
+                                    Icon(
+                                        imageVector = if (uiState.downloadedCount >= uiState.songs.size) {
+                                            Icons.Default.CloudDone
+                                        } else {
+                                            Icons.Default.CloudQueue
+                                        },
+                                        contentDescription = if (uiState.downloadedCount >= uiState.songs.size) {
+                                            "Fully downloaded"
+                                        } else {
+                                            "${uiState.downloadedCount} of ${uiState.songs.size} downloaded"
+                                        },
+                                        tint = CyberNeonBlue,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    if (uiState.downloadedCount < uiState.songs.size) {
+                                        Text(
+                                            text = "${uiState.downloadedCount}/${uiState.songs.size}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = CyberNeonBlue
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 

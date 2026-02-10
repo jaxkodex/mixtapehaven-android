@@ -25,7 +25,8 @@ data class PlaylistDetailUiState(
     val isDownloading: Boolean = false,
     val errorMessage: String? = null,
     val totalDuration: String = "0 hr 0 min",
-    val showCellularConfirmDialog: Boolean = false
+    val showCellularConfirmDialog: Boolean = false,
+    val downloadedCount: Int = 0
 )
 
 class PlaylistDetailViewModel(
@@ -43,6 +44,7 @@ class PlaylistDetailViewModel(
     init {
         loadPlaylistData()
         observeDownloadQueue()
+        observeDownloadedSongs()
     }
 
     private fun loadPlaylistData() {
@@ -171,6 +173,23 @@ class PlaylistDetailViewModel(
             if (songs.isEmpty()) return@launch
             val quality = dataStoreManager.downloadQuality.first()
             offlineRepository.downloadPlaylist(songs, quality)
+        }
+    }
+
+    private fun observeDownloadedSongs() {
+        viewModelScope.launch {
+            offlineRepository.getAllDownloaded().collect { downloadedSongs ->
+                val downloadedIds = downloadedSongs.map { it.id }.toSet()
+                _uiState.update { state ->
+                    val updatedSongs = state.songs.map { song ->
+                        song.copy(isDownloaded = downloadedIds.contains(song.id))
+                    }
+                    state.copy(
+                        songs = updatedSongs,
+                        downloadedCount = updatedSongs.count { it.isDownloaded }
+                    )
+                }
+            }
         }
     }
 

@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
 import pe.net.libre.mixtapehaven.data.cache.CacheManager
 import pe.net.libre.mixtapehaven.data.local.OfflineDatabase
 import pe.net.libre.mixtapehaven.data.local.entity.DownloadQueueEntity
@@ -26,9 +27,11 @@ class DownloadManager private constructor(
     private val cacheManager: CacheManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val downloadSemaphore = Semaphore(MAX_CONCURRENT_DOWNLOADS)
 
     companion object {
         private const val TAG = "DownloadManager"
+        private const val MAX_CONCURRENT_DOWNLOADS = 3
 
         @Volatile
         private var instance: DownloadManager? = null
@@ -53,6 +56,18 @@ class DownloadManager private constructor(
     }
 
     suspend fun enqueueDownload(song: Song, quality: StreamingQuality) {
+        enqueueWithoutProcessing(song, quality)
+        processQueue()
+    }
+
+    suspend fun enqueuePlaylistDownload(songs: List<Song>, quality: StreamingQuality) {
+        songs.forEach { song ->
+            enqueueWithoutProcessing(song, quality)
+        }
+        processQueue()
+    }
+
+    private suspend fun enqueueWithoutProcessing(song: Song, quality: StreamingQuality) {
         try {
             // Check if already downloaded
             val existing = database.downloadedSongDao().getSongById(song.id)
@@ -85,23 +100,41 @@ class DownloadManager private constructor(
 
             database.downloadQueueDao().insert(queueItem)
             Log.d(TAG, "Enqueued download for: ${song.title}")
-
-            // Trigger download processing
-            processQueue()
         } catch (e: Exception) {
             Log.e(TAG, "Error enqueuing download: ${e.message}", e)
         }
     }
 
     private fun processQueue() {
-        scope.launch {
-            try {
-                val nextItem = database.downloadQueueDao().getNextPendingDownload()
-                if (nextItem != null) {
-                    downloadItem(nextItem)
+        // Launch multiple coroutines to fill available semaphore slots
+        repeat(MAX_CONCURRENT_DOWNLOADS) {
+            scope.launch {
+                try {
+                    // Acquire semaphore to limit concurrent downloads
+                    downloadSemaphore.acquire()
+                    val downloaded = try {
+                        val nextItem = database.downloadQueueDao().getNextPendingDownload()
+                        if (nextItem != null) {
+                            // Mark as DOWNLOADING immediately to prevent other coroutines picking it up
+                            database.downloadQueueDao().update(
+                                nextItem.copy(status = DownloadStatus.DOWNLOADING)
+                            )
+                            downloadItem(nextItem)
+                            true
+                        } else {
+                            false
+                        }
+                    } finally {
+                        downloadSemaphore.release()
+                    }
+
+                    // After completing a download, try to process more items
+                    if (downloaded) {
+                        processQueue()
+                    }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error processing queue: ${e.message}", e)
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error processing queue: ${e.message}", e)
             }
         }
     }
@@ -109,11 +142,6 @@ class DownloadManager private constructor(
     private suspend fun downloadItem(queueItem: DownloadQueueEntity) {
         try {
             Log.d(TAG, "Starting download: ${queueItem.title}")
-
-            // Update status to downloading
-            database.downloadQueueDao().update(
-                queueItem.copy(status = DownloadStatus.DOWNLOADING)
-            )
 
             val quality = StreamingQuality.valueOf(queueItem.quality)
 
@@ -179,7 +207,7 @@ class DownloadManager private constructor(
                     // Check cache limits and evict if needed
                     cacheManager.evictIfNeeded()
 
-                    Log.d(TAG, "Download completed successfully: ${queueItem.title}")
+                    Log.d(TAG, "Download completed: ${queueItem.title}")
                 }
 
                 is DownloadResult.Failure -> {
@@ -195,9 +223,6 @@ class DownloadManager private constructor(
                     )
                 }
             }
-
-            // Process next item in queue
-            processQueue()
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading item: ${e.message}", e)
 

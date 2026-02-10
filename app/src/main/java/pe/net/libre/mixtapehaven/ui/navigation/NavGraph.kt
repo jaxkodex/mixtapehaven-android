@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
@@ -39,6 +40,7 @@ import pe.net.libre.mixtapehaven.ui.home.detail.AllSongsScreen
 import pe.net.libre.mixtapehaven.ui.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingViewModel
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.playlist.PlaylistDetailScreen
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
 
@@ -210,10 +212,15 @@ fun NavGraph(
             )
         ) { backStackEntry ->
             val playlistId = backStackEntry.arguments?.getString("playlistId") ?: return@composable
+            val context = LocalContext.current
+            val networkConnectivityProvider = remember { NetworkUtil.createProvider(context) }
             PlaylistDetailScreen(
                 playlistId = playlistId,
                 mediaRepository = mediaRepository,
                 playbackManager = playbackManager,
+                offlineRepository = offlineRepository,
+                dataStoreManager = dataStoreManager,
+                networkConnectivityProvider = networkConnectivityProvider,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

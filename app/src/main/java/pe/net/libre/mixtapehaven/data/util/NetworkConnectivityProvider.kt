@@ -14,4 +14,9 @@ interface NetworkConnectivityProvider {
      * Check if the device is on a high-speed connection (WiFi/Ethernet)
      */
     fun isHighSpeedConnection(): Boolean
+
+    /**
+     * Check if the device is connected to a cellular network
+     */
+    fun isCellularConnection(): Boolean
 }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
@@ -87,13 +88,27 @@ fun SongListItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LunarWhite,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (song.isDownloaded) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDone,
+                        contentDescription = "Downloaded",
+                        tint = CyberNeonBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,

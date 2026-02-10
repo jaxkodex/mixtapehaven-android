@@ -30,6 +30,10 @@ class OfflineRepository(
         downloadManager.enqueueDownload(song, quality)
     }
 
+    suspend fun downloadPlaylist(songs: List<Song>, quality: StreamingQuality) {
+        downloadManager.enqueuePlaylistDownload(songs, quality)
+    }
+
     suspend fun deleteSong(songId: String) {
         val song = database.downloadedSongDao().getSongById(songId)
         song?.let { cacheManager.deleteSong(it) }

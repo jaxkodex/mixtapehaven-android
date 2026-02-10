@@ -12,12 +12,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudDone
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -44,7 +42,6 @@ fun SongListItem(
     isCurrentSong: Boolean = false,
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
-    onDownloadClick: (() -> Unit)? = null,
     onMoreClick: (() -> Unit)? = null
 ) {
     Row(
@@ -91,13 +88,27 @@ fun SongListItem(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.Center
         ) {
-            Text(
-                text = song.title,
-                style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
+            ) {
+                Text(
+                    text = song.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = LunarWhite,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                if (song.isDownloaded) {
+                    Icon(
+                        imageVector = Icons.Default.CloudDone,
+                        contentDescription = "Downloaded",
+                        tint = CyberNeonBlue,
+                        modifier = Modifier.size(14.dp)
+                    )
+                }
+            }
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
@@ -126,48 +137,6 @@ fun SongListItem(
                     contentDescription = "More options",
                     tint = GunmetalGray
                 )
-            }
-        }
-
-        // Download button
-        if (onDownloadClick != null) {
-            Box(
-                modifier = Modifier.size(40.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                when {
-                    song.downloadProgress != null -> {
-                        // Show progress indicator when downloading
-                        CircularProgressIndicator(
-                            progress = { song.downloadProgress!! },
-                            modifier = Modifier.size(24.dp),
-                            color = CyberNeonBlue,
-                            strokeWidth = 2.dp
-                        )
-                    }
-                    song.isDownloaded -> {
-                        // Show checkmark when downloaded
-                        Icon(
-                            imageVector = Icons.Default.CheckCircle,
-                            contentDescription = "Downloaded",
-                            tint = CyberNeonBlue,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    else -> {
-                        // Show download button
-                        IconButton(
-                            onClick = onDownloadClick,
-                            modifier = Modifier.size(40.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.CloudDownload,
-                                contentDescription = "Download",
-                                tint = GunmetalGray
-                            )
-                        }
-                    }
-                }
             }
         }
 

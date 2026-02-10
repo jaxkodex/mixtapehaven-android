@@ -72,6 +72,10 @@ object NetworkUtil {
             override fun isHighSpeedConnection(): Boolean {
                 return NetworkUtil.isHighSpeedConnection(context)
             }
+
+            override fun isCellularConnection(): Boolean {
+                return NetworkUtil.isCellularConnection(context)
+            }
         }
     }
 }

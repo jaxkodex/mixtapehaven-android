@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -30,6 +32,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Song
+import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 
@@ -39,7 +42,8 @@ fun SongContextMenuBottomSheet(
     song: Song,
     onDismiss: () -> Unit,
     onAddToPlaylist: (Song) -> Unit,
-    onInstantMix: (Song) -> Unit
+    onInstantMix: (Song) -> Unit,
+    onDownloadClick: ((Song) -> Unit)? = null
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -151,6 +155,29 @@ fun SongContextMenuBottomSheet(
                     onInstantMix(song)
                 }
             )
+
+            // Download action
+            if (onDownloadClick != null) {
+                ListItem(
+                    headlineContent = {
+                        Text(
+                            text = if (song.isDownloaded) "Downloaded" else "Download",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (song.isDownloaded) CyberNeonBlue else LunarWhite
+                        )
+                    },
+                    leadingContent = {
+                        Icon(
+                            imageVector = if (song.isDownloaded) Icons.Default.CheckCircle else Icons.Default.CloudDownload,
+                            contentDescription = if (song.isDownloaded) "Downloaded" else "Download",
+                            tint = if (song.isDownloaded) CyberNeonBlue else GunmetalGray
+                        )
+                    },
+                    modifier = Modifier.clickable(enabled = !song.isDownloaded) {
+                        onDownloadClick(song)
+                    }
+                )
+            }
         }
     }
 }

@@ -39,6 +39,9 @@ interface DownloadQueueDao {
     @Query("DELETE FROM download_queue WHERE status = :status")
     suspend fun deleteByStatus(status: DownloadStatus)
 
+    @Query("UPDATE download_queue SET status = :newStatus, progress = 0, bytesDownloaded = 0 WHERE status = :oldStatus")
+    suspend fun resetStatus(oldStatus: DownloadStatus, newStatus: DownloadStatus): Int
+
     @Query("SELECT * FROM download_queue ORDER BY addedDate DESC")
     fun getAllDownloads(): Flow<List<DownloadQueueEntity>>
 }

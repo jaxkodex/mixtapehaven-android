@@ -9,6 +9,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Semaphore
+import androidx.room.withTransaction
 import pe.net.libre.mixtapehaven.data.cache.CacheManager
 import pe.net.libre.mixtapehaven.data.local.OfflineDatabase
 import pe.net.libre.mixtapehaven.data.local.entity.DownloadQueueEntity
@@ -26,9 +28,31 @@ class DownloadManager private constructor(
     private val cacheManager: CacheManager
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val downloadSemaphore = Semaphore(MAX_CONCURRENT_DOWNLOADS)
+
+    init {
+        // Recover orphaned downloads from a previous session.
+        // Items stuck as DOWNLOADING mean the process died mid-download.
+        // Reset them to PENDING so they get picked up again.
+        scope.launch {
+            try {
+                val resetCount = database.downloadQueueDao().resetStatus(
+                    oldStatus = DownloadStatus.DOWNLOADING,
+                    newStatus = DownloadStatus.PENDING
+                )
+                if (resetCount > 0) {
+                    Log.d(TAG, "Recovered $resetCount orphaned downloads")
+                    processQueue()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error recovering orphaned downloads: ${e.message}", e)
+            }
+        }
+    }
 
     companion object {
         private const val TAG = "DownloadManager"
+        private const val MAX_CONCURRENT_DOWNLOADS = 3
 
         @Volatile
         private var instance: DownloadManager? = null
@@ -53,6 +77,18 @@ class DownloadManager private constructor(
     }
 
     suspend fun enqueueDownload(song: Song, quality: StreamingQuality) {
+        enqueueWithoutProcessing(song, quality)
+        processQueue()
+    }
+
+    suspend fun enqueuePlaylistDownload(songs: List<Song>, quality: StreamingQuality) {
+        songs.forEach { song ->
+            enqueueWithoutProcessing(song, quality)
+        }
+        processQueue()
+    }
+
+    private suspend fun enqueueWithoutProcessing(song: Song, quality: StreamingQuality) {
         try {
             // Check if already downloaded
             val existing = database.downloadedSongDao().getSongById(song.id)
@@ -85,23 +121,43 @@ class DownloadManager private constructor(
 
             database.downloadQueueDao().insert(queueItem)
             Log.d(TAG, "Enqueued download for: ${song.title}")
-
-            // Trigger download processing
-            processQueue()
         } catch (e: Exception) {
             Log.e(TAG, "Error enqueuing download: ${e.message}", e)
         }
     }
 
     private fun processQueue() {
-        scope.launch {
-            try {
-                val nextItem = database.downloadQueueDao().getNextPendingDownload()
-                if (nextItem != null) {
-                    downloadItem(nextItem)
+        // Launch a fixed number of worker coroutines that loop to process downloads
+        repeat(MAX_CONCURRENT_DOWNLOADS) {
+            scope.launch {
+                while (true) {
+                    try {
+                        downloadSemaphore.acquire()
+                        try {
+                            // Atomically fetch and mark item as DOWNLOADING within a transaction
+                            val nextItem = database.withTransaction {
+                                database.downloadQueueDao().getNextPendingDownload()?.also { item ->
+                                    database.downloadQueueDao().update(
+                                        item.copy(status = DownloadStatus.DOWNLOADING)
+                                    )
+                                }
+                            }
+
+                            if (nextItem != null) {
+                                downloadItem(nextItem)
+                            } else {
+                                // No more items in queue, this worker can stop
+                                break
+                            }
+                        } finally {
+                            downloadSemaphore.release()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing queue: ${e.message}", e)
+                        // Stop worker on error to prevent potential infinite loops
+                        break
+                    }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error processing queue: ${e.message}", e)
             }
         }
     }
@@ -109,11 +165,6 @@ class DownloadManager private constructor(
     private suspend fun downloadItem(queueItem: DownloadQueueEntity) {
         try {
             Log.d(TAG, "Starting download: ${queueItem.title}")
-
-            // Update status to downloading
-            database.downloadQueueDao().update(
-                queueItem.copy(status = DownloadStatus.DOWNLOADING)
-            )
 
             val quality = StreamingQuality.valueOf(queueItem.quality)
 
@@ -179,7 +230,7 @@ class DownloadManager private constructor(
                     // Check cache limits and evict if needed
                     cacheManager.evictIfNeeded()
 
-                    Log.d(TAG, "Download completed successfully: ${queueItem.title}")
+                    Log.d(TAG, "Download completed: ${queueItem.title}")
                 }
 
                 is DownloadResult.Failure -> {
@@ -195,9 +246,6 @@ class DownloadManager private constructor(
                     )
                 }
             }
-
-            // Process next item in queue
-            processQueue()
         } catch (e: Exception) {
             Log.e(TAG, "Error downloading item: ${e.message}", e)
 

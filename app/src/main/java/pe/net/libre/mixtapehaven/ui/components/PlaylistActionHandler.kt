@@ -42,6 +42,7 @@ fun PlaylistActionHandler(
     playbackManager: PlaybackManager,
     enabled: Boolean = true,
     onPlaylistChanged: () -> Unit = {},
+    onDownloadSong: ((Song) -> Unit)? = null,
     content: @Composable (onSongMoreClick: (Song) -> Unit) -> Unit
 ) {
     // State management
@@ -136,6 +137,7 @@ fun PlaylistActionHandler(
         showNewPlaylistDialog = showNewPlaylistDialog,
         playlistActionState = playlistActionState,
         isLoadingInstantMix = isLoadingInstantMix,
+        onDownloadSong = onDownloadSong,
         onDismissContextMenu = { showContextMenu = false },
         onAddToPlaylist = {
             showContextMenu = false
@@ -184,6 +186,7 @@ private fun PlaylistActionFlow(
     showNewPlaylistDialog: Boolean,
     playlistActionState: PlaylistActionViewModel.UiState,
     isLoadingInstantMix: Boolean,
+    onDownloadSong: ((Song) -> Unit)? = null,
     onDismissContextMenu: () -> Unit,
     onAddToPlaylist: () -> Unit,
     onInstantMix: (Song) -> Unit,
@@ -199,7 +202,13 @@ private fun PlaylistActionFlow(
             song = selectedSong,
             onDismiss = onDismissContextMenu,
             onAddToPlaylist = { onAddToPlaylist() },
-            onInstantMix = { onInstantMix(selectedSong) }
+            onInstantMix = { onInstantMix(selectedSong) },
+            onDownloadClick = onDownloadSong?.let { download ->
+                { song: Song ->
+                    onDismissContextMenu()
+                    download(song)
+                }
+            }
         )
     }
 

@@ -20,9 +20,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.CloudDone
+import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.CloudQueue
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -33,6 +37,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
@@ -51,7 +56,10 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.data.util.NetworkConnectivityProvider
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
@@ -67,13 +75,19 @@ fun PlaylistDetailScreen(
     playlistId: String,
     mediaRepository: MediaRepository,
     playbackManager: PlaybackManager,
+    offlineRepository: OfflineRepository,
+    dataStoreManager: DataStoreManager,
+    networkConnectivityProvider: NetworkConnectivityProvider,
     onNavigateBack: () -> Unit
 ) {
     val viewModel: PlaylistDetailViewModel = viewModel {
         PlaylistDetailViewModel(
             playlistId = playlistId,
             mediaRepository = mediaRepository,
-            playbackManager = playbackManager
+            playbackManager = playbackManager,
+            offlineRepository = offlineRepository,
+            dataStoreManager = dataStoreManager,
+            networkConnectivityProvider = networkConnectivityProvider
         )
     }
     val uiState by viewModel.uiState.collectAsState()
@@ -222,11 +236,39 @@ fun PlaylistDetailScreen(
                                 color = LunarWhite
                             )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                text = "${uiState.songs.size} Tracks, ${uiState.totalDuration}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                color = LunarWhite.copy(alpha = 0.6f)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "${uiState.songs.size} Tracks, ${uiState.totalDuration}",
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = LunarWhite.copy(alpha = 0.6f)
+                                )
+                                if (uiState.downloadedCount > 0) {
+                                    Icon(
+                                        imageVector = if (uiState.downloadedCount >= uiState.songs.size) {
+                                            Icons.Default.CloudDone
+                                        } else {
+                                            Icons.Default.CloudQueue
+                                        },
+                                        contentDescription = if (uiState.downloadedCount >= uiState.songs.size) {
+                                            "Fully downloaded"
+                                        } else {
+                                            "${uiState.downloadedCount} of ${uiState.songs.size} downloaded"
+                                        },
+                                        tint = CyberNeonBlue,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    if (uiState.downloadedCount < uiState.songs.size) {
+                                        Text(
+                                            text = "${uiState.downloadedCount}/${uiState.songs.size}",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = CyberNeonBlue
+                                        )
+                                    }
+                                }
+                            }
                         }
                     }
 
@@ -331,6 +373,43 @@ fun PlaylistDetailScreen(
                                     )
                                 )
                             }
+
+                            Spacer(modifier = Modifier.height(12.dp))
+
+                            // Download All button
+                            Button(
+                                onClick = { viewModel.onDownloadAllClick() },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = GunmetalGray,
+                                    contentColor = LunarWhite
+                                ),
+                                shape = RoundedCornerShape(12.dp),
+                                enabled = !uiState.isDownloading
+                            ) {
+                                if (uiState.isDownloading) {
+                                    CircularProgressIndicator(
+                                        color = LunarWhite,
+                                        modifier = Modifier.size(24.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                } else {
+                                    Icon(
+                                        imageVector = Icons.Default.CloudDownload,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Download All",
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                            }
                         }
                     }
 
@@ -350,11 +429,34 @@ fun PlaylistDetailScreen(
                     // Bottom spacing for FAB and Now Playing Bar
                     item {
                         Spacer(modifier = Modifier.height(160.dp))
+                    }
+                }
             }
         }
+
+        // Cellular data confirmation dialog
+        if (uiState.showCellularConfirmDialog) {
+            AlertDialog(
+                onDismissRequest = { viewModel.onDismissCellularDialog() },
+                title = { Text("Download over mobile data?") },
+                text = {
+                    Text(
+                        "You are on mobile data. Downloading ${uiState.songs.size} songs may use significant data. Continue?"
+                    )
+                },
+                confirmButton = {
+                    TextButton(onClick = { viewModel.onConfirmCellularDownload() }) {
+                        Text("Download")
+                    }
+                },
+                dismissButton = {
+                    TextButton(onClick = { viewModel.onDismissCellularDialog() }) {
+                        Text("Cancel")
+                    }
+                }
+            )
+        }
     }
-}
-}
 }
 }
 }

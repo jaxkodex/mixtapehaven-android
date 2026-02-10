@@ -5,10 +5,16 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.data.util.NetworkConnectivityProvider
 import pe.net.libre.mixtapehaven.ui.home.Playlist
 import pe.net.libre.mixtapehaven.ui.home.Song
 
@@ -17,14 +23,20 @@ data class PlaylistDetailUiState(
     val songs: List<Song> = emptyList(),
     val isLoading: Boolean = true,
     val isLoadingMix: Boolean = false,
+    val isDownloading: Boolean = false,
     val errorMessage: String? = null,
-    val totalDuration: String = "0 hr 0 min"
+    val totalDuration: String = "0 hr 0 min",
+    val showCellularConfirmDialog: Boolean = false,
+    val downloadedCount: Int = 0
 )
 
 class PlaylistDetailViewModel(
     private val playlistId: String,
     private val mediaRepository: MediaRepository,
-    private val playbackManager: PlaybackManager
+    private val playbackManager: PlaybackManager,
+    private val offlineRepository: OfflineRepository,
+    private val dataStoreManager: DataStoreManager,
+    private val networkConnectivityProvider: NetworkConnectivityProvider
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PlaylistDetailUiState())
@@ -32,6 +44,8 @@ class PlaylistDetailViewModel(
 
     init {
         loadPlaylistData()
+        observeDownloadQueue()
+        observeDownloadedSongs()
     }
 
     private fun loadPlaylistData() {
@@ -130,6 +144,74 @@ class PlaylistDetailViewModel(
 
     fun onPlayPauseClick() {
         playbackManager.togglePlayPause()
+    }
+
+    fun onDownloadAllClick() {
+        viewModelScope.launch {
+            val wifiOnly = dataStoreManager.wifiOnlyDownload.first()
+            val isCellular = networkConnectivityProvider.isCellularConnection()
+
+            if (wifiOnly && isCellular) {
+                _uiState.update { it.copy(showCellularConfirmDialog = true) }
+            } else {
+                startPlaylistDownload()
+            }
+        }
+    }
+
+    fun onConfirmCellularDownload() {
+        _uiState.update { it.copy(showCellularConfirmDialog = false) }
+        startPlaylistDownload()
+    }
+
+    fun onDismissCellularDialog() {
+        _uiState.update { it.copy(showCellularConfirmDialog = false) }
+    }
+
+    private fun startPlaylistDownload() {
+        viewModelScope.launch {
+            val songs = _uiState.value.songs
+            if (songs.isEmpty()) return@launch
+            val quality = dataStoreManager.downloadQuality.first()
+            offlineRepository.downloadPlaylist(songs, quality)
+        }
+    }
+
+    private fun observeDownloadedSongs() {
+        viewModelScope.launch {
+            combine(
+                _uiState.distinctUntilChangedBy { it.songs.map { s -> s.id } },
+                offlineRepository.getAllDownloaded()
+            ) { state, downloadedSongs ->
+                val downloadedIds = downloadedSongs.map { it.id }.toSet()
+                val updatedSongs = state.songs.map { song ->
+                    song.copy(isDownloaded = downloadedIds.contains(song.id))
+                }
+                updatedSongs
+            }.collect { updatedSongs ->
+                _uiState.update { state ->
+                    state.copy(
+                        songs = updatedSongs,
+                        downloadedCount = updatedSongs.count { it.isDownloaded }
+                    )
+                }
+            }
+        }
+    }
+
+    private fun observeDownloadQueue() {
+        viewModelScope.launch {
+            combine(
+                offlineRepository.getActiveDownloads(),
+                offlineRepository.getPendingDownloads()
+            ) { active, pending ->
+                active + pending
+            }.collect { queueItems ->
+                val playlistSongIds = _uiState.value.songs.map { it.id }.toSet()
+                val hasDownloadsInProgress = queueItems.any { it.songId in playlistSongIds }
+                _uiState.update { it.copy(isDownloading = hasDownloadsInProgress) }
+            }
+        }
     }
 
     private fun calculateTotalDuration(songs: List<Song>): String {

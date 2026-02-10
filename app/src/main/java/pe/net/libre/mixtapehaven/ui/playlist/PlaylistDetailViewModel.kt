@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -41,6 +42,7 @@ class PlaylistDetailViewModel(
 
     init {
         loadPlaylistData()
+        observeDownloadQueue()
     }
 
     private fun loadPlaylistData() {
@@ -168,9 +170,22 @@ class PlaylistDetailViewModel(
             val songs = _uiState.value.songs
             if (songs.isEmpty()) return@launch
             val quality = dataStoreManager.downloadQuality.first()
-            _uiState.update { it.copy(isDownloading = true) }
             offlineRepository.downloadPlaylist(songs, quality)
-            _uiState.update { it.copy(isDownloading = false) }
+        }
+    }
+
+    private fun observeDownloadQueue() {
+        viewModelScope.launch {
+            combine(
+                offlineRepository.getActiveDownloads(),
+                offlineRepository.getPendingDownloads()
+            ) { active, pending ->
+                active + pending
+            }.collect { queueItems ->
+                val playlistSongIds = _uiState.value.songs.map { it.id }.toSet()
+                val hasDownloadsInProgress = queueItems.any { it.songId in playlistSongIds }
+                _uiState.update { it.copy(isDownloading = hasDownloadsInProgress) }
+            }
         }
     }
 

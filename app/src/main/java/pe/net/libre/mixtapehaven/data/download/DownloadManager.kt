@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Semaphore
+import androidx.room.withTransaction
 import pe.net.libre.mixtapehaven.data.cache.CacheManager
 import pe.net.libre.mixtapehaven.data.local.OfflineDatabase
 import pe.net.libre.mixtapehaven.data.local.entity.DownloadQueueEntity
@@ -106,34 +107,36 @@ class DownloadManager private constructor(
     }
 
     private fun processQueue() {
-        // Launch multiple coroutines to fill available semaphore slots
+        // Launch a fixed number of worker coroutines that loop to process downloads
         repeat(MAX_CONCURRENT_DOWNLOADS) {
             scope.launch {
-                try {
-                    // Acquire semaphore to limit concurrent downloads
-                    downloadSemaphore.acquire()
-                    val downloaded = try {
-                        val nextItem = database.downloadQueueDao().getNextPendingDownload()
-                        if (nextItem != null) {
-                            // Mark as DOWNLOADING immediately to prevent other coroutines picking it up
-                            database.downloadQueueDao().update(
-                                nextItem.copy(status = DownloadStatus.DOWNLOADING)
-                            )
-                            downloadItem(nextItem)
-                            true
-                        } else {
-                            false
-                        }
-                    } finally {
-                        downloadSemaphore.release()
-                    }
+                while (true) {
+                    try {
+                        downloadSemaphore.acquire()
+                        try {
+                            // Atomically fetch and mark item as DOWNLOADING within a transaction
+                            val nextItem = database.withTransaction {
+                                database.downloadQueueDao().getNextPendingDownload()?.also { item ->
+                                    database.downloadQueueDao().update(
+                                        item.copy(status = DownloadStatus.DOWNLOADING)
+                                    )
+                                }
+                            }
 
-                    // After completing a download, try to process more items
-                    if (downloaded) {
-                        processQueue()
+                            if (nextItem != null) {
+                                downloadItem(nextItem)
+                            } else {
+                                // No more items in queue, this worker can stop
+                                break
+                            }
+                        } finally {
+                            downloadSemaphore.release()
+                        }
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error processing queue: ${e.message}", e)
+                        // Stop worker on error to prevent potential infinite loops
+                        break
                     }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error processing queue: ${e.message}", e)
                 }
             }
         }

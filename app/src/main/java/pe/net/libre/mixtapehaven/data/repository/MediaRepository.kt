@@ -431,6 +431,55 @@ class MediaRepository(
             result.id
         }
     }
+    
+    /**
+     * Get playlist items with file sizes for download
+     */
+    suspend fun getPlaylistItemsWithSizes(playlistId: String): Result<PlaylistWithSongs> {
+        return apiCall { service, userId ->
+            // First get the playlist details
+            val playlistResponse = service.getItems(
+                userId = userId,
+                includeItemTypes = "Playlist",
+                ids = playlistId,
+                fields = "PrimaryImageAspectRatio,ChildCount"
+            )
+            val playlist = playlistResponse.items.firstOrNull()
+                ?: throw IllegalStateException("Playlist not found")
+
+            // Get the playlist items (songs)
+            val itemsResponse = service.getItems(
+                userId = userId,
+                parentId = playlistId,
+                includeItemTypes = "Audio",
+                fields = "PrimaryImageAspectRatio,Path,MediaSources,AlbumArtists"
+            )
+
+            // Fetch detailed info with media sources for file sizes
+            val songIds = itemsResponse.items.map { it.id }
+            val songsWithSizes = if (songIds.isNotEmpty()) {
+                val detailedResponse = service.getItemsWithMediaSources(
+                    userId = userId,
+                    ids = songIds.joinToString(",")
+                )
+                detailedResponse.items.mapNotNull { item ->
+                    serverUrl?.let { url -> item.toSongWithSize(url) }
+                }
+            } else {
+                emptyList()
+            }
+
+            val totalSize = songsWithSizes.sumOf { it.fileSize }
+
+            PlaylistWithSongs(
+                playlistId = playlistId,
+                name = playlist.name,
+                songs = songsWithSizes,
+                totalSize = totalSize,
+                coverUrl = getImageUrl(playlistId, "Primary", playlist.imageTags?.get("Primary"))
+            )
+        }
+    }
 
     /**
      * Add a song to an existing playlist

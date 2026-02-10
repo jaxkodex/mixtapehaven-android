@@ -66,16 +66,21 @@ class NowPlayingViewModel(
         val currentSong = playbackManager.playbackState.value.currentSong ?: return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoadingMix = true, errorMessage = null) }
-            mediaRepository.getSongInstantMix(currentSong.id)
-                .onSuccess { songs ->
-                    if (songs.isNotEmpty()) {
-                        playbackManager.setQueue(songs, 0)
+            try {
+                mediaRepository.getSongInstantMix(currentSong.id)
+                    .onSuccess { songs ->
+                        if (songs.isNotEmpty()) {
+                            playbackManager.setQueue(songs, 0)
+                        }
                     }
-                }
-                .onFailure { error ->
-                    _uiState.update { it.copy(errorMessage = error.message ?: "Failed to generate instant mix") }
-                }
-            _uiState.update { it.copy(isLoadingMix = false) }
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(errorMessage = error.message ?: "Failed to generate instant mix")
+                        }
+                    }
+            } finally {
+                _uiState.update { it.copy(isLoadingMix = false) }
+            }
         }
     }
 

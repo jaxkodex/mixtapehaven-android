@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
@@ -96,19 +97,22 @@ class PlaylistDetailViewModel(
 
     fun onInstantMixClick() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoadingMix = true, errorMessage = null)
-            mediaRepository.getPlaylistInstantMix(playlistId)
-                .onSuccess { songs ->
-                    if (songs.isNotEmpty()) {
-                        playbackManager.setQueue(songs, 0)
+            _uiState.update { it.copy(isLoadingMix = true, errorMessage = null) }
+            try {
+                mediaRepository.getPlaylistInstantMix(playlistId)
+                    .onSuccess { songs ->
+                        if (songs.isNotEmpty()) {
+                            playbackManager.setQueue(songs, 0)
+                        }
                     }
-                }
-                .onFailure { error ->
-                    _uiState.value = _uiState.value.copy(
-                        errorMessage = error.message ?: "Failed to generate instant mix"
-                    )
-                }
-            _uiState.value = _uiState.value.copy(isLoadingMix = false)
+                    .onFailure { error ->
+                        _uiState.update {
+                            it.copy(errorMessage = error.message ?: "Failed to generate instant mix")
+                        }
+                    }
+            } finally {
+                _uiState.update { it.copy(isLoadingMix = false) }
+            }
         }
     }
 

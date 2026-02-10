@@ -110,6 +110,7 @@ fun AllSongsScreen(
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
+            playbackManager = playbackManager,
             enabled = !uiState.isOfflineMode
         ) { onSongMoreClick ->
         Box(

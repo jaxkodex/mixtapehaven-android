@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlayArrow
@@ -116,6 +117,7 @@ fun ArtistDetailScreen(
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
+            playbackManager = playbackManager,
             enabled = true
         ) { onSongMoreClick ->
             Box(
@@ -233,58 +235,100 @@ fun ArtistDetailScreen(
 
                         // Action buttons
                         item {
-                            Row(
+                            Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(horizontal = 24.dp, vertical = 24.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    .padding(horizontal = 24.dp, vertical = 24.dp)
                             ) {
-                                // Play All button
-                                Button(
-                                    onClick = { viewModel.onPlayAllClick() },
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .height(56.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = CyberNeonBlue,
-                                        contentColor = DeepSpaceBlack
-                                    ),
-                                    shape = RoundedCornerShape(12.dp)
+                                // Play All and Shuffle buttons row
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp)
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.PlayArrow,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = "Play All",
-                                        style = MaterialTheme.typography.titleMedium.copy(
-                                            fontWeight = FontWeight.Bold
+                                    // Play All button
+                                    Button(
+                                        onClick = { viewModel.onPlayAllClick() },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = CyberNeonBlue,
+                                            contentColor = DeepSpaceBlack
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.PlayArrow,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
                                         )
-                                    )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Play All",
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                    }
+
+                                    // Shuffle button
+                                    Button(
+                                        onClick = { viewModel.onShuffleClick() },
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(56.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = GunmetalGray,
+                                            contentColor = LunarWhite
+                                        ),
+                                        shape = RoundedCornerShape(12.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Shuffle,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "Shuffle",
+                                            style = MaterialTheme.typography.titleMedium.copy(
+                                                fontWeight = FontWeight.Bold
+                                            )
+                                        )
+                                    }
                                 }
 
-                                // Shuffle button
+                                Spacer(modifier = Modifier.height(12.dp))
+
+                                // Instant Mix button
                                 Button(
-                                    onClick = { viewModel.onShuffleClick() },
+                                    onClick = { viewModel.onInstantMixClick() },
                                     modifier = Modifier
-                                        .weight(1f)
+                                        .fillMaxWidth()
                                         .height(56.dp),
                                     colors = ButtonDefaults.buttonColors(
-                                        containerColor = GunmetalGray,
+                                        containerColor = VaporwaveMagenta,
                                         contentColor = LunarWhite
                                     ),
-                                    shape = RoundedCornerShape(12.dp)
+                                    shape = RoundedCornerShape(12.dp),
+                                    enabled = !uiState.isLoadingMix
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Shuffle,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(24.dp)
-                                    )
+                                    if (uiState.isLoadingMix) {
+                                        CircularProgressIndicator(
+                                            color = LunarWhite,
+                                            modifier = Modifier.size(24.dp),
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Filled.Sort,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = "Shuffle",
+                                        text = "Instant Mix",
                                         style = MaterialTheme.typography.titleMedium.copy(
                                             fontWeight = FontWeight.Bold
                                         )

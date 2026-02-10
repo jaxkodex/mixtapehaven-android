@@ -248,6 +248,7 @@ fun NavGraph(
         composable(Screen.NowPlaying.route) {
             NowPlayingScreen(
                 playbackManager = playbackManager,
+                mediaRepository = mediaRepository,
                 onNavigateBack = {
                     navController.popBackStack()
                 }

@@ -98,4 +98,48 @@ interface JellyfinApiService {
         @Query("Ids") ids: String,
         @Query("UserId") userId: String
     )
+    
+    /**
+     * Get instant mix based on a song
+     */
+    @GET("Songs/{itemId}/InstantMix")
+    suspend fun getSongInstantMix(
+        @Path("itemId") itemId: String,
+        @Query("UserId") userId: String,
+        @Query("Limit") limit: Int? = 200,
+        @Query("Fields") fields: String? = null
+    ): ItemsResponse
+
+    /**
+     * Get instant mix based on an album
+     */
+    @GET("Albums/{itemId}/InstantMix")
+    suspend fun getAlbumInstantMix(
+        @Path("itemId") itemId: String,
+        @Query("UserId") userId: String,
+        @Query("Limit") limit: Int? = 200,
+        @Query("Fields") fields: String? = null
+    ): ItemsResponse
+
+    /**
+     * Get instant mix based on an artist
+     */
+    @GET("Artists/{itemId}/InstantMix")
+    suspend fun getArtistInstantMix(
+        @Path("itemId") itemId: String,
+        @Query("UserId") userId: String,
+        @Query("Limit") limit: Int? = 200,
+        @Query("Fields") fields: String? = null
+    ): ItemsResponse
+
+    /**
+     * Get instant mix based on a playlist
+     */
+    @GET("Playlists/{itemId}/InstantMix")
+    suspend fun getPlaylistInstantMix(
+        @Path("itemId") itemId: String,
+        @Query("UserId") userId: String,
+        @Query("Limit") limit: Int? = 200,
+        @Query("Fields") fields: String? = null
+    ): ItemsResponse
 }

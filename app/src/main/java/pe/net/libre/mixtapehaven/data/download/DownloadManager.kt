@@ -30,6 +30,26 @@ class DownloadManager private constructor(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
     private val downloadSemaphore = Semaphore(MAX_CONCURRENT_DOWNLOADS)
 
+    init {
+        // Recover orphaned downloads from a previous session.
+        // Items stuck as DOWNLOADING mean the process died mid-download.
+        // Reset them to PENDING so they get picked up again.
+        scope.launch {
+            try {
+                val resetCount = database.downloadQueueDao().resetStatus(
+                    oldStatus = DownloadStatus.DOWNLOADING,
+                    newStatus = DownloadStatus.PENDING
+                )
+                if (resetCount > 0) {
+                    Log.d(TAG, "Recovered $resetCount orphaned downloads")
+                    processQueue()
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error recovering orphaned downloads: ${e.message}", e)
+            }
+        }
+    }
+
     companion object {
         private const val TAG = "DownloadManager"
         private const val MAX_CONCURRENT_DOWNLOADS = 3

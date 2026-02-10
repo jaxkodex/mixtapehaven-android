@@ -52,6 +52,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
@@ -203,8 +204,13 @@ fun HomeScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        Box(modifier = Modifier.fillMaxSize()) {
-            if (uiState.isLoading) {
+        PlaylistActionHandler(
+            mediaRepository = mediaRepository,
+            enabled = !uiState.isOfflineMode,
+            onPlaylistChanged = { viewModel.refreshPlaylists() }
+        ) { onSongMoreClick ->
+            Box(modifier = Modifier.fillMaxSize()) {
+                if (uiState.isLoading) {
                 // Loading state
                 Box(
                     modifier = Modifier
@@ -322,7 +328,8 @@ fun HomeScreen(
                                     isCurrentSong = playbackState.currentSong?.id == song.id,
                                     isPlaying = playbackState.isPlaying,
                                     onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                    onDownloadClick = { }
+                                    onDownloadClick = { },
+                                    onMoreClick = null  // No playlist actions in offline mode
                                 )
                             }
                         }
@@ -414,7 +421,8 @@ fun HomeScreen(
                                 isCurrentSong = playbackState.currentSong?.id == song.id,
                                 isPlaying = playbackState.isPlaying,
                                 onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                onDownloadClick = { viewModel.onDownloadClick(song) }
+                                onDownloadClick = { viewModel.onDownloadClick(song) },
+                                onMoreClick = { onSongMoreClick(song) }
                             )
                         }
                     }
@@ -422,4 +430,5 @@ fun HomeScreen(
             }
         }
     }
+}
 }

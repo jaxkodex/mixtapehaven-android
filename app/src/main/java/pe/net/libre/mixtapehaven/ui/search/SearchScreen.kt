@@ -71,6 +71,7 @@ import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.ui.components.FuturisticTextField
+import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.Album
 import pe.net.libre.mixtapehaven.ui.home.Artist
 import pe.net.libre.mixtapehaven.ui.home.Playlist
@@ -165,47 +166,53 @@ fun SearchScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                // Show autocomplete hints
-                !uiState.hasSearched && uiState.hints.isNotEmpty() -> {
-                    SearchHintsList(
-                        hints = uiState.hints,
-                        onHintClick = viewModel::onHintClick
-                    )
-                }
-                // Show loading
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = CyberNeonBlue,
-                            strokeWidth = 4.dp
+        PlaylistActionHandler(
+            mediaRepository = mediaRepository,
+            enabled = !uiState.isOfflineMode
+        ) { onSongMoreClick ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
+                    // Show autocomplete hints
+                    !uiState.hasSearched && uiState.hints.isNotEmpty() -> {
+                        SearchHintsList(
+                            hints = uiState.hints,
+                            onHintClick = viewModel::onHintClick
                         )
                     }
-                }
-                // Show results after search
-                uiState.hasSearched -> {
-                    SearchResults(
-                        uiState = uiState,
-                        playbackState = playbackState,
-                        onFilterChange = viewModel::onFilterChange,
-                        onSongClick = viewModel::onSongClick,
-                        onPlayPauseClick = { playbackManager.togglePlayPause() },
-                        onAlbumClick = viewModel::onAlbumClick,
-                        onArtistClick = viewModel::onArtistClick,
-                        onPlaylistClick = viewModel::onPlaylistClick
-                    )
-                }
-                // Show initial state
-                else -> {
-                    InitialSearchState()
+                    // Show loading
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = CyberNeonBlue,
+                                strokeWidth = 4.dp
+                            )
+                        }
+                    }
+                    // Show results after search
+                    uiState.hasSearched -> {
+                        SearchResults(
+                            uiState = uiState,
+                            playbackState = playbackState,
+                            onFilterChange = viewModel::onFilterChange,
+                            onSongClick = viewModel::onSongClick,
+                            onPlayPauseClick = { playbackManager.togglePlayPause() },
+                            onAlbumClick = viewModel::onAlbumClick,
+                            onArtistClick = viewModel::onArtistClick,
+                            onPlaylistClick = viewModel::onPlaylistClick,
+                            onSongMoreClick = onSongMoreClick
+                        )
+                    }
+                    // Show initial state
+                    else -> {
+                        InitialSearchState()
+                    }
                 }
             }
         }
@@ -317,7 +324,8 @@ private fun SearchResults(
     onPlayPauseClick: () -> Unit,
     onAlbumClick: (Album) -> Unit,
     onArtistClick: (Artist) -> Unit,
-    onPlaylistClick: (Playlist) -> Unit
+    onPlaylistClick: (Playlist) -> Unit,
+    onSongMoreClick: (Song) -> Unit
 ) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
@@ -393,7 +401,8 @@ private fun SearchResults(
                                 onClick = { onSongClick(song) },
                                 isCurrentSong = playbackState.currentSong?.id == song.id,
                                 isPlaying = playbackState.isPlaying,
-                                onPlayPauseClick = onPlayPauseClick
+                                onPlayPauseClick = onPlayPauseClick,
+                                onMoreClick = { onSongMoreClick(song) }
                             )
                         }
                     }
@@ -464,7 +473,8 @@ private fun SearchResults(
                             onClick = { onSongClick(song) },
                             isCurrentSong = playbackState.currentSong?.id == song.id,
                             isPlaying = playbackState.isPlaying,
-                            onPlayPauseClick = onPlayPauseClick
+                            onPlayPauseClick = onPlayPauseClick,
+                            onMoreClick = onSongMoreClick?.let { { it(song) } }
                         )
                     }
                 }

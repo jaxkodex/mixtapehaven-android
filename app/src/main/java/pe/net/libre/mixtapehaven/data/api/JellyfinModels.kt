@@ -154,3 +154,18 @@ data class SearchHint(
     @SerialName("PrimaryImageTag")
     val primaryImageTag: String? = null
 )
+
+// Playlist request/response models
+@Serializable
+data class CreatePlaylistRequest(
+    @SerialName("Name") val name: String,
+    @SerialName("Ids") val ids: List<String> = emptyList(),
+    @SerialName("UserId") val userId: String,
+    @SerialName("MediaType") val mediaType: String = "Audio",
+    @SerialName("IsPublic") val isPublic: Boolean = true
+)
+
+@Serializable
+data class PlaylistCreationResult(
+    @SerialName("Id") val id: String
+)

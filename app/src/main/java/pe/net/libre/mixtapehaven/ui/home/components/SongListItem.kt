@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.CloudDownload
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.CircularProgressIndicator
@@ -43,7 +44,8 @@ fun SongListItem(
     isCurrentSong: Boolean = false,
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
-    onDownloadClick: (() -> Unit)? = null
+    onDownloadClick: (() -> Unit)? = null,
+    onMoreClick: (() -> Unit)? = null
 ) {
     Row(
         modifier = modifier
@@ -112,6 +114,20 @@ fun SongListItem(
             style = MaterialTheme.typography.bodySmall,
             color = GunmetalGray
         )
+
+        // More button (three dots)
+        if (onMoreClick != null) {
+            IconButton(
+                onClick = onMoreClick,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.MoreVert,
+                    contentDescription = "More options",
+                    tint = GunmetalGray
+                )
+            }
+        }
 
         // Download button
         if (onDownloadClick != null) {

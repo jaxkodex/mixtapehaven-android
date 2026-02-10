@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -178,12 +179,17 @@ class PlaylistDetailViewModel(
 
     private fun observeDownloadedSongs() {
         viewModelScope.launch {
-            offlineRepository.getAllDownloaded().collect { downloadedSongs ->
+            combine(
+                _uiState.distinctUntilChangedBy { it.songs.map { s -> s.id } },
+                offlineRepository.getAllDownloaded()
+            ) { state, downloadedSongs ->
                 val downloadedIds = downloadedSongs.map { it.id }.toSet()
+                val updatedSongs = state.songs.map { song ->
+                    song.copy(isDownloaded = downloadedIds.contains(song.id))
+                }
+                updatedSongs
+            }.collect { updatedSongs ->
                 _uiState.update { state ->
-                    val updatedSongs = state.songs.map { song ->
-                        song.copy(isDownloaded = downloadedIds.contains(song.id))
-                    }
                     state.copy(
                         songs = updatedSongs,
                         downloadedCount = updatedSongs.count { it.isDownloaded }

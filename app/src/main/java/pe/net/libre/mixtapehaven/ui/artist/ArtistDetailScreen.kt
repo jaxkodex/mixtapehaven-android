@@ -117,6 +117,7 @@ fun ArtistDetailScreen(
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
+            playbackManager = playbackManager,
             enabled = true
         ) { onSongMoreClick ->
             Box(

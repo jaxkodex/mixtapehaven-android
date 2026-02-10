@@ -12,11 +12,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.Song
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -28,6 +31,7 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
  * Manages state, ViewModel, snackbar feedback, and renders all necessary UI.
  *
  * @param mediaRepository The media repository for playlist operations
+ * @param playbackManager The playback manager for instant mix and queue operations
  * @param enabled Whether the playlist actions are enabled (false in offline mode)
  * @param onPlaylistChanged Called when a playlist is created or a song is added, so the parent can refresh
  * @param content The content composable that receives the onMoreClick callback
@@ -35,6 +39,7 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun PlaylistActionHandler(
     mediaRepository: MediaRepository,
+    playbackManager: PlaybackManager,
     enabled: Boolean = true,
     onPlaylistChanged: () -> Unit = {},
     content: @Composable (onSongMoreClick: (Song) -> Unit) -> Unit
@@ -44,6 +49,10 @@ fun PlaylistActionHandler(
     var showContextMenu by remember { mutableStateOf(false) }
     var showAddToPlaylist by remember { mutableStateOf(false) }
     var showNewPlaylistDialog by remember { mutableStateOf(false) }
+    var isLoadingInstantMix by remember { mutableStateOf(false) }
+
+    // Coroutine scope for instant mix
+    val coroutineScope = rememberCoroutineScope()
 
     // ViewModel
     val playlistActionViewModel: PlaylistActionViewModel = viewModel {
@@ -74,6 +83,31 @@ fun PlaylistActionHandler(
         }
     }
 
+    // Handle instant mix
+    val onInstantMix: (Song) -> Unit = { song ->
+        showContextMenu = false
+        coroutineScope.launch {
+            isLoadingInstantMix = true
+            try {
+                mediaRepository.getSongInstantMix(song.id)
+                    .onSuccess { songs ->
+                        if (songs.isNotEmpty()) {
+                            playbackManager.setQueue(songs, 0)
+                            snackbarHostState.showSnackbar("Instant mix generated with ${songs.size} songs")
+                        } else {
+                            snackbarHostState.showSnackbar("No similar songs found")
+                        }
+                    }
+                    .onFailure { error ->
+                        snackbarHostState.showSnackbar("Failed to generate instant mix: ${error.message}")
+                    }
+            } finally {
+                isLoadingInstantMix = false
+                selectedSong = null
+            }
+        }
+    }
+
     // Render content with snackbar host
     Box(modifier = Modifier.fillMaxSize()) {
         content(onSongMoreClick)
@@ -101,12 +135,14 @@ fun PlaylistActionHandler(
         showAddToPlaylist = showAddToPlaylist,
         showNewPlaylistDialog = showNewPlaylistDialog,
         playlistActionState = playlistActionState,
+        isLoadingInstantMix = isLoadingInstantMix,
         onDismissContextMenu = { showContextMenu = false },
         onAddToPlaylist = {
             showContextMenu = false
             playlistActionViewModel.loadPlaylists()
             showAddToPlaylist = true
         },
+        onInstantMix = onInstantMix,
         onSelectPlaylist = { playlist ->
             selectedSong?.let { song ->
                 playlistActionViewModel.addSongToPlaylist(song.id, playlist.id)
@@ -147,8 +183,10 @@ private fun PlaylistActionFlow(
     showAddToPlaylist: Boolean,
     showNewPlaylistDialog: Boolean,
     playlistActionState: PlaylistActionViewModel.UiState,
+    isLoadingInstantMix: Boolean,
     onDismissContextMenu: () -> Unit,
     onAddToPlaylist: () -> Unit,
+    onInstantMix: (Song) -> Unit,
     onSelectPlaylist: (pe.net.libre.mixtapehaven.ui.home.Playlist) -> Unit,
     onCreateNewPlaylist: () -> Unit,
     onDismissAddToPlaylist: () -> Unit,
@@ -156,11 +194,12 @@ private fun PlaylistActionFlow(
     onDismissNewPlaylist: () -> Unit
 ) {
     // 1. Song context menu
-    if (showContextMenu && selectedSong != null) {
+    if (showContextMenu && selectedSong != null && !isLoadingInstantMix) {
         SongContextMenuBottomSheet(
             song = selectedSong,
             onDismiss = onDismissContextMenu,
-            onAddToPlaylist = { onAddToPlaylist() }
+            onAddToPlaylist = { onAddToPlaylist() },
+            onInstantMix = { onInstantMix(selectedSong) }
         )
     }
 

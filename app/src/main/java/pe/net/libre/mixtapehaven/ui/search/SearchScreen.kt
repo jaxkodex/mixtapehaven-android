@@ -168,6 +168,7 @@ fun SearchScreen(
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
+            playbackManager = playbackManager,
             enabled = !uiState.isOfflineMode
         ) { onSongMoreClick ->
             Box(

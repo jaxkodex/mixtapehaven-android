@@ -123,6 +123,7 @@ fun PlaylistDetailScreen(
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
+            playbackManager = playbackManager,
             enabled = true
         ) { onSongMoreClick ->
             Box(

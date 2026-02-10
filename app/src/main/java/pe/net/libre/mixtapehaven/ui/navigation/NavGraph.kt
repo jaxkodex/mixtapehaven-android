@@ -213,6 +213,7 @@ fun NavGraph(
             PlaylistDetailScreen(
                 playlistId = playlistId,
                 mediaRepository = mediaRepository,
+                offlineRepository = offlineRepository,
                 playbackManager = playbackManager,
                 onNavigateBack = {
                     navController.popBackStack()

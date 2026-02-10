@@ -13,6 +13,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.download.work.DownloadWorkManager
 import pe.net.libre.mixtapehaven.data.local.OfflineDatabase
@@ -95,7 +96,7 @@ class BatteryStatusMonitor(
 
     private fun checkBatteryAndUpdateDownloads(batteryPct: Int, isCharging: Boolean) {
         scope.launch {
-            val threshold = dataStoreManager.batteryThreshold.value ?: DEFAULT_BATTERY_THRESHOLD
+            val threshold = dataStoreManager.batteryThreshold.first() ?: DEFAULT_BATTERY_THRESHOLD
 
             val shouldPause = batteryPct < threshold && !isCharging
             _shouldPauseDownloads.value = shouldPause
@@ -160,7 +161,7 @@ class BatteryStatusMonitor(
         val fileSizes = crossRefs.map { it.fileSize }
 
         // Get quality preference
-        val quality = dataStoreManager.downloadQuality.value ?: "ORIGINAL"
+        val quality = dataStoreManager.downloadQuality.first().name ?: "ORIGINAL"
 
         // Get playlist info
         val playlist = database.downloadedPlaylistDao().getPlaylistById(playlistId)

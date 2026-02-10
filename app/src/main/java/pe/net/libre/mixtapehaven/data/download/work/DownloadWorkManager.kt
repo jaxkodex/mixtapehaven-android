@@ -173,7 +173,7 @@ class DownloadWorkManager(private val context: Context) {
             .setConstraints(constraints)
             .setBackoffCriteria(
                 BackoffPolicy.EXPONENTIAL,
-                OneTimeWorkRequest.MIN_BACKOFF_MILLIS,
+                10_000L, // 10 seconds minimum backoff
                 TimeUnit.MILLISECONDS
             )
             .addTag(WORK_TAG_PLAYLIST_DOWNLOAD)

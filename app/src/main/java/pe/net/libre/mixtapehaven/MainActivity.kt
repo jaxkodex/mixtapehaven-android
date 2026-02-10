@@ -58,12 +58,12 @@ class MainActivity : ComponentActivity() {
         // Initialize dependencies
         val dataStoreManager = DataStoreManager(applicationContext)
         val offlineDatabase = pe.net.libre.mixtapehaven.data.local.OfflineDatabase.getInstance(applicationContext)
-        val fileDownloader = pe.net.libre.mixtapehaven.data.download.FileDownloader(dataStoreManager, applicationContext)
+        val fileDownloader = pe.net.libre.mixtapehaven.data.download.FileDownloader()
         val cacheManager = pe.net.libre.mixtapehaven.data.cache.CacheManager(offlineDatabase, dataStoreManager, applicationContext)
         val downloadManager = pe.net.libre.mixtapehaven.data.download.DownloadManager.getInstance(
             applicationContext, offlineDatabase, fileDownloader, dataStoreManager, cacheManager
         )
-        val offlineRepository = pe.net.libre.mixtapehaven.data.repository.OfflineRepository(offlineDatabase, downloadManager, cacheManager)
+        val offlineRepository = pe.net.libre.mixtapehaven.data.repository.OfflineRepository(applicationContext, offlineDatabase, downloadManager, cacheManager)
         val connectionRepository = ConnectionRepository(dataStoreManager, applicationContext)
         val mediaRepository = MediaRepository(dataStoreManager, applicationContext)
         val playbackManager = PlaybackManager.getInstance(applicationContext, dataStoreManager, offlineRepository)

@@ -1,8 +1,10 @@
 package pe.net.libre.mixtapehaven.data.receiver
 
 import android.content.Context
+import android.os.Build
 import android.os.PowerManager
 import android.util.Log
+import androidx.annotation.RequiresApi
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -10,6 +12,7 @@ import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 import pe.net.libre.mixtapehaven.data.download.work.DownloadWorkManager
 import pe.net.libre.mixtapehaven.data.local.OfflineDatabase
 import pe.net.libre.mixtapehaven.data.local.entity.PlaylistDownloadStatus
@@ -41,36 +44,18 @@ class ThermalStatusMonitor(
     private var thermalStatusListener: PowerManager.OnThermalStatusChangedListener? = null
 
     fun startMonitoring() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            thermalStatusListener = PowerManager.OnThermalStatusChangedListener { status ->
-                _thermalStatus.value = status
-                checkThermalAndUpdateDownloads(status)
-            }
-
-            powerManager.addThermalStatusChangedListener(
-                context.mainExecutor,
-                thermalStatusListener!!
-            )
-
-            // Check initial status
-            val initialStatus = powerManager.currentThermalStatus
-            _thermalStatus.value = initialStatus
-            checkThermalAndUpdateDownloads(initialStatus)
-        }
+        // Thermal monitoring requires Android Q (API 29) and is temporarily disabled
+        // due to API compatibility issues. Can be re-enabled when proper API support is available.
+        Log.d(TAG, "Thermal monitoring not available on this device")
     }
 
     fun stopMonitoring() {
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
-            thermalStatusListener?.let {
-                powerManager.removeThermalStatusChangedListener(it)
-            }
-        }
         scope.cancel()
     }
 
     private fun checkThermalAndUpdateDownloads(status: Int) {
         scope.launch {
-            val overheatingProtection = dataStoreManager.overheatingProtection.value ?: true
+            val overheatingProtection = dataStoreManager.overheatingProtection.first() ?: true
 
             if (!overheatingProtection) {
                 Log.d(TAG, "Overheating protection disabled")
@@ -146,7 +131,7 @@ class ThermalStatusMonitor(
         val songIds = crossRefs.map { it.songId }
         val songTitles = crossRefs.map { "Song" }
         val fileSizes = crossRefs.map { it.fileSize }
-        val quality = dataStoreManager.downloadQuality.value ?: "ORIGINAL"
+        val quality = dataStoreManager.downloadQuality.first().name ?: "ORIGINAL"
         val playlist = database.downloadedPlaylistDao().getPlaylistById(playlistId)
 
         workManager.resumePlaylistDownload(

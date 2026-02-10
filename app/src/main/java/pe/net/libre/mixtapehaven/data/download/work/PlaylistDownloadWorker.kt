@@ -7,6 +7,7 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import pe.net.libre.mixtapehaven.data.download.FileDownloader
 import pe.net.libre.mixtapehaven.data.local.OfflineDatabase
@@ -161,8 +162,8 @@ class PlaylistDownloadWorker(
                 Result.success(
                     workDataOf(
                         DownloadWorkManager.KEY_PLAYLIST_ID to playlistId,
-                        "completed_songs" to completedSongs,
-                        "failed_songs" to failedSongs
+                        "completed_songs" to completedSongs as Int,
+                        "failed_songs" to failedSongs as Int
                     )
                 )
 
@@ -201,9 +202,9 @@ class PlaylistDownloadWorker(
     private suspend fun downloadSong(songId: String, quality: String): Boolean {
         return try {
             // Get server info from DataStore
-            val serverUrl = dataStoreManager.serverUrl.value
-            val accessToken = dataStoreManager.accessToken.value
-            val userId = dataStoreManager.userId.value
+            val serverUrl = dataStoreManager.serverUrl.first()
+            val accessToken = dataStoreManager.accessToken.first()
+            val userId = dataStoreManager.userId.first()
 
             if (serverUrl == null || accessToken == null || userId == null) {
                 Log.e(TAG, "Missing server credentials")

@@ -119,9 +119,11 @@ class DownloadManager private constructor(
 
             // Download audio file
             val downloadResult = fileDownloader.downloadSong(
+                dataStoreManager = dataStoreManager,
+                context = context,
                 songId = queueItem.songId,
                 quality = quality
-            ) { progress, bytesDownloaded, totalBytes ->
+            ) { progress: Float, bytesDownloaded: Long, totalBytes: Long ->
                 // Update progress
                 scope.launch {
                     database.downloadQueueDao().updateProgress(
@@ -139,6 +141,8 @@ class DownloadManager private constructor(
                     // Download album art (optional, don't fail if this fails)
                     val imagePath = try {
                         fileDownloader.downloadImage(
+                            dataStoreManager = dataStoreManager,
+                            context = context,
                             itemId = queueItem.songId,
                             imageType = "Primary",
                             tag = "default"

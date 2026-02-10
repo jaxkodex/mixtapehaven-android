@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.PlaylistAdd
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,7 +38,8 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 fun SongContextMenuBottomSheet(
     song: Song,
     onDismiss: () -> Unit,
-    onAddToPlaylist: (Song) -> Unit
+    onAddToPlaylist: (Song) -> Unit,
+    onInstantMix: (Song) -> Unit
 ) {
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
@@ -126,6 +128,27 @@ fun SongContextMenuBottomSheet(
                 },
                 modifier = Modifier.clickable {
                     onAddToPlaylist(song)
+                }
+            )
+
+            // Instant Mix action
+            ListItem(
+                headlineContent = {
+                    Text(
+                        text = "Instant Mix",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = LunarWhite
+                    )
+                },
+                leadingContent = {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.Sort,
+                        contentDescription = "Instant Mix",
+                        tint = GunmetalGray
+                    )
+                },
+                modifier = Modifier.clickable {
+                    onInstantMix(song)
                 }
             )
         }

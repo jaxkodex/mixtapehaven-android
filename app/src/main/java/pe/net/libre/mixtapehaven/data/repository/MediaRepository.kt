@@ -4,6 +4,7 @@ import android.content.Context
 import android.provider.Settings
 import kotlinx.coroutines.flow.first
 import pe.net.libre.mixtapehaven.data.api.BaseItemDto
+import pe.net.libre.mixtapehaven.data.api.ItemsResponse
 import pe.net.libre.mixtapehaven.data.api.JellyfinApiClient
 import pe.net.libre.mixtapehaven.data.api.JellyfinApiService
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
@@ -386,6 +387,49 @@ class MediaRepository(
         return apiCall { service, userId ->
             service.addToPlaylist(playlistId, ids = songId, userId = userId)
         }
+    }
+
+    companion object {
+        private const val INSTANT_MIX_FIELDS = "PrimaryImageAspectRatio,Path,MediaSources"
+    }
+
+    private suspend fun getInstantMix(
+        itemId: String,
+        limit: Int,
+        call: suspend JellyfinApiService.(itemId: String, userId: String, limit: Int?, fields: String?) -> ItemsResponse
+    ): Result<List<Song>> {
+        return apiCall { service, userId ->
+            val response = service.call(itemId, userId, limit, INSTANT_MIX_FIELDS)
+            response.items.map { item -> mapToSong(item) }
+        }
+    }
+
+    /**
+     * Get instant mix based on a song
+     */
+    suspend fun getSongInstantMix(songId: String, limit: Int = 200): Result<List<Song>> {
+        return getInstantMix(songId, limit, JellyfinApiService::getSongInstantMix)
+    }
+
+    /**
+     * Get instant mix based on an album
+     */
+    suspend fun getAlbumInstantMix(albumId: String, limit: Int = 200): Result<List<Song>> {
+        return getInstantMix(albumId, limit, JellyfinApiService::getAlbumInstantMix)
+    }
+
+    /**
+     * Get instant mix based on an artist
+     */
+    suspend fun getArtistInstantMix(artistId: String, limit: Int = 200): Result<List<Song>> {
+        return getInstantMix(artistId, limit, JellyfinApiService::getArtistInstantMix)
+    }
+
+    /**
+     * Get instant mix based on a playlist
+     */
+    suspend fun getPlaylistInstantMix(playlistId: String, limit: Int = 200): Result<List<Song>> {
+        return getInstantMix(playlistId, limit, JellyfinApiService::getPlaylistInstantMix)
     }
 
     /**

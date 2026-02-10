@@ -206,6 +206,7 @@ fun HomeScreen(
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
+            playbackManager = playbackManager,
             enabled = !uiState.isOfflineMode,
             onPlaylistChanged = { viewModel.refreshPlaylists() }
         ) { onSongMoreClick ->

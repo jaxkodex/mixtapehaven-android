@@ -208,7 +208,8 @@ fun HomeScreen(
             mediaRepository = mediaRepository,
             playbackManager = playbackManager,
             enabled = !uiState.isOfflineMode,
-            onPlaylistChanged = { viewModel.refreshPlaylists() }
+            onPlaylistChanged = { viewModel.refreshPlaylists() },
+            onDownloadSong = { song -> viewModel.onDownloadClick(song) }
         ) { onSongMoreClick ->
             Box(modifier = Modifier.fillMaxSize()) {
                 if (uiState.isLoading) {
@@ -329,7 +330,6 @@ fun HomeScreen(
                                     isCurrentSong = playbackState.currentSong?.id == song.id,
                                     isPlaying = playbackState.isPlaying,
                                     onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                    onDownloadClick = { },
                                     onMoreClick = null  // No playlist actions in offline mode
                                 )
                             }
@@ -422,7 +422,6 @@ fun HomeScreen(
                                 isCurrentSong = playbackState.currentSong?.id == song.id,
                                 isPlaying = playbackState.isPlaying,
                                 onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                onDownloadClick = { viewModel.onDownloadClick(song) },
                                 onMoreClick = { onSongMoreClick(song) }
                             )
                         }

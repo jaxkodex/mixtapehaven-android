@@ -5,6 +5,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -29,6 +30,11 @@ class DataStoreManager(private val context: Context) {
         private val DOWNLOAD_QUALITY_KEY = stringPreferencesKey("download_quality")
         private val MAX_CACHE_SIZE_KEY = longPreferencesKey("max_cache_size")
         private val WIFI_ONLY_DOWNLOAD_KEY = booleanPreferencesKey("wifi_only_download")
+
+        // Playlist download preferences
+        private val CONCURRENT_DOWNLOAD_LIMIT_KEY = intPreferencesKey("concurrent_download_limit")
+        private val BATTERY_THRESHOLD_KEY = intPreferencesKey("battery_threshold")
+        private val OVERHEATING_PROTECTION_KEY = booleanPreferencesKey("overheating_protection")
     }
 
     val serverUrl: Flow<String?> = context.dataStore.data
@@ -128,6 +134,40 @@ class DataStoreManager(private val context: Context) {
     suspend fun saveWifiOnlyDownload(wifiOnly: Boolean) {
         context.dataStore.edit { preferences ->
             preferences[WIFI_ONLY_DOWNLOAD_KEY] = wifiOnly
+        }
+    }
+
+    // Playlist download preferences
+    val concurrentDownloadLimit: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[CONCURRENT_DOWNLOAD_LIMIT_KEY] ?: 3 // Default: 3 concurrent downloads
+        }
+
+    val batteryThreshold: Flow<Int> = context.dataStore.data
+        .map { preferences ->
+            preferences[BATTERY_THRESHOLD_KEY] ?: 20 // Default: 20%
+        }
+
+    val overheatingProtection: Flow<Boolean> = context.dataStore.data
+        .map { preferences ->
+            preferences[OVERHEATING_PROTECTION_KEY] ?: true // Default: enabled
+        }
+
+    suspend fun saveConcurrentDownloadLimit(limit: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[CONCURRENT_DOWNLOAD_LIMIT_KEY] = limit.coerceIn(1, 5)
+        }
+    }
+
+    suspend fun saveBatteryThreshold(threshold: Int) {
+        context.dataStore.edit { preferences ->
+            preferences[BATTERY_THRESHOLD_KEY] = threshold.coerceIn(10, 30)
+        }
+    }
+
+    suspend fun saveOverheatingProtection(enabled: Boolean) {
+        context.dataStore.edit { preferences ->
+            preferences[OVERHEATING_PROTECTION_KEY] = enabled
         }
     }
 }

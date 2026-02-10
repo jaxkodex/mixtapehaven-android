@@ -31,6 +31,16 @@ class SettingsViewModel(
     private val _isClearing = MutableStateFlow(false)
     val isClearing: StateFlow<Boolean> = _isClearing.asStateFlow()
 
+    // Playlist download settings
+    private val _concurrentDownloadLimit = MutableStateFlow(3)
+    val concurrentDownloadLimit: StateFlow<Int> = _concurrentDownloadLimit.asStateFlow()
+
+    private val _batteryThreshold = MutableStateFlow(20)
+    val batteryThreshold: StateFlow<Int> = _batteryThreshold.asStateFlow()
+
+    private val _overheatingProtection = MutableStateFlow(true)
+    val overheatingProtection: StateFlow<Boolean> = _overheatingProtection.asStateFlow()
+
     init {
         loadSettings()
         loadCacheStatistics()
@@ -52,6 +62,24 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.wifiOnlyDownload.collect { wifiOnly ->
                 _wifiOnlyDownload.value = wifiOnly
+            }
+        }
+
+        viewModelScope.launch {
+            dataStoreManager.concurrentDownloadLimit.collect { limit ->
+                _concurrentDownloadLimit.value = limit
+            }
+        }
+
+        viewModelScope.launch {
+            dataStoreManager.batteryThreshold.collect { threshold ->
+                _batteryThreshold.value = threshold
+            }
+        }
+
+        viewModelScope.launch {
+            dataStoreManager.overheatingProtection.collect { enabled ->
+                _overheatingProtection.value = enabled
             }
         }
     }
@@ -105,5 +133,27 @@ class SettingsViewModel(
 
     fun refreshCacheStatistics() {
         loadCacheStatistics()
+    }
+
+    // Playlist download settings setters
+    fun setConcurrentDownloadLimit(limit: Int) {
+        viewModelScope.launch {
+            dataStoreManager.saveConcurrentDownloadLimit(limit)
+            _concurrentDownloadLimit.value = limit
+        }
+    }
+
+    fun setBatteryThreshold(threshold: Int) {
+        viewModelScope.launch {
+            dataStoreManager.saveBatteryThreshold(threshold)
+            _batteryThreshold.value = threshold
+        }
+    }
+
+    fun setOverheatingProtection(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.saveOverheatingProtection(enabled)
+            _overheatingProtection.value = enabled
+        }
     }
 }

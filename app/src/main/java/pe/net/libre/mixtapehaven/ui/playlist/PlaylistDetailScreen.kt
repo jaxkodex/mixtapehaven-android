@@ -19,9 +19,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Download
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -49,10 +53,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+import pe.net.libre.mixtapehaven.data.local.entity.PlaylistDownloadStatus
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
+import pe.net.libre.mixtapehaven.ui.playlist.component.MobileDataConfirmationDialog
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
@@ -64,18 +71,34 @@ import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 fun PlaylistDetailScreen(
     playlistId: String,
     mediaRepository: MediaRepository,
+    offlineRepository: OfflineRepository,
     playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val viewModel: PlaylistDetailViewModel = viewModel {
         PlaylistDetailViewModel(
             playlistId = playlistId,
             mediaRepository = mediaRepository,
+            offlineRepository = offlineRepository,
             playbackManager = playbackManager
         )
     }
     val uiState by viewModel.uiState.collectAsState()
     val playbackState by playbackManager.playbackState.collectAsState()
+
+    // Show mobile data confirmation dialog
+    if (uiState.downloadState.showMobileDataDialog) {
+        MobileDataConfirmationDialog(
+            playlistName = uiState.playlist?.name ?: "",
+            totalSize = uiState.downloadState.totalSongs * 10_000_000L, // Estimate 10MB per song
+            songCount = uiState.downloadState.totalSongs,
+            onConfirm = { rememberChoice ->
+                viewModel.onMobileDataDialogConfirm(rememberChoice)
+            },
+            onDismiss = { viewModel.onMobileDataDialogDismiss() }
+        )
+    }
 
     Scaffold(
         topBar = {
@@ -91,6 +114,54 @@ fun PlaylistDetailScreen(
                     }
                 },
                 actions = {
+                    // Download button based on current state
+                    when (uiState.downloadState.status) {
+                        PlaylistDownloadStatus.FULL -> {
+                            IconButton(onClick = { /* Already downloaded */ }) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = "Downloaded",
+                                    tint = CyberNeonBlue
+                                )
+                            }
+                        }
+                        PlaylistDownloadStatus.DOWNLOADING -> {
+                            IconButton(onClick = { viewModel.onPauseDownloadClick() }) {
+                                Icon(
+                                    imageVector = Icons.Default.Pause,
+                                    contentDescription = "Pause download",
+                                    tint = LunarWhite
+                                )
+                            }
+                        }
+                        PlaylistDownloadStatus.PAUSED -> {
+                            IconButton(onClick = { viewModel.onResumeDownloadClick() }) {
+                                Icon(
+                                    imageVector = Icons.Default.PlayArrow,
+                                    contentDescription = "Resume download",
+                                    tint = LunarWhite
+                                )
+                            }
+                        }
+                        PlaylistDownloadStatus.PARTIAL -> {
+                            IconButton(onClick = { viewModel.onDownloadClick(context) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Warning,
+                                    contentDescription = "Partially downloaded",
+                                    tint = androidx.compose.ui.graphics.Color.Yellow
+                                )
+                            }
+                        }
+                        else -> {
+                            IconButton(onClick = { viewModel.onDownloadClick(context) }) {
+                                Icon(
+                                    imageVector = Icons.Default.Download,
+                                    contentDescription = "Download playlist",
+                                    tint = LunarWhite
+                                )
+                            }
+                        }
+                    }
                     IconButton(onClick = { /* TODO: Show menu */ }) {
                         Icon(
                             imageVector = Icons.Default.MoreVert,

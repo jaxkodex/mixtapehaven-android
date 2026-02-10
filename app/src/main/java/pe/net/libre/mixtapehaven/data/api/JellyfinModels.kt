@@ -101,7 +101,9 @@ data class BaseItemDto(
     @SerialName("DateCreated")
     val dateCreated: String? = null,
     @SerialName("PremiereDate")
-    val premiereDate: String? = null
+    val premiereDate: String? = null,
+    @SerialName("MediaSources")
+    val mediaSources: List<MediaSourceInfo>? = null
 )
 
 @Serializable
@@ -124,6 +126,18 @@ data class UserItemDataDto(
     val played: Boolean = false,
     @SerialName("Key")
     val key: String? = null
+)
+
+@Serializable
+data class MediaSourceInfo(
+    @SerialName("Id")
+    val id: String,
+    @SerialName("Size")
+    val size: Long? = null,
+    @SerialName("Bitrate")
+    val bitrate: Int? = null,
+    @SerialName("Container")
+    val container: String? = null
 )
 
 // Search hint models

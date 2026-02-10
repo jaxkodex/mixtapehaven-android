@@ -41,4 +41,13 @@ interface DownloadQueueDao {
 
     @Query("SELECT * FROM download_queue ORDER BY addedDate DESC")
     fun getAllDownloads(): Flow<List<DownloadQueueEntity>>
+
+    @Query("SELECT * FROM download_queue WHERE playlistId = :playlistId ORDER BY playlistSongIndex ASC")
+    suspend fun getByPlaylistId(playlistId: String): List<DownloadQueueEntity>
+
+    @Query("DELETE FROM download_queue WHERE playlistId = :playlistId")
+    suspend fun deleteByPlaylistId(playlistId: String)
+
+    @Query("SELECT COUNT(*) FROM download_queue WHERE playlistId = :playlistId AND status = :status")
+    suspend fun countByPlaylistAndStatus(playlistId: String, status: DownloadStatus): Int
 }

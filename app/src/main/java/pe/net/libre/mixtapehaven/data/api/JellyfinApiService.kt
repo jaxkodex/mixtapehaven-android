@@ -68,4 +68,15 @@ interface JellyfinApiService {
         @Query("Limit") limit: Int? = 10,
         @Query("IncludeItemTypes") includeItemTypes: String? = null
     ): SearchHintResult
+
+    /**
+     * Get items with media sources for file size information
+     */
+    @GET("Users/{userId}/Items")
+    suspend fun getItemsWithMediaSources(
+        @Path("userId") userId: String,
+        @Query("Ids") ids: String,
+        @Query("Fields") fields: String = "MediaSources,Path,AlbumArtists",
+        @Query("EnableImageTypes") enableImageTypes: String? = "Primary"
+    ): ItemsResponse
 }

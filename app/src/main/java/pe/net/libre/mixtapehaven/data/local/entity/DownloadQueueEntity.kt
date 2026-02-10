@@ -16,7 +16,8 @@ enum class DownloadStatus {
     tableName = "download_queue",
     indices = [
         Index(value = ["status", "addedDate"]),
-        Index(value = ["songId"])
+        Index(value = ["songId"]),
+        Index(value = ["playlistId"])
     ]
 )
 data class DownloadQueueEntity(
@@ -32,5 +33,7 @@ data class DownloadQueueEntity(
     val totalBytes: Long,
     val addedDate: Long,
     val errorMessage: String?,
-    val retryCount: Int
+    val retryCount: Int,
+    val playlistId: String? = null,
+    val playlistSongIndex: Int = 0
 )

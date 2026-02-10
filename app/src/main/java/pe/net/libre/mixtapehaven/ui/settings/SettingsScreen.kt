@@ -63,6 +63,11 @@ fun SettingsScreen(
     val wifiOnlyDownload by viewModel.wifiOnlyDownload.collectAsState()
     val isClearing by viewModel.isClearing.collectAsState()
 
+    // Playlist download settings
+    val concurrentDownloadLimit by viewModel.concurrentDownloadLimit.collectAsState()
+    val batteryThreshold by viewModel.batteryThreshold.collectAsState()
+    val overheatingProtection by viewModel.overheatingProtection.collectAsState()
+
     var showClearDialog by remember { mutableStateOf(false) }
 
     Scaffold(
@@ -117,6 +122,30 @@ fun SettingsScreen(
             WifiOnlySetting(
                 enabled = wifiOnlyDownload,
                 onToggle = { viewModel.setWifiOnlyDownload(it) }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Playlist Download Settings
+            SettingsSectionTitle("Playlist Downloads")
+
+            ConcurrentDownloadSetting(
+                limit = concurrentDownloadLimit,
+                onLimitChanged = { viewModel.setConcurrentDownloadLimit(it) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            BatteryThresholdSetting(
+                threshold = batteryThreshold,
+                onThresholdChanged = { viewModel.setBatteryThreshold(it) }
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OverheatingProtectionSetting(
+                enabled = overheatingProtection,
+                onToggle = { viewModel.setOverheatingProtection(it) }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -366,5 +395,137 @@ private fun getQualityDisplayName(quality: StreamingQuality): String {
         StreamingQuality.HIGH -> "High (320 kbps)"
         StreamingQuality.MEDIUM -> "Medium (192 kbps)"
         StreamingQuality.LOW -> "Low (128 kbps)"
+    }
+}
+
+@Composable
+private fun ConcurrentDownloadSetting(
+    limit: Int,
+    onLimitChanged: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Concurrent Downloads",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = LunarWhite
+                )
+                Text(
+                    text = "Maximum parallel downloads: $limit",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = GunmetalGray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        Slider(
+            value = limit.toFloat(),
+            onValueChange = { onLimitChanged(it.toInt()) },
+            valueRange = 1f..5f,
+            steps = 3,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("1", style = MaterialTheme.typography.bodySmall, color = GunmetalGray)
+            Text("5", style = MaterialTheme.typography.bodySmall, color = GunmetalGray)
+        }
+    }
+}
+
+@Composable
+private fun BatteryThresholdSetting(
+    threshold: Int,
+    onThresholdChanged: (Int) -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = "Battery Threshold",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = LunarWhite
+                )
+                Text(
+                    text = "Pause downloads when battery below $threshold%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = GunmetalGray,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
+            }
+        }
+
+        Slider(
+            value = threshold.toFloat(),
+            onValueChange = { onThresholdChanged(it.toInt()) },
+            valueRange = 10f..30f,
+            steps = 19,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp)
+        )
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("10%", style = MaterialTheme.typography.bodySmall, color = GunmetalGray)
+            Text("30%", style = MaterialTheme.typography.bodySmall, color = GunmetalGray)
+        }
+    }
+}
+
+@Composable
+private fun OverheatingProtectionSetting(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Overheating Protection",
+                style = MaterialTheme.typography.bodyLarge,
+                color = LunarWhite
+            )
+            Text(
+                text = "Pause downloads when device is overheating",
+                style = MaterialTheme.typography.bodySmall,
+                color = GunmetalGray,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle
+        )
     }
 }

@@ -13,24 +13,99 @@ import java.io.File
 import java.io.FileOutputStream
 import java.util.concurrent.TimeUnit
 
-class FileDownloader(
-    private val dataStoreManager: DataStoreManager,
-    private val context: Context
-) {
+class FileDownloader {
     companion object {
         private const val TAG = "FileDownloader"
     }
 
-    private val deviceId: String by lazy {
-        Settings.Secure.getString(
-            context.contentResolver,
-            Settings.Secure.ANDROID_ID
-        ) ?: "unknown_device"
-    }
-
     private val okHttpClient: OkHttpClient = createHttpClient()
 
+    /**
+     * Download a song with explicit parameters (for WorkManager)
+     */
+    fun downloadSong(
+        serverUrl: String,
+        accessToken: String,
+        userId: String,
+        itemId: String,
+        quality: String,
+        outputFile: File,
+        deviceId: String = "unknown_device",
+        onProgress: (Float, Long, Long) -> Unit
+    ): Boolean {
+        return try {
+            // Construct download URL
+            val downloadUrl = buildDownloadUrl(serverUrl, itemId, quality)
+            Log.d(TAG, "Downloading from: $downloadUrl")
+
+            val authHeader = createAuthorizationHeader(deviceId = deviceId)
+            val request = Request.Builder()
+                .url(downloadUrl)
+                .header("X-Emby-Authorization", authHeader)
+                .header("X-Emby-Token", accessToken)
+                .build()
+
+            val response = okHttpClient.newCall(request).execute()
+
+            if (!response.isSuccessful) {
+                Log.e(TAG, "Download failed: ${response.code}")
+                return false
+            }
+
+            val body = response.body ?: return false
+            val totalBytes = body.contentLength()
+
+            FileOutputStream(outputFile).use { outputStream ->
+                body.byteStream().use { inputStream ->
+                    var downloadedBytes = 0L
+                    val buffer = ByteArray(8192)
+
+                    while (true) {
+                        val read = inputStream.read(buffer)
+                        if (read == -1) break
+
+                        outputStream.write(buffer, 0, read)
+                        downloadedBytes += read
+
+                        val progress = if (totalBytes > 0) {
+                            downloadedBytes.toFloat() / totalBytes.toFloat()
+                        } else {
+                            0f
+                        }
+                        onProgress(progress, downloadedBytes, totalBytes)
+                    }
+                }
+            }
+
+            Log.d(TAG, "Download completed: ${outputFile.absolutePath}")
+            true
+        } catch (e: Exception) {
+            Log.e(TAG, "Download error", e)
+            false
+        }
+    }
+
+    private fun buildDownloadUrl(serverUrl: String, itemId: String, quality: String): String {
+        return buildString {
+            append(serverUrl)
+            if (!serverUrl.endsWith('/')) append('/')
+            append("Audio/$itemId/stream")
+
+            val params = when (quality.uppercase()) {
+                "ORIGINAL" -> listOf("static=true")
+                "HIGH" -> listOf("maxStreamingBitrate=320000", "container=mp3", "audioCodec=mp3")
+                "MEDIUM" -> listOf("maxStreamingBitrate=192000", "container=mp3", "audioCodec=mp3")
+                "LOW" -> listOf("maxStreamingBitrate=128000", "container=mp3", "audioCodec=mp3")
+                else -> listOf("static=true")
+            }
+
+            append("?${params.joinToString("&")}")
+        }
+    }
+
     suspend fun downloadSong(
+        dataStoreManager: DataStoreManager,
+        context: Context,
         songId: String,
         quality: StreamingQuality,
         onProgress: (Float, Long, Long) -> Unit
@@ -42,6 +117,11 @@ class FileDownloader(
             if (serverUrl.isNullOrEmpty() || accessToken.isNullOrEmpty()) {
                 return DownloadResult.Failure("Server not configured")
             }
+
+            val deviceId = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ANDROID_ID
+            ) ?: "unknown_device"
 
             // Construct download URL (same format as streaming URL)
             val downloadUrl = buildString {
@@ -71,7 +151,7 @@ class FileDownloader(
             Log.d(TAG, "Downloading song from: $downloadUrl")
 
             // Create authenticated request
-            val authHeader = createAuthorizationHeader()
+            val authHeader = createAuthorizationHeader(deviceId = deviceId)
             val request = Request.Builder()
                 .url(downloadUrl)
                 .header("X-Emby-Authorization", authHeader)
@@ -165,6 +245,8 @@ class FileDownloader(
     }
 
     suspend fun downloadImage(
+        dataStoreManager: DataStoreManager,
+        context: Context,
         itemId: String,
         imageType: String = "Primary",
         tag: String
@@ -177,6 +259,11 @@ class FileDownloader(
                 return null
             }
 
+            val deviceId = Settings.Secure.getString(
+                context.contentResolver,
+                Settings.Secure.ANDROID_ID
+            ) ?: "unknown_device"
+
             val imageUrl = buildString {
                 append(serverUrl)
                 if (!serverUrl.endsWith('/')) append('/')
@@ -186,7 +273,7 @@ class FileDownloader(
 
             Log.d(TAG, "Downloading image from: $imageUrl")
 
-            val authHeader = createAuthorizationHeader()
+            val authHeader = createAuthorizationHeader(deviceId = deviceId)
             val request = Request.Builder()
                 .url(imageUrl)
                 .header("X-Emby-Authorization", authHeader)
@@ -247,6 +334,7 @@ class FileDownloader(
     private fun createAuthorizationHeader(
         clientName: String = "Mixtape Haven",
         deviceName: String = "Android",
+        deviceId: String,
         version: String = "1.0.0"
     ): String {
         return "MediaBrowser Client=\"$clientName\", Device=\"$deviceName\", " +

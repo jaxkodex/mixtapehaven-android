@@ -79,4 +79,23 @@ interface JellyfinApiService {
         @Query("Fields") fields: String = "MediaSources,Path,AlbumArtists",
         @Query("EnableImageTypes") enableImageTypes: String? = "Primary"
     ): ItemsResponse
+
+    /**
+     * Create a new playlist
+     */
+    @POST("Playlists")
+    suspend fun createPlaylist(
+        @Body request: CreatePlaylistRequest,
+        @Header("X-Emby-Authorization") authHeader: String? = null
+    ): PlaylistCreationResult
+
+    /**
+     * Add items to an existing playlist
+     */
+    @POST("Playlists/{playlistId}/Items")
+    suspend fun addToPlaylist(
+        @Path("playlistId") playlistId: String,
+        @Query("Ids") ids: String,
+        @Query("UserId") userId: String
+    )
 }

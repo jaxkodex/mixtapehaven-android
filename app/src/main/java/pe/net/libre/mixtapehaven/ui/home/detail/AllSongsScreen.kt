@@ -44,6 +44,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -107,6 +108,10 @@ fun AllSongsScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
+        PlaylistActionHandler(
+            mediaRepository = mediaRepository,
+            enabled = !uiState.isOfflineMode
+        ) { onSongMoreClick ->
         Box(
             modifier = Modifier
                 .fillMaxSize()
@@ -225,7 +230,8 @@ fun AllSongsScreen(
                                     onClick = { viewModel.onSongClick(song) },
                                     isCurrentSong = playbackState.currentSong?.id == song.id,
                                     isPlaying = playbackState.isPlaying,
-                                    onPlayPauseClick = { viewModel.onPlayPauseClick() }
+                                    onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                                    onMoreClick = if (uiState.isOfflineMode) null else { { onSongMoreClick(song) } }
                                 )
                             }
 
@@ -245,6 +251,8 @@ fun AllSongsScreen(
                     }
                 }
             }
+
+        }
         }
 }
 }

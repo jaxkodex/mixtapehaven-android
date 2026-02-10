@@ -58,6 +58,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -113,12 +114,16 @@ fun ArtistDetailScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
+        PlaylistActionHandler(
+            mediaRepository = mediaRepository,
+            enabled = true
+        ) { onSongMoreClick ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
                 uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
@@ -389,7 +394,8 @@ fun ArtistDetailScreen(
                                             onClick = { viewModel.onSongClick(song) },
                                             isCurrentSong = playbackState.currentSong?.id == song.id,
                                             isPlaying = playbackState.isPlaying,
-                                            onPlayPauseClick = { viewModel.onPlayPauseClick() }
+                                            onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                                            onMoreClick = { onSongMoreClick(song) }
                                         )
                                     }
                                 }
@@ -405,4 +411,5 @@ fun ArtistDetailScreen(
             }
         }
     }
+}
 }

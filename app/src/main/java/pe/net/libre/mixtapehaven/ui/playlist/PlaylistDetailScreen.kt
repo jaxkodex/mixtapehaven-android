@@ -57,6 +57,7 @@ import pe.net.libre.mixtapehaven.data.local.entity.PlaylistDownloadStatus
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.playlist.component.MobileDataConfirmationDialog
@@ -190,13 +191,17 @@ fun PlaylistDetailScreen(
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-        ) {
-            when {
-                uiState.isLoading -> {
+        PlaylistActionHandler(
+            mediaRepository = mediaRepository,
+            enabled = true
+        ) { onSongMoreClick ->
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            ) {
+                when {
+                    uiState.isLoading -> {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
@@ -364,17 +369,19 @@ fun PlaylistDetailScreen(
                             onClick = { viewModel.onSongClick(song) },
                             isCurrentSong = playbackState.currentSong?.id == song.id,
                             isPlaying = playbackState.isPlaying,
-                            onPlayPauseClick = { viewModel.onPlayPauseClick() }
+                            onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                            onMoreClick = { onSongMoreClick(song) }
                         )
                     }
 
                     // Bottom spacing for FAB and Now Playing Bar
                     item {
                         Spacer(modifier = Modifier.height(160.dp))
-                    }
-                }
-                }
             }
         }
     }
+}
+}
+}
+}
 }

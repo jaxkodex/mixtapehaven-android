@@ -417,6 +417,30 @@ class MediaRepository(
     }
 
     /**
+     * Create a new playlist
+     */
+    suspend fun createPlaylist(name: String, songIds: List<String> = emptyList()): Result<String> {
+        return apiCall { service, userId ->
+            val request = pe.net.libre.mixtapehaven.data.api.CreatePlaylistRequest(
+                name = name,
+                ids = songIds,
+                userId = userId
+            )
+            val result = service.createPlaylist(request)
+            result.id
+        }
+    }
+
+    /**
+     * Add a song to an existing playlist
+     */
+    suspend fun addSongToPlaylist(playlistId: String, songId: String): Result<Unit> {
+        return apiCall { service, userId ->
+            service.addToPlaylist(playlistId, ids = songId, userId = userId)
+        }
+    }
+
+    /**
      * Map BaseItemDto to Album
      */
     private fun mapToAlbum(item: BaseItemDto): Album {

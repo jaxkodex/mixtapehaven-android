@@ -152,6 +152,15 @@ class HomeViewModel(
         loadData()
     }
 
+    fun refreshPlaylists() {
+        viewModelScope.launch {
+            val result = mediaRepository.getUserPlaylists(limit = 10)
+            result.onSuccess { playlists ->
+                _uiState.value = _uiState.value.copy(playlists = playlists)
+            }
+        }
+    }
+
     fun onAlbumClick(album: Album) {
         // TODO: Navigate to album details
     }

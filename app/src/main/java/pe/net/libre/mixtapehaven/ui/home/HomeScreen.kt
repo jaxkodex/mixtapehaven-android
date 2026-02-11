@@ -1,6 +1,7 @@
 package pe.net.libre.mixtapehaven.ui.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,41 +13,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDownload
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -55,7 +47,6 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
-import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.home.components.SectionHeader
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
@@ -65,7 +56,6 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     mediaRepository: MediaRepository,
@@ -105,27 +95,41 @@ fun HomeScreen(
     }
     val uiState by viewModel.uiState.collectAsState()
     val playbackState by playbackManager.playbackState.collectAsState()
-    var showMenu by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = {
+            // Custom top bar with branding + profile avatar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(DeepSpaceBlack)
+                    .statusBarsPadding()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
                     Text(
-                        text = if (uiState.isOfflineMode) "Browse (Offline)" else "Browse",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = LunarWhite,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
+                        text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                        color = CyberNeonBlue
                     )
-                },
-                navigationIcon = {
+                    if (uiState.serverName.isNotEmpty()) {
+                        Text(
+                            text = "JELLYFIN SERVER: ${uiState.serverName.uppercase()}",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = LunarWhite.copy(alpha = 0.4f)
+                        )
+                    }
+                }
+                // Profile avatar with online indicator
+                Box {
                     IconButton(
                         onClick = { viewModel.onProfileClick() },
                         modifier = Modifier
-                            .padding(8.dp)
-                            .background(VaporwaveMagenta, CircleShape)
                             .size(40.dp)
+                            .background(VaporwaveMagenta, CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
@@ -133,74 +137,17 @@ fun HomeScreen(
                             tint = LunarWhite
                         )
                     }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.onSearchClick() }) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = CyberNeonBlue,
-                            modifier = Modifier.size(28.dp)
+                    if (!uiState.isOfflineMode) {
+                        Box(
+                            modifier = Modifier
+                                .size(12.dp)
+                                .background(Color(0xFF4CAF50), CircleShape)
+                                .border(2.dp, DeepSpaceBlack, CircleShape)
+                                .align(Alignment.BottomEnd)
                         )
                     }
-                    Box {
-                        IconButton(onClick = { showMenu = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "Menu",
-                                tint = LunarWhite,
-                                modifier = Modifier.size(28.dp)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Settings,
-                                            contentDescription = null,
-                                            tint = LunarWhite
-                                        )
-                                        Text("Settings", color = LunarWhite)
-                                    }
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onNavigateToSettings()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.CloudDownload,
-                                            contentDescription = null,
-                                            tint = LunarWhite
-                                        )
-                                        Text("Downloads", color = LunarWhite)
-                                    }
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onNavigateToDownloads()
-                                }
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack
-                )
-            )
+                }
+            }
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->
@@ -243,7 +190,7 @@ fun HomeScreen(
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(paddingValues),
-                    contentPadding = PaddingValues(bottom = 100.dp)
+                    contentPadding = PaddingValues(bottom = 16.dp)
                 ) {
                     // Offline Mode Banner
                     if (uiState.isOfflineMode) {
@@ -330,18 +277,20 @@ fun HomeScreen(
                                     isCurrentSong = playbackState.currentSong?.id == song.id,
                                     isPlaying = playbackState.isPlaying,
                                     onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                    onMoreClick = null  // No playlist actions in offline mode
+                                    onMoreClick = null
                                 )
                             }
                         }
                     } else {
                         // Normal online mode: show all sections
+
                         // Recently Added Section
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
                             SectionHeader(
                                 title = "Recently Added",
-                                onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") }
+                                onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") },
+                                actionText = "View All"
                             )
                         }
 
@@ -382,25 +331,37 @@ fun HomeScreen(
                             }
                         }
 
-                        // Your Playlist Section
+                        // Your Mixes Section (2-column grid)
                         item {
                             Spacer(modifier = Modifier.height(24.dp))
                             SectionHeader(
-                                title = "Your Playlist",
+                                title = "Your Mixes",
                                 onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
                             )
                         }
 
                         item {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            val chunkedPlaylists = uiState.playlists.chunked(2)
+                            Column(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
                             ) {
-                                items(uiState.playlists) { playlist ->
-                                    PlaylistCard(
-                                        playlist = playlist,
-                                        onClick = { viewModel.onPlaylistClick(playlist) }
-                                    )
+                                chunkedPlaylists.forEach { rowPlaylists ->
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    ) {
+                                        rowPlaylists.forEach { playlist ->
+                                            PlaylistCard(
+                                                playlist = playlist,
+                                                onClick = { viewModel.onPlaylistClick(playlist) },
+                                                modifier = Modifier.weight(1f)
+                                            )
+                                        }
+                                        if (rowPlaylists.size == 1) {
+                                            Spacer(modifier = Modifier.weight(1f))
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -422,7 +383,8 @@ fun HomeScreen(
                                 isCurrentSong = playbackState.currentSong?.id == song.id,
                                 isPlaying = playbackState.isPlaying,
                                 onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                onMoreClick = { onSongMoreClick(song) }
+                                onMoreClick = { onSongMoreClick(song) },
+                                showCardStyle = true
                             )
                         }
                     }

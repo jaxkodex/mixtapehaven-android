@@ -18,7 +18,8 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 fun SectionHeader(
     title: String,
     onSeeMoreClick: (() -> Unit)?,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    actionText: String = "View All"
 ) {
     Row(
         modifier = modifier
@@ -36,7 +37,7 @@ fun SectionHeader(
         if (onSeeMoreClick != null) {
             TextButton(onClick = onSeeMoreClick) {
                 Text(
-                    text = "See More",
+                    text = actionText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = CyberNeonBlue
                 )

@@ -24,6 +24,7 @@ class DataStoreManager(private val context: Context) {
         private val USER_ID_KEY = stringPreferencesKey("user_id")
         private val SERVER_ID_KEY = stringPreferencesKey("server_id")
         private val IS_CONNECTED_KEY = stringPreferencesKey("is_connected")
+        private val SERVER_NAME_KEY = stringPreferencesKey("server_name")
 
         // Download preferences
         private val DOWNLOAD_QUALITY_KEY = stringPreferencesKey("download_quality")
@@ -56,6 +57,11 @@ class DataStoreManager(private val context: Context) {
             preferences[SERVER_ID_KEY]
         }
 
+    val serverName: Flow<String?> = context.dataStore.data
+        .map { preferences ->
+            preferences[SERVER_NAME_KEY]
+        }
+
     val isConnected: Flow<Boolean> = context.dataStore.data
         .map { preferences ->
             preferences[IS_CONNECTED_KEY]?.toBoolean() ?: false
@@ -67,7 +73,8 @@ class DataStoreManager(private val context: Context) {
         password: String,
         accessToken: String,
         userId: String,
-        serverId: String
+        serverId: String,
+        serverName: String = ""
     ) {
         context.dataStore.edit { preferences ->
             preferences[SERVER_URL_KEY] = serverUrl
@@ -76,6 +83,7 @@ class DataStoreManager(private val context: Context) {
             preferences[ACCESS_TOKEN_KEY] = accessToken
             preferences[USER_ID_KEY] = userId
             preferences[SERVER_ID_KEY] = serverId
+            preferences[SERVER_NAME_KEY] = serverName
             preferences[IS_CONNECTED_KEY] = "true"
         }
     }
@@ -88,6 +96,7 @@ class DataStoreManager(private val context: Context) {
             preferences.remove(ACCESS_TOKEN_KEY)
             preferences.remove(USER_ID_KEY)
             preferences.remove(SERVER_ID_KEY)
+            preferences.remove(SERVER_NAME_KEY)
             preferences[IS_CONNECTED_KEY] = "false"
         }
     }

@@ -3,6 +3,7 @@ package pe.net.libre.mixtapehaven.ui.navigation
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -31,7 +32,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -138,36 +138,11 @@ fun NavGraph(
 
     val shouldShowNowPlayingBar = shouldShowBottomBar
 
-    Scaffold(
-        containerColor = DeepSpaceBlack,
-        bottomBar = {
-            if (shouldShowBottomBar) {
-                Column {
-                    // NowPlayingBar above bottom nav
-                    if (shouldShowNowPlayingBar) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .background(
-                                    Brush.verticalGradient(
-                                        colors = listOf(
-                                            Color.Transparent,
-                                            DeepSpaceBlack
-                                        )
-                                    )
-                                )
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            NowPlayingBar(
-                                playbackState = playbackState,
-                                onPlayPauseClick = { playbackManager.togglePlayPause() },
-                                onBarClick = { navController.navigate(Screen.NowPlaying.route) },
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                        }
-                    }
-
-                    // Bottom Navigation Bar
+    Box(modifier = Modifier.fillMaxSize()) {
+        Scaffold(
+            containerColor = DeepSpaceBlack,
+            bottomBar = {
+                if (shouldShowBottomBar) {
                     NavigationBar(
                         containerColor = DeepSpaceBlack,
                         tonalElevation = 0.dp
@@ -231,13 +206,12 @@ fun NavGraph(
                     }
                 }
             }
-        }
-    ) { paddingValues ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(paddingValues)
-        ) {
+        ) { paddingValues ->
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+            ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
                     viewModel = onboardingViewModel,
@@ -441,6 +415,25 @@ fun NavGraph(
                     onNavigateToPlaylistDetail = { playlistId ->
                         navController.navigate(Screen.PlaylistDetail.createRoute(playlistId))
                     }
+                )
+            }
+        }
+    }
+
+        // Floating NowPlayingBar overlay - sits above bottom nav with transparent background
+        if (shouldShowNowPlayingBar) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .padding(bottom = 80.dp) // offset above the bottom nav bar
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                NowPlayingBar(
+                    playbackState = playbackState,
+                    onPlayPauseClick = { playbackManager.togglePlayPause() },
+                    onBarClick = { navController.navigate(Screen.NowPlaying.route) },
+                    modifier = Modifier.fillMaxWidth()
                 )
             }
         }

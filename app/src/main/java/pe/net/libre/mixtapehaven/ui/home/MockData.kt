@@ -73,6 +73,7 @@ data class Song(
     val title: String,
     val artist: String,
     val duration: String,
+    val albumName: String = "",
     val albumCoverUrl: String? = null,
     val albumCoverPlaceholder: String = "",
     var isDownloaded: Boolean = false,

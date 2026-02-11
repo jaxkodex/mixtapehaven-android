@@ -48,7 +48,7 @@ fun NowPlayingBar(
 
     Surface(
         modifier = modifier,
-        color = GunmetalGray,
+        color = GunmetalGray.copy(alpha = 0.85f),
         shadowElevation = 12.dp,
         shape = RoundedCornerShape(16.dp)
     ) {

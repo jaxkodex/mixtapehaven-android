@@ -39,9 +39,10 @@ class ConnectionRepository(
             val apiService = JellyfinApiClient.createService(connection.serverUrl)
 
             // First, verify server connectivity by fetching public system info
+            val serverName: String
             try {
                 val systemInfo = apiService.getPublicSystemInfo()
-                // Successfully connected to server
+                serverName = systemInfo.serverName
             } catch (e: Exception) {
                 val errorDetails = buildString {
                     append("\n\nTechnical Details:\n")
@@ -112,7 +113,8 @@ class ConnectionRepository(
                 password = connection.password,
                 accessToken = authResponse.accessToken,
                 userId = authResponse.user.id,
-                serverId = authResponse.serverId
+                serverId = authResponse.serverId,
+                serverName = serverName
             )
 
             Result.success(true)

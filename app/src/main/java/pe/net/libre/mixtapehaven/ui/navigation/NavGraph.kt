@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -144,14 +145,26 @@ fun NavGraph(
                 Column {
                     // NowPlayingBar above bottom nav
                     if (shouldShowNowPlayingBar) {
-                        NowPlayingBar(
-                            playbackState = playbackState,
-                            onPlayPauseClick = { playbackManager.togglePlayPause() },
-                            onBarClick = { navController.navigate(Screen.NowPlaying.route) },
+                        Box(
                             modifier = Modifier
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
                                 .fillMaxWidth()
-                        )
+                                .background(
+                                    Brush.verticalGradient(
+                                        colors = listOf(
+                                            Color.Transparent,
+                                            DeepSpaceBlack
+                                        )
+                                    )
+                                )
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            NowPlayingBar(
+                                playbackState = playbackState,
+                                onPlayPauseClick = { playbackManager.togglePlayPause() },
+                                onBarClick = { navController.navigate(Screen.NowPlaying.route) },
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
 
                     // Bottom Navigation Bar
@@ -173,7 +186,7 @@ fun NavGraph(
                                         Box(
                                             modifier = Modifier
                                                 .size(48.dp)
-                                                .background(CyberNeonBlue, CircleShape),
+                                                .background(Color(0xFF5C6BC0), CircleShape),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(

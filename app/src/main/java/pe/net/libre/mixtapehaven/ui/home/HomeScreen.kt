@@ -13,7 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -103,7 +103,6 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(DeepSpaceBlack)
-                    .statusBarsPadding()
                     .padding(horizontal = 16.dp, vertical = 12.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
@@ -113,7 +112,7 @@ fun HomeScreen(
                         text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
-                        color = CyberNeonBlue
+                        color = VaporwaveMagenta
                     )
                     if (uiState.serverName.isNotEmpty()) {
                         Text(
@@ -129,7 +128,7 @@ fun HomeScreen(
                         onClick = { viewModel.onProfileClick() },
                         modifier = Modifier
                             .size(40.dp)
-                            .background(VaporwaveMagenta, CircleShape)
+                            .background(Color(0xFFE87C5E), CircleShape)
                     ) {
                         Icon(
                             imageVector = Icons.Default.Person,
@@ -285,81 +284,87 @@ fun HomeScreen(
                         // Normal online mode: show all sections
 
                         // Recently Added Section
-                        item {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            SectionHeader(
-                                title = "Recently Added",
-                                onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") },
-                                actionText = "View All"
-                            )
-                        }
+                        if (uiState.recentlyAddedAlbums.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(16.dp))
+                                SectionHeader(
+                                    title = "Recently Added",
+                                    onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") },
+                                    actionText = "View All"
+                                )
+                            }
 
-                        item {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(uiState.recentlyAddedAlbums) { album ->
-                                    AlbumCard(
-                                        album = album,
-                                        onClick = { viewModel.onAlbumClick(album) }
-                                    )
+                            item {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(uiState.recentlyAddedAlbums) { album ->
+                                        AlbumCard(
+                                            album = album,
+                                            onClick = { viewModel.onAlbumClick(album) }
+                                        )
+                                    }
                                 }
                             }
                         }
 
                         // Top Artists Section
-                        item {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            SectionHeader(
-                                title = "Top Artists",
-                                onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
-                            )
-                        }
+                        if (uiState.topArtists.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                SectionHeader(
+                                    title = "Top Artists",
+                                    onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
+                                )
+                            }
 
-                        item {
-                            LazyRow(
-                                contentPadding = PaddingValues(horizontal = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(uiState.topArtists) { artist ->
-                                    ArtistCircle(
-                                        artist = artist,
-                                        onClick = { viewModel.onArtistClick(artist) }
-                                    )
+                            item {
+                                LazyRow(
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    items(uiState.topArtists) { artist ->
+                                        ArtistCircle(
+                                            artist = artist,
+                                            onClick = { viewModel.onArtistClick(artist) }
+                                        )
+                                    }
                                 }
                             }
                         }
 
                         // Your Mixes Section (2-column grid)
-                        item {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            SectionHeader(
-                                title = "Your Mixes",
-                                onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
-                            )
-                        }
+                        if (uiState.playlists.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                SectionHeader(
+                                    title = "Your Mixes",
+                                    onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
+                                )
+                            }
 
-                        item {
-                            val chunkedPlaylists = uiState.playlists.chunked(2)
-                            Column(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp)
-                            ) {
-                                chunkedPlaylists.forEach { rowPlaylists ->
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                    ) {
-                                        rowPlaylists.forEach { playlist ->
-                                            PlaylistCard(
-                                                playlist = playlist,
-                                                onClick = { viewModel.onPlaylistClick(playlist) },
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                        }
-                                        if (rowPlaylists.size == 1) {
-                                            Spacer(modifier = Modifier.weight(1f))
+                            item {
+                                val chunkedPlaylists = uiState.playlists.chunked(2)
+                                Column(
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                                ) {
+                                    chunkedPlaylists.forEach { rowPlaylists ->
+                                        Row(
+                                            modifier = Modifier.fillMaxWidth(),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            rowPlaylists.forEach { playlist ->
+                                                PlaylistCard(
+                                                    playlist = playlist,
+                                                    onClick = { viewModel.onPlaylistClick(playlist) },
+                                                    modifier = Modifier.weight(1f)
+                                                )
+                                            }
+                                            if (rowPlaylists.size == 1) {
+                                                Spacer(modifier = Modifier.weight(1f))
+                                            }
                                         }
                                     }
                                 }
@@ -367,25 +372,26 @@ fun HomeScreen(
                         }
 
                         // Popular Songs Section
-                        item {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            SectionHeader(
-                                title = "Popular Songs",
-                                onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
-                            )
-                        }
+                        if (uiState.popularSongs.isNotEmpty()) {
+                            item {
+                                Spacer(modifier = Modifier.height(24.dp))
+                                SectionHeader(
+                                    title = "Popular Songs",
+                                    onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
+                                )
+                            }
 
-                        itemsIndexed(uiState.popularSongs) { index, song ->
-                            SongListItem(
-                                song = song,
-                                trackNumber = index + 1,
-                                onClick = { viewModel.onSongClick(song) },
-                                isCurrentSong = playbackState.currentSong?.id == song.id,
-                                isPlaying = playbackState.isPlaying,
-                                onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                onMoreClick = { onSongMoreClick(song) },
-                                showCardStyle = true
-                            )
+                            itemsIndexed(uiState.popularSongs) { index, song ->
+                                SongListItem(
+                                    song = song,
+                                    trackNumber = index + 1,
+                                    onClick = { viewModel.onSongClick(song) },
+                                    isCurrentSong = playbackState.currentSong?.id == song.id,
+                                    isPlaying = playbackState.isPlaying,
+                                    onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                                    onMoreClick = { onSongMoreClick(song) }
+                                )
+                            }
                         }
                     }
                 }

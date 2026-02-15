@@ -32,8 +32,7 @@ class HomeViewModel(
     private val onNavigateToPlaylistDetail: (String) -> Unit = {},
     private val onNavigateToArtistDetail: (String) -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
-    private val onNavigateToSearch: () -> Unit = {},
-    private val onLogout: () -> Unit = {}
+    private val onNavigateToSearch: () -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -95,6 +94,8 @@ class HomeViewModel(
                     return@launch
                 }
 
+                val serverName = dataStoreManager.serverName.first() ?: ""
+
                 // Update UI state with results
                 _uiState.value = HomeUiState(
                     recentlyAddedAlbums = recentAlbumsResult.getOrElse { emptyList() },
@@ -103,7 +104,8 @@ class HomeViewModel(
                     popularSongs = popularSongsResult.getOrElse { emptyList() },
                     nowPlayingSong = null, // TODO: Implement now playing
                     isLoading = false,
-                    isOfflineMode = false
+                    isOfflineMode = false,
+                    serverName = serverName
                 )
 
                 if (errors.isNotEmpty()) {
@@ -125,6 +127,7 @@ class HomeViewModel(
         try {
             val downloadedEntities = offlineRepository.getAllDownloaded().first()
             val downloadedSongs = DownloadedSongMapper.toSongList(downloadedEntities)
+            val serverName = dataStoreManager.serverName.first() ?: ""
 
             _uiState.value = HomeUiState(
                 recentlyAddedAlbums = emptyList(),
@@ -134,7 +137,8 @@ class HomeViewModel(
                 nowPlayingSong = null,
                 isLoading = false,
                 isOfflineMode = true,
-                downloadedSongs = downloadedSongs
+                downloadedSongs = downloadedSongs,
+                serverName = serverName
             )
         } catch (e: Exception) {
             _uiState.value = _uiState.value.copy(
@@ -208,11 +212,6 @@ class HomeViewModel(
         onNavigateToSearch()
     }
 
-    fun onProfileClick() {
-        // Trigger logout
-        onLogout()
-    }
-
     fun onDownloadClick(song: Song) {
         viewModelScope.launch {
             try {
@@ -238,5 +237,6 @@ data class HomeUiState(
     val nowPlayingSong: Song? = null,
     val isLoading: Boolean = true,
     val isOfflineMode: Boolean = false,
-    val downloadedSongs: List<Song> = emptyList()
+    val downloadedSongs: List<Song> = emptyList(),
+    val serverName: String = ""
 )

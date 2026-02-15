@@ -477,6 +477,7 @@ class MediaRepository(
             title = item.name,
             artist = artistName,
             duration = formatDuration(item.runTimeTicks),
+            albumName = item.album ?: "",
             albumCoverUrl = getImageUrl(
                 item.albumId ?: item.id,
                 "Primary",

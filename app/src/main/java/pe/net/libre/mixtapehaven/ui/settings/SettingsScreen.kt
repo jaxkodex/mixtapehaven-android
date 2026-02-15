@@ -44,6 +44,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.ui.home.StreamingQuality
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -55,7 +56,8 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun SettingsScreen(
     viewModel: SettingsViewModel,
-    onNavigateBack: () -> Unit
+    onNavigateBack: () -> Unit,
+    onLogout: () -> Unit = {}
 ) {
     val cacheStatistics by viewModel.cacheStatistics.collectAsState()
     val downloadQuality by viewModel.downloadQuality.collectAsState()
@@ -139,6 +141,20 @@ fun SettingsScreen(
                     modifier = Modifier.padding(end = 8.dp)
                 )
                 Text(if (isClearing) "Clearing..." else "Clear Cache")
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Sign Out link
+            TextButton(
+                onClick = onLogout,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "Sign Out",
+                    color = Color.Red,
+                    style = MaterialTheme.typography.bodyLarge
+                )
             }
         }
     }

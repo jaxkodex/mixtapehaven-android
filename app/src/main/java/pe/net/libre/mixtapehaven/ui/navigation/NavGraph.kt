@@ -261,14 +261,6 @@ fun NavGraph(
                     },
                     onNavigateToSearch = {
                         navController.navigate(Screen.Search.route)
-                    },
-                    onLogout = {
-                        coroutineScope.launch {
-                            connectionRepository.clearConnection()
-                            navController.navigate(Screen.Onboarding.route) {
-                                popUpTo(0) { inclusive = true }
-                            }
-                        }
                     }
                 )
             }
@@ -385,6 +377,14 @@ fun NavGraph(
                     viewModel = settingsViewModel,
                     onNavigateBack = {
                         navController.popBackStack()
+                    },
+                    onLogout = {
+                        coroutineScope.launch {
+                            connectionRepository.clearConnection()
+                            navController.navigate(Screen.Onboarding.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                        }
                     }
                 )
             }

@@ -32,8 +32,7 @@ class HomeViewModel(
     private val onNavigateToPlaylistDetail: (String) -> Unit = {},
     private val onNavigateToArtistDetail: (String) -> Unit = {},
     private val onNavigateToNowPlaying: () -> Unit = {},
-    private val onNavigateToSearch: () -> Unit = {},
-    private val onLogout: () -> Unit = {}
+    private val onNavigateToSearch: () -> Unit = {}
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -211,11 +210,6 @@ class HomeViewModel(
 
     fun onSearchClick() {
         onNavigateToSearch()
-    }
-
-    fun onProfileClick() {
-        // Trigger logout
-        onLogout()
     }
 
     fun onDownloadClick(song: Song) {

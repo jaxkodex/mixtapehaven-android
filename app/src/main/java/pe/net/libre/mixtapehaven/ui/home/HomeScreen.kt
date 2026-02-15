@@ -26,11 +26,14 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -56,6 +59,7 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     mediaRepository: MediaRepository,
@@ -98,15 +102,9 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            // Custom top bar with branding + profile avatar
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .background(DeepSpaceBlack)
-                    .padding(horizontal = 16.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            TopAppBar(
+                title = {
+
                 Column {
                     Text(
                         text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
@@ -122,31 +120,36 @@ fun HomeScreen(
                         )
                     }
                 }
-                // Profile avatar with online indicator
-                Box {
-                    IconButton(
-                        onClick = { viewModel.onProfileClick() },
-                        modifier = Modifier
-                            .size(40.dp)
-                            .background(Color(0xFFE87C5E), CircleShape)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Person,
-                            contentDescription = "Profile",
-                            tint = LunarWhite
-                        )
-                    }
-                    if (!uiState.isOfflineMode) {
-                        Box(
+                },
+                actions = {
+                    Box(modifier = Modifier.padding(end = 16.dp)) {
+                        IconButton(
+                            onClick = { viewModel.onProfileClick() },
                             modifier = Modifier
-                                .size(12.dp)
-                                .background(Color(0xFF4CAF50), CircleShape)
-                                .border(2.dp, DeepSpaceBlack, CircleShape)
-                                .align(Alignment.BottomEnd)
-                        )
+                                .size(40.dp)
+                                .background(Color(0xFFE87C5E), CircleShape)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = LunarWhite
+                            )
+                        }
+                        if (!uiState.isOfflineMode) {
+                            Box(
+                                modifier = Modifier
+                                    .size(12.dp)
+                                    .background(Color(0xFF4CAF50), CircleShape)
+                                    .border(2.dp, DeepSpaceBlack, CircleShape)
+                                    .align(Alignment.BottomEnd)
+                            )
+                        }
                     }
-                }
-            }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = DeepSpaceBlack
+                )
+            )
         },
         containerColor = DeepSpaceBlack
     ) { paddingValues ->

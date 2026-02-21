@@ -102,7 +102,7 @@ fun SongContextMenuBottomSheet(
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodySmall,
-                        color = GunmetalGray,
+                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -127,7 +127,7 @@ fun SongContextMenuBottomSheet(
                     Icon(
                         imageVector = Icons.Default.PlaylistAdd,
                         contentDescription = "Add to playlist",
-                        tint = GunmetalGray
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 },
                 modifier = Modifier.clickable {
@@ -148,7 +148,7 @@ fun SongContextMenuBottomSheet(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Sort,
                         contentDescription = "Instant Mix",
-                        tint = GunmetalGray
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                     )
                 },
                 modifier = Modifier.clickable {
@@ -170,7 +170,7 @@ fun SongContextMenuBottomSheet(
                         Icon(
                             imageVector = if (song.isDownloaded) Icons.Default.CheckCircle else Icons.Default.CloudDownload,
                             contentDescription = if (song.isDownloaded) "Downloaded" else "Download",
-                            tint = if (song.isDownloaded) CyberNeonBlue else GunmetalGray
+                            tint = if (song.isDownloaded) CyberNeonBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                         )
                     },
                     modifier = Modifier.clickable(enabled = !song.isDownloaded) {

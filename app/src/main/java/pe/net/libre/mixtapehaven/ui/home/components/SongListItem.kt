@@ -249,7 +249,7 @@ private fun ClassicSongItem(
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 2.dp)
@@ -260,7 +260,7 @@ private fun ClassicSongItem(
         Text(
             text = song.duration,
             style = MaterialTheme.typography.bodySmall,
-            color = GunmetalGray
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
         )
 
         // More button (three dots)
@@ -272,7 +272,7 @@ private fun ClassicSongItem(
                 Icon(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "More options",
-                    tint = GunmetalGray
+                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
                 )
             }
         }

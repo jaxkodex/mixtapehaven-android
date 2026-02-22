@@ -2,7 +2,6 @@ package pe.net.libre.mixtapehaven.ui.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -32,10 +31,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -49,13 +48,11 @@ import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.artist.ArtistDetailScreen
 import pe.net.libre.mixtapehaven.ui.downloads.DownloadsScreen
-import pe.net.libre.mixtapehaven.ui.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.downloads.DownloadsViewModel
 import pe.net.libre.mixtapehaven.ui.home.HomeScreen
-import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
-import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
 import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.home.detail.AllAlbumsScreen
 import pe.net.libre.mixtapehaven.ui.home.detail.AllArtistsScreen
@@ -64,11 +61,12 @@ import pe.net.libre.mixtapehaven.ui.home.detail.AllSongsScreen
 import pe.net.libre.mixtapehaven.ui.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingScreen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingViewModel
-import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.playlist.PlaylistDetailScreen
+import pe.net.libre.mixtapehaven.ui.search.SearchScreen
+import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
+import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
 

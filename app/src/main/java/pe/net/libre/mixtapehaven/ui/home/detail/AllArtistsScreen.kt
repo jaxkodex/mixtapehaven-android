@@ -41,7 +41,6 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistListItem
-import pe.net.libre.mixtapehaven.ui.home.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
@@ -60,7 +59,6 @@ fun AllArtistsScreen(
         AllArtistsViewModel(mediaRepository = mediaRepository)
     }
     val uiState by viewModel.uiState.collectAsState()
-    val playbackState by playbackManager.playbackState.collectAsState()
 
     Scaffold(
         topBar = {

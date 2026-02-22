@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -70,6 +69,7 @@ import pe.net.libre.mixtapehaven.data.api.SearchHint
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
+import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 import pe.net.libre.mixtapehaven.ui.components.FuturisticTextField
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.Album
@@ -85,7 +85,6 @@ import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
-import pe.net.libre.mixtapehaven.data.util.NetworkUtil
 
 // Constants for grid calculations (in dp)
 private const val ALBUM_CARD_HEIGHT_DP = 200

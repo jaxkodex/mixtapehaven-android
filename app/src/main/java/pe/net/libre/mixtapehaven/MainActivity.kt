@@ -1,7 +1,6 @@
 package pe.net.libre.mixtapehaven
 
 import android.content.ComponentName
-import android.content.Context
 import android.content.Intent
 import android.content.ServiceConnection
 import android.os.Bundle
@@ -133,7 +132,7 @@ class MainActivity : ComponentActivity() {
             action = MediaPlaybackService.ACTION_START_FOREGROUND
         }
         startService(intent)
-        bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE)
+        bindService(intent, serviceConnection, BIND_AUTO_CREATE)
     }
 
     override fun onDestroy() {

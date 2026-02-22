@@ -49,7 +49,7 @@ class HomeViewModel(
 
     private fun observePlaybackState() {
         viewModelScope.launch {
-            playbackManager.playbackState.collect { playbackState ->
+            playbackManager.playbackState.collect { _ ->
                 // Update UI state when playback changes
                 // This keeps the UI in sync with playback state
             }

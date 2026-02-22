@@ -53,6 +53,20 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.MixtapeHavenTheme
 import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 
+private const val LABEL_SERVER_URL = "Server URL"
+private const val PLACEHOLDER_SERVER_URL = "https://jellyfin.example.com"
+private const val APP_NAME = "Mixtape Haven"
+private const val SUBTITLE_CONNECT = "Connect to Your Server"
+
+private data class OnboardingActions(
+    val onServerUrlChange: (String) -> Unit,
+    val onUsernameChange: (String) -> Unit,
+    val onPasswordChange: (String) -> Unit,
+    val onTogglePasswordVisibility: () -> Unit,
+    val onConnect: () -> Unit,
+    val onNavigateToTroubleshoot: () -> Unit
+)
+
 @Composable
 fun OnboardingScreen(
     viewModel: OnboardingViewModel,
@@ -60,13 +74,32 @@ fun OnboardingScreen(
     onNavigateToTroubleshoot: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.isConnectionSuccessful) {
         if (uiState.isConnectionSuccessful) {
             onNavigateToHome()
         }
     }
+
+    OnboardingContent(
+        uiState = uiState,
+        actions = OnboardingActions(
+            onServerUrlChange = { viewModel.updateServerUrl(it) },
+            onUsernameChange = { viewModel.updateUsername(it) },
+            onPasswordChange = { viewModel.updatePassword(it) },
+            onTogglePasswordVisibility = { viewModel.togglePasswordVisibility() },
+            onConnect = { viewModel.connect() },
+            onNavigateToTroubleshoot = onNavigateToTroubleshoot
+        )
+    )
+}
+
+@Composable
+private fun OnboardingContent(
+    uiState: OnboardingUiState,
+    actions: OnboardingActions
+) {
+    val focusManager = LocalFocusManager.current
 
     Column(
         modifier = Modifier
@@ -89,7 +122,7 @@ fun OnboardingScreen(
             )
             Spacer(modifier = Modifier.size(12.dp))
             Text(
-                text = "Mixtape Haven",
+                text = APP_NAME,
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
@@ -101,7 +134,7 @@ fun OnboardingScreen(
 
         // Subtitle
         Text(
-            text = "Connect to Your Server",
+            text = SUBTITLE_CONNECT,
             fontSize = 18.sp,
             fontFamily = FontFamily.SansSerif,
             color = LunarWhite.copy(alpha = 0.8f)
@@ -111,7 +144,7 @@ fun OnboardingScreen(
 
         // Server URL Field
         Text(
-            text = "Server URL",
+            text = LABEL_SERVER_URL,
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
@@ -123,9 +156,9 @@ fun OnboardingScreen(
 
         FuturisticTextField(
             value = uiState.serverUrl,
-            onValueChange = { viewModel.updateServerUrl(it) },
-            label = "Server URL",
-            placeholder = "https://jellyfin.example.com",
+            onValueChange = actions.onServerUrlChange,
+            label = LABEL_SERVER_URL,
+            placeholder = PLACEHOLDER_SERVER_URL,
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Uri,
                 imeAction = ImeAction.Next
@@ -151,7 +184,7 @@ fun OnboardingScreen(
 
         FuturisticTextField(
             value = uiState.username,
-            onValueChange = { viewModel.updateUsername(it) },
+            onValueChange = actions.onUsernameChange,
             label = "Username",
             placeholder = "Enter your username",
             keyboardOptions = KeyboardOptions(
@@ -179,7 +212,7 @@ fun OnboardingScreen(
 
         FuturisticTextField(
             value = uiState.password,
-            onValueChange = { viewModel.updatePassword(it) },
+            onValueChange = actions.onPasswordChange,
             label = "Password",
             placeholder = "Enter your password",
             visualTransformation = if (uiState.isPasswordVisible) {
@@ -194,11 +227,11 @@ fun OnboardingScreen(
             keyboardActions = KeyboardActions(
                 onDone = {
                     focusManager.clearFocus()
-                    viewModel.connect()
+                    actions.onConnect()
                 }
             ),
             trailingIcon = {
-                IconButton(onClick = { viewModel.togglePasswordVisibility() }) {
+                IconButton(onClick = actions.onTogglePasswordVisibility) {
                     Icon(
                         imageVector = if (uiState.isPasswordVisible) {
                             Icons.Default.Visibility
@@ -249,7 +282,7 @@ fun OnboardingScreen(
         // Connect Button
         NeonButton(
             text = "Connect",
-            onClick = { viewModel.connect() },
+            onClick = actions.onConnect,
             isLoading = uiState.isLoading,
             enabled = uiState.serverUrl.isNotBlank() &&
                      uiState.username.isNotBlank() &&
@@ -259,7 +292,7 @@ fun OnboardingScreen(
         Spacer(modifier = Modifier.height(24.dp))
 
         // Troubleshoot Link
-        TextButton(onClick = onNavigateToTroubleshoot) {
+        TextButton(onClick = actions.onNavigateToTroubleshoot) {
             Text(
                 text = "Troubleshoot Connection",
                 color = CyberNeonBlue,
@@ -369,21 +402,21 @@ fun OnboardingScreenErrorPreview() {
     }
 }
 
-// Mock ViewModel interface for Previews
+// Mock ViewModel for Previews
 private class PreviewOnboardingViewModel(
     private val previewState: OnboardingUiState
 ) {
     val uiState: StateFlow<OnboardingUiState> = MutableStateFlow(previewState)
 
-    fun updateServerUrl(url: String) {}
-    fun updateUsername(username: String) {}
-    fun updatePassword(password: String) {}
-    fun togglePasswordVisibility() {}
-    fun connect() {}
-    fun clearError() {}
+    fun updateServerUrl(url: String) { /* Preview-only stub */ }
+    fun updateUsername(username: String) { /* Preview-only stub */ }
+    fun updatePassword(password: String) { /* Preview-only stub */ }
+    fun togglePasswordVisibility() { /* Preview-only stub */ }
+    fun connect() { /* Preview-only stub */ }
+    fun clearError() { /* Preview-only stub */ }
 }
 
-// Extension function to make preview work with actual composable
+// Overload to make previews work with PreviewOnboardingViewModel
 @Composable
 private fun OnboardingScreen(
     viewModel: PreviewOnboardingViewModel,
@@ -391,7 +424,6 @@ private fun OnboardingScreen(
     onNavigateToTroubleshoot: () -> Unit
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.isConnectionSuccessful) {
         if (uiState.isConnectionSuccessful) {
@@ -399,216 +431,15 @@ private fun OnboardingScreen(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 48.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Logo and Branding
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Album,
-                contentDescription = "Mixtape Haven Logo",
-                tint = CyberNeonBlue,
-                modifier = Modifier.size(48.dp)
-            )
-            Spacer(modifier = Modifier.size(12.dp))
-            Text(
-                text = "Mixtape Haven",
-                fontSize = 36.sp,
-                fontWeight = FontWeight.Bold,
-                fontFamily = FontFamily.Monospace,
-                color = LunarWhite
-            )
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Subtitle
-        Text(
-            text = "Connect to Your Server",
-            fontSize = 18.sp,
-            fontFamily = FontFamily.SansSerif,
-            color = LunarWhite.copy(alpha = 0.8f)
+    OnboardingContent(
+        uiState = uiState,
+        actions = OnboardingActions(
+            onServerUrlChange = { viewModel.updateServerUrl(it) },
+            onUsernameChange = { viewModel.updateUsername(it) },
+            onPasswordChange = { viewModel.updatePassword(it) },
+            onTogglePasswordVisibility = { viewModel.togglePasswordVisibility() },
+            onConnect = { viewModel.connect() },
+            onNavigateToTroubleshoot = onNavigateToTroubleshoot
         )
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Server URL Field
-        Text(
-            text = "Server URL",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = FontFamily.SansSerif,
-            color = LunarWhite,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        )
-
-        FuturisticTextField(
-            value = uiState.serverUrl,
-            onValueChange = { viewModel.updateServerUrl(it) },
-            label = "Server URL",
-            placeholder = "https://jellyfin.example.com",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Uri,
-                imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-            )
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Username Field
-        Text(
-            text = "Username",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = FontFamily.SansSerif,
-            color = LunarWhite,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        )
-
-        FuturisticTextField(
-            value = uiState.username,
-            onValueChange = { viewModel.updateUsername(it) },
-            label = "Username",
-            placeholder = "Enter your username",
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Text,
-                imeAction = ImeAction.Next
-            ),
-            keyboardActions = KeyboardActions(
-                onNext = { focusManager.moveFocus(FocusDirection.Down) }
-            )
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Password Field
-        Text(
-            text = "Password",
-            fontSize = 14.sp,
-            fontWeight = FontWeight.Medium,
-            fontFamily = FontFamily.SansSerif,
-            color = LunarWhite,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 8.dp)
-        )
-
-        FuturisticTextField(
-            value = uiState.password,
-            onValueChange = { viewModel.updatePassword(it) },
-            label = "Password",
-            placeholder = "Enter your password",
-            visualTransformation = if (uiState.isPasswordVisible) {
-                VisualTransformation.None
-            } else {
-                PasswordVisualTransformation()
-            },
-            keyboardOptions = KeyboardOptions(
-                keyboardType = KeyboardType.Password,
-                imeAction = ImeAction.Done
-            ),
-            keyboardActions = KeyboardActions(
-                onDone = {
-                    focusManager.clearFocus()
-                    viewModel.connect()
-                }
-            ),
-            trailingIcon = {
-                IconButton(onClick = { viewModel.togglePasswordVisibility() }) {
-                    Icon(
-                        imageVector = if (uiState.isPasswordVisible) {
-                            Icons.Default.Visibility
-                        } else {
-                            Icons.Default.VisibilityOff
-                        },
-                        contentDescription = if (uiState.isPasswordVisible) {
-                            "Hide password"
-                        } else {
-                            "Show password"
-                        },
-                        tint = LunarWhite
-                    )
-                }
-            }
-        )
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        // Error Message
-        AnimatedVisibility(
-            visible = uiState.errorMessage != null,
-            enter = fadeIn() + slideInVertically(),
-            exit = fadeOut() + slideOutVertically()
-        ) {
-            uiState.errorMessage?.let { error ->
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp)
-                ) {
-                    Text(
-                        text = error,
-                        color = VaporwaveMagenta,
-                        fontSize = 14.sp,
-                        fontFamily = if (error.contains("Technical Details:")) {
-                            FontFamily.Monospace
-                        } else {
-                            FontFamily.SansSerif
-                        },
-                        textAlign = TextAlign.Start,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            }
-        }
-
-        // Connect Button
-        NeonButton(
-            text = "Connect",
-            onClick = { viewModel.connect() },
-            isLoading = uiState.isLoading,
-            enabled = uiState.serverUrl.isNotBlank() &&
-                     uiState.username.isNotBlank() &&
-                     uiState.password.isNotBlank()
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Troubleshoot Link
-        TextButton(onClick = onNavigateToTroubleshoot) {
-            Text(
-                text = "Troubleshoot Connection",
-                color = CyberNeonBlue,
-                fontSize = 14.sp,
-                fontFamily = FontFamily.SansSerif
-            )
-        }
-
-        Spacer(modifier = Modifier.height(48.dp))
-
-        // Privacy Message
-        Text(
-            text = "Your connection data is stored locally on this device\nand is never shared.",
-            color = LunarWhite.copy(alpha = 0.6f),
-            fontSize = 12.sp,
-            fontFamily = FontFamily.SansSerif,
-            textAlign = TextAlign.Center,
-            lineHeight = 16.sp
-        )
-    }
+    )
 }

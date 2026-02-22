@@ -38,7 +38,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
@@ -49,7 +48,6 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 @Composable
 fun AllPlaylistsScreen(
     mediaRepository: MediaRepository,
-    playbackManager: PlaybackManager,
     onNavigateBack: () -> Unit,
     onPlaylistClick: (String) -> Unit = {},
     onSearchClick: () -> Unit = {}

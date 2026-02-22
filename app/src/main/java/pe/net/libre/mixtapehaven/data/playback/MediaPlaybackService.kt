@@ -318,7 +318,7 @@ class MediaPlaybackService : Service() {
         playbackManager.release()
     }
 
-    fun getPlaybackManager(): PlaybackManager = playbackManager
+    val playbackManagerInstance: PlaybackManager get() = playbackManager
 
     fun startForegroundService() {
         startForeground(NOTIFICATION_ID, createNotification())

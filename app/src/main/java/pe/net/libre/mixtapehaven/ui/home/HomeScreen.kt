@@ -71,8 +71,6 @@ fun HomeScreen(
     onNavigateToPlaylistDetail: (String) -> Unit = {},
     onNavigateToArtistDetail: (String) -> Unit = {},
     onNavigateToNowPlaying: () -> Unit = {},
-    onNavigateToSettings: () -> Unit = {},
-    onNavigateToDownloads: () -> Unit = {},
     onNavigateToSearch: () -> Unit = {}
 ) {
     val context = LocalContext.current
@@ -100,22 +98,21 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-
-                Column {
-                    Text(
-                        text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.Bold,
-                        color = VaporwaveMagenta
-                    )
-                    if (uiState.serverName.isNotEmpty()) {
+                    Column {
                         Text(
-                            text = "JELLYFIN SERVER: ${uiState.serverName.uppercase()}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = LunarWhite.copy(alpha = 0.4f)
+                            text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
+                            style = MaterialTheme.typography.titleLarge,
+                            fontWeight = FontWeight.Bold,
+                            color = VaporwaveMagenta
                         )
+                        if (uiState.serverName.isNotEmpty()) {
+                            Text(
+                                text = "JELLYFIN SERVER: ${uiState.serverName.uppercase()}",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = LunarWhite.copy(alpha = 0.4f)
+                            )
+                        }
                     }
-                }
                 },
                 actions = {
                     Box(modifier = Modifier.padding(end = 16.dp)) {
@@ -158,238 +155,104 @@ fun HomeScreen(
         ) { onSongMoreClick ->
             Box(modifier = Modifier.fillMaxSize()) {
                 if (uiState.isLoading) {
-                // Loading state
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(48.dp),
-                            color = CyberNeonBlue,
-                            strokeWidth = 4.dp
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = "Loading your library...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = LunarWhite.copy(alpha = 0.7f)
-                        )
-                    }
-                }
-            } else {
-                // Content state
-                LazyColumn(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(paddingValues),
-                    contentPadding = PaddingValues(bottom = 16.dp)
-                ) {
-                    // Offline Mode Banner
-                    if (uiState.isOfflineMode) {
-                        item {
-                            Card(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                                colors = CardDefaults.cardColors(
-                                    containerColor = WarningAmber.copy(alpha = 0.2f)
-                                )
-                            ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudOff,
-                                        contentDescription = null,
-                                        tint = WarningAmber
-                                    )
-                                    Text(
-                                        text = "Offline Mode - Showing downloaded content",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = LunarWhite
-                                    )
-                                }
-                            }
-                        }
-                    }
-
-                    if (uiState.isOfflineMode) {
-                        // Offline mode: show only downloaded songs
-                        item {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(48.dp),
+                                color = CyberNeonBlue,
+                                strokeWidth = 4.dp
+                            )
                             Spacer(modifier = Modifier.height(16.dp))
-                            SectionHeader(
-                                title = "Downloaded Songs",
-                                onSeeMoreClick = null
+                            Text(
+                                text = "Loading your library...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = LunarWhite.copy(alpha = 0.7f)
                             )
                         }
-
-                        if (uiState.downloadedSongs.isEmpty()) {
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(paddingValues),
+                        contentPadding = PaddingValues(bottom = 16.dp)
+                    ) {
+                        if (uiState.isOfflineMode) {
+                            item { HomeOfflineBanner() }
                             item {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(32.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.CloudOff,
-                                        contentDescription = null,
-                                        tint = LunarWhite.copy(alpha = 0.5f),
-                                        modifier = Modifier.size(48.dp)
+                                Spacer(modifier = Modifier.height(16.dp))
+                                SectionHeader(title = "Downloaded Songs", onSeeMoreClick = null)
+                            }
+                            if (uiState.downloadedSongs.isEmpty()) {
+                                item { HomeOfflineEmptyContent(onRetry = { viewModel.retry() }) }
+                            } else {
+                                itemsIndexed(uiState.downloadedSongs) { index, song ->
+                                    SongListItem(
+                                        song = song,
+                                        trackNumber = index + 1,
+                                        onClick = { viewModel.onSongClick(song) },
+                                        isCurrentSong = playbackState.currentSong?.id == song.id,
+                                        isPlaying = playbackState.isPlaying,
+                                        onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                                        onMoreClick = null
                                     )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Text(
-                                        text = "No offline content available",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        color = LunarWhite
-                                    )
-                                    Spacer(modifier = Modifier.height(8.dp))
-                                    Text(
-                                        text = "Download songs while online to access them offline",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = LunarWhite.copy(alpha = 0.7f),
-                                        textAlign = TextAlign.Center
-                                    )
-                                    Spacer(modifier = Modifier.height(16.dp))
-                                    Button(onClick = { viewModel.retry() }) {
-                                        Text("Retry Connection")
-                                    }
                                 }
                             }
                         } else {
-                            itemsIndexed(uiState.downloadedSongs) { index, song ->
-                                SongListItem(
-                                    song = song,
-                                    trackNumber = index + 1,
-                                    onClick = { viewModel.onSongClick(song) },
-                                    isCurrentSong = playbackState.currentSong?.id == song.id,
-                                    isPlaying = playbackState.isPlaying,
-                                    onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                    onMoreClick = null
-                                )
-                            }
-                        }
-                    } else {
-                        // Normal online mode: show all sections
-
-                        // Recently Added Section
-                        if (uiState.recentlyAddedAlbums.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                SectionHeader(
-                                    title = "Recently Added",
-                                    onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") },
-                                    actionText = "View All"
-                                )
-                            }
-
-                            item {
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(uiState.recentlyAddedAlbums) { album ->
-                                        AlbumCard(
-                                            album = album,
-                                            onClick = { viewModel.onAlbumClick(album) }
-                                        )
-                                    }
+                            if (uiState.recentlyAddedAlbums.isNotEmpty()) {
+                                item {
+                                    HomeRecentlyAddedSection(
+                                        albums = uiState.recentlyAddedAlbums,
+                                        onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") },
+                                        onAlbumClick = { viewModel.onAlbumClick(it) }
+                                    )
                                 }
                             }
-                        }
-
-                        // Top Artists Section
-                        if (uiState.topArtists.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                SectionHeader(
-                                    title = "Top Artists",
-                                    onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") }
-                                )
-                            }
-
-                            item {
-                                LazyRow(
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    items(uiState.topArtists) { artist ->
-                                        ArtistCircle(
-                                            artist = artist,
-                                            onClick = { viewModel.onArtistClick(artist) }
-                                        )
-                                    }
+                            if (uiState.topArtists.isNotEmpty()) {
+                                item {
+                                    HomeTopArtistsSection(
+                                        artists = uiState.topArtists,
+                                        onSeeMoreClick = { viewModel.onSeeMoreClick("top_artists") },
+                                        onArtistClick = { viewModel.onArtistClick(it) }
+                                    )
                                 }
                             }
-                        }
-
-                        // Your Mixes Section (2-column grid)
-                        if (uiState.playlists.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                SectionHeader(
-                                    title = "Your Mixes",
-                                    onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") }
-                                )
-                            }
-
-                            item {
-                                val chunkedPlaylists = uiState.playlists.chunked(2)
-                                Column(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                                ) {
-                                    chunkedPlaylists.forEach { rowPlaylists ->
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
-                                        ) {
-                                            rowPlaylists.forEach { playlist ->
-                                                PlaylistCard(
-                                                    playlist = playlist,
-                                                    onClick = { viewModel.onPlaylistClick(playlist) },
-                                                    modifier = Modifier.weight(1f)
-                                                )
-                                            }
-                                            if (rowPlaylists.size == 1) {
-                                                Spacer(modifier = Modifier.weight(1f))
-                                            }
-                                        }
-                                    }
+                            if (uiState.playlists.isNotEmpty()) {
+                                item {
+                                    HomePlaylistsSection(
+                                        playlists = uiState.playlists,
+                                        onSeeMoreClick = { viewModel.onSeeMoreClick("playlists") },
+                                        onPlaylistClick = { viewModel.onPlaylistClick(it) }
+                                    )
                                 }
                             }
-                        }
-
-                        // Popular Songs Section
-                        if (uiState.popularSongs.isNotEmpty()) {
-                            item {
-                                Spacer(modifier = Modifier.height(24.dp))
-                                SectionHeader(
-                                    title = "Popular Songs",
-                                    onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
-                                )
-                            }
-
-                            itemsIndexed(uiState.popularSongs) { index, song ->
-                                SongListItem(
-                                    song = song,
-                                    trackNumber = index + 1,
-                                    onClick = { viewModel.onSongClick(song) },
-                                    isCurrentSong = playbackState.currentSong?.id == song.id,
-                                    isPlaying = playbackState.isPlaying,
-                                    onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                    onMoreClick = { onSongMoreClick(song) }
-                                )
+                            if (uiState.popularSongs.isNotEmpty()) {
+                                item {
+                                    Spacer(modifier = Modifier.height(24.dp))
+                                    SectionHeader(
+                                        title = "Popular Songs",
+                                        onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
+                                    )
+                                }
+                                itemsIndexed(uiState.popularSongs) { index, song ->
+                                    SongListItem(
+                                        song = song,
+                                        trackNumber = index + 1,
+                                        onClick = { viewModel.onSongClick(song) },
+                                        isCurrentSong = playbackState.currentSong?.id == song.id,
+                                        isPlaying = playbackState.isPlaying,
+                                        onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                                        onMoreClick = { onSongMoreClick(song) }
+                                    )
+                                }
                             }
                         }
                     }
@@ -398,4 +261,159 @@ fun HomeScreen(
         }
     }
 }
+
+@Composable
+private fun HomeOfflineBanner(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = WarningAmber.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudOff,
+                contentDescription = null,
+                tint = WarningAmber
+            )
+            Text(
+                text = "Offline Mode - Showing downloaded content",
+                style = MaterialTheme.typography.bodyMedium,
+                color = LunarWhite
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeOfflineEmptyContent(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(32.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = Icons.Default.CloudOff,
+            contentDescription = null,
+            tint = LunarWhite.copy(alpha = 0.5f),
+            modifier = Modifier.size(48.dp)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            text = "No offline content available",
+            style = MaterialTheme.typography.headlineSmall,
+            color = LunarWhite
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Download songs while online to access them offline",
+            style = MaterialTheme.typography.bodyMedium,
+            color = LunarWhite.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("Retry Connection")
+        }
+    }
+}
+
+@Composable
+private fun HomeRecentlyAddedSection(
+    albums: List<Album>,
+    onSeeMoreClick: () -> Unit,
+    onAlbumClick: (Album) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionHeader(
+            title = "Recently Added",
+            onSeeMoreClick = onSeeMoreClick,
+            actionText = "View All"
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(albums) { album ->
+                AlbumCard(album = album, onClick = { onAlbumClick(album) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomeTopArtistsSection(
+    artists: List<Artist>,
+    onSeeMoreClick: () -> Unit,
+    onArtistClick: (Artist) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Spacer(modifier = Modifier.height(24.dp))
+        SectionHeader(
+            title = "Top Artists",
+            onSeeMoreClick = onSeeMoreClick
+        )
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            items(artists) { artist ->
+                ArtistCircle(artist = artist, onClick = { onArtistClick(artist) })
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomePlaylistsSection(
+    playlists: List<Playlist>,
+    onSeeMoreClick: () -> Unit,
+    onPlaylistClick: (Playlist) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Spacer(modifier = Modifier.height(24.dp))
+        SectionHeader(
+            title = "Your Mixes",
+            onSeeMoreClick = onSeeMoreClick
+        )
+        val chunkedPlaylists = playlists.chunked(2)
+        Column(
+            modifier = Modifier.padding(horizontal = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            chunkedPlaylists.forEach { rowPlaylists ->
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    rowPlaylists.forEach { playlist ->
+                        PlaylistCard(
+                            playlist = playlist,
+                            onClick = { onPlaylistClick(playlist) },
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                    if (rowPlaylists.size == 1) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
+        }
+    }
 }

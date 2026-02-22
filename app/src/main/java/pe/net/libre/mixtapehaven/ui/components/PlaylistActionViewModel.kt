@@ -88,7 +88,7 @@ class PlaylistActionViewModel(
             val createResult = mediaRepository.createPlaylist(name, listOf(songId))
             
             createResult.fold(
-                onSuccess = { playlistId ->
+                onSuccess = { _ ->
                     _uiState.value = _uiState.value.copy(
                         isCreatingPlaylist = false,
                         resultMessage = "Created \"$name\""

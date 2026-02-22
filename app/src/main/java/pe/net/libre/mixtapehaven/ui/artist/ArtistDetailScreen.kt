@@ -5,31 +5,22 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.PlayArrow
-import androidx.compose.material.icons.filled.Shuffle
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -58,6 +49,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.components.ErrorScreen
+import pe.net.libre.mixtapehaven.ui.components.LoadingScreen
+import pe.net.libre.mixtapehaven.ui.components.MediaPlaybackActions
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.Album
 import pe.net.libre.mixtapehaven.ui.home.Artist
@@ -65,7 +59,6 @@ import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
 
@@ -127,36 +120,12 @@ fun ArtistDetailScreen(
                     .padding(paddingValues)
             ) {
                 when {
-                    uiState.isLoading -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            CircularProgressIndicator(color = CyberNeonBlue)
-                        }
-                    }
-                    uiState.errorMessage != null -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.padding(16.dp)
-                            ) {
-                                Text(
-                                    text = uiState.errorMessage ?: "An error occurred",
-                                    style = MaterialTheme.typography.bodyLarge,
-                                    color = LunarWhite,
-                                    textAlign = TextAlign.Center
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(onClick = { viewModel.retry() }) {
-                                    Text("Retry")
-                                }
-                            }
-                        }
-                    }
+                    uiState.isLoading -> LoadingScreen(modifier = Modifier.fillMaxSize())
+                    uiState.errorMessage != null -> ErrorScreen(
+                        message = uiState.errorMessage ?: "An error occurred",
+                        onRetry = { viewModel.retry() },
+                        modifier = Modifier.fillMaxSize()
+                    )
                     else -> {
                         LazyColumn(modifier = Modifier.fillMaxSize()) {
                             item {
@@ -170,11 +139,12 @@ fun ArtistDetailScreen(
                                 )
                             }
                             item {
-                                ArtistActionButtons(
+                                MediaPlaybackActions(
                                     onPlayAll = { viewModel.onPlayAllClick() },
                                     onShuffle = { viewModel.onShuffleClick() },
                                     onInstantMix = { viewModel.onInstantMixClick() },
-                                    isLoadingMix = uiState.isLoadingMix
+                                    isLoadingMix = uiState.isLoadingMix,
+                                    modifier = Modifier.padding(horizontal = 24.dp, vertical = 24.dp)
                                 )
                             }
                             item {
@@ -305,105 +275,6 @@ private fun ArtistMetadata(
             style = MaterialTheme.typography.bodyLarge,
             color = LunarWhite.copy(alpha = 0.6f)
         )
-    }
-}
-
-@Composable
-private fun ArtistActionButtons(
-    onPlayAll: () -> Unit,
-    onShuffle: () -> Unit,
-    onInstantMix: () -> Unit,
-    isLoadingMix: Boolean,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 24.dp, vertical = 24.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Button(
-                onClick = onPlayAll,
-                modifier = Modifier.weight(1f).height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = CyberNeonBlue,
-                    contentColor = DeepSpaceBlack
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Play All",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-            }
-            Button(
-                onClick = onShuffle,
-                modifier = Modifier.weight(1f).height(56.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = GunmetalGray,
-                    contentColor = LunarWhite
-                ),
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Shuffle,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Shuffle",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        Button(
-            onClick = onInstantMix,
-            modifier = Modifier.fillMaxWidth().height(56.dp),
-            colors = ButtonDefaults.buttonColors(
-                containerColor = VaporwaveMagenta,
-                contentColor = LunarWhite
-            ),
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isLoadingMix
-        ) {
-            if (isLoadingMix) {
-                CircularProgressIndicator(
-                    color = LunarWhite,
-                    modifier = Modifier.size(24.dp),
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Sort,
-                    contentDescription = null,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = "Instant Mix",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.Bold
-                )
-            )
-        }
     }
 }
 

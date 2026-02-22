@@ -235,7 +235,7 @@ class MediaRepository(
                 userId = userId,
                 includeItemTypes = "MusicArtist",
                 ids = artistId,
-                fields = FIELDS_PLAYLIST
+                fields = FIELDS_ARTIST
             )
             val artist = response.items.firstOrNull()
                 ?: throw IllegalStateException("Artist not found")

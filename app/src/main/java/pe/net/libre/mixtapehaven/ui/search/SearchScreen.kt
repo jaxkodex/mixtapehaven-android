@@ -474,7 +474,7 @@ private fun SearchResults(
                             isCurrentSong = playbackState.currentSong?.id == song.id,
                             isPlaying = playbackState.isPlaying,
                             onPlayPauseClick = onPlayPauseClick,
-                            onMoreClick = onSongMoreClick?.let { { it(song) } }
+                            onMoreClick = { onSongMoreClick(song) }
                         )
                     }
                 }

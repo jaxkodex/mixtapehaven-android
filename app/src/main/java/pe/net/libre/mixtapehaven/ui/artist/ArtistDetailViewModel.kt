@@ -78,7 +78,7 @@ class ArtistDetailViewModel(
                 onSuccess = { albums ->
                     _uiState.value = _uiState.value.copy(albums = albums)
                 },
-                onFailure = { error ->
+                onFailure = { _ ->
                     // Log but don't fail completely - show what we have
                 }
             )

@@ -28,8 +28,7 @@ import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 fun PlaylistCard(
     playlist: Playlist,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-    downloadedCount: Int = 0
+    modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier

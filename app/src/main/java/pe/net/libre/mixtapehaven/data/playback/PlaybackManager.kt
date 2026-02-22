@@ -179,26 +179,21 @@ class PlaybackManager private constructor(
 
                 // Check if song is available offline first
                 val offlineSong = offlineRepository.getDownloadedSong(song.id)
-                val isOffline = offlineSong != null && File(offlineSong.filePath).exists()
+                val offlineFile = offlineSong?.let { File(it.filePath) }?.takeIf { it.exists() }
+                val isOffline = offlineFile != null
 
-                val mediaItem = if (isOffline && offlineSong != null) {
+                val mediaItem = if (offlineFile != null) {
                     // Play from local storage
-                    val file = File(offlineSong.filePath)
-                    Log.d(TAG, "Playing from offline storage: ${offlineSong.filePath}")
-                    Log.d(TAG, "File exists: ${file.exists()}, size: ${file.length()} bytes")
+                    Log.d(TAG, "Playing from offline storage: ${offlineFile.path}")
+                    Log.d(TAG, "File exists: true, size: ${offlineFile.length()} bytes")
 
-                    if (!file.exists()) {
-                        Log.e(TAG, "File doesn't exist at path: ${offlineSong.filePath}")
-                        return@launch
-                    }
-
-                    if (file.length() == 0L) {
-                        Log.e(TAG, "File is empty: ${offlineSong.filePath}")
+                    if (offlineFile.length() == 0L) {
+                        Log.e(TAG, "File is empty: ${offlineFile.path}")
                         return@launch
                     }
 
                     offlineRepository.updateLastAccessTime(song.id)
-                    MediaItem.fromUri(Uri.fromFile(file))
+                    MediaItem.fromUri(Uri.fromFile(offlineFile))
                 } else {
                     // Stream from network
                     Log.d(TAG, "Streaming from network")

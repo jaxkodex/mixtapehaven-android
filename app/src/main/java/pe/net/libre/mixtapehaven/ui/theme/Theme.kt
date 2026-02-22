@@ -66,7 +66,6 @@ private val MixtapeHavenColorScheme = darkColorScheme(
 
 @Composable
 fun MixtapeHavenTheme(
-    darkTheme: Boolean = true, // Always use dark theme for AMOLED
     content: @Composable () -> Unit
 ) {
     val colorScheme = MixtapeHavenColorScheme

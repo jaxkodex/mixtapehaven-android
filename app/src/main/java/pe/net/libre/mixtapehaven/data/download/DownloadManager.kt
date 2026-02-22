@@ -172,7 +172,7 @@ class DownloadManager private constructor(
             val downloadResult = fileDownloader.downloadSong(
                 songId = queueItem.songId,
                 quality = quality
-            ) { progress, bytesDownloaded, totalBytes ->
+            ) { progress, bytesDownloaded, _ ->
                 // Update progress
                 scope.launch {
                     database.downloadQueueDao().updateProgress(

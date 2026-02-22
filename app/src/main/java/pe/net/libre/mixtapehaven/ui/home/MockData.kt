@@ -121,6 +121,11 @@ data class Playlist(
     val coverPlaceholder: String = ""
 )
 
+private const val ARTIST_TAME_IMPALA = "Tame Impala"
+private const val ARTIST_DAFT_PUNK = "Daft Punk"
+private const val ARTIST_FRANK_OCEAN = "Frank Ocean"
+private const val ARTIST_KENDRICK_LAMAR = "Kendrick Lamar"
+
 /**
  * Mock data for recently added albums
  */
@@ -128,13 +133,13 @@ val mockRecentlyAddedAlbums = listOf(
     Album(
         id = "1",
         title = "Currents",
-        artist = "Tame Impala",
+        artist = ARTIST_TAME_IMPALA,
         coverPlaceholder = "🌅"
     ),
     Album(
         id = "2",
         title = "Discovery",
-        artist = "Daft Punk",
+        artist = ARTIST_DAFT_PUNK,
         coverPlaceholder = "🤖"
     ),
     Album(
@@ -146,7 +151,7 @@ val mockRecentlyAddedAlbums = listOf(
     Album(
         id = "4",
         title = "Random Access Memories",
-        artist = "Daft Punk",
+        artist = ARTIST_DAFT_PUNK,
         coverPlaceholder = "💿"
     )
 )
@@ -157,25 +162,25 @@ val mockRecentlyAddedAlbums = listOf(
 val mockTopArtists = listOf(
     Artist(
         id = "1",
-        name = "Daft Punk",
+        name = ARTIST_DAFT_PUNK,
         albumCount = 8,
         songCount = 96
     ),
     Artist(
         id = "2",
-        name = "Frank Ocean",
+        name = ARTIST_FRANK_OCEAN,
         albumCount = 3,
         songCount = 45
     ),
     Artist(
         id = "3",
-        name = "Kendrick Lamar",
+        name = ARTIST_KENDRICK_LAMAR,
         albumCount = 5,
         songCount = 78
     ),
     Artist(
         id = "4",
-        name = "Tame Impala",
+        name = ARTIST_TAME_IMPALA,
         albumCount = 4,
         songCount = 52
     )
@@ -205,7 +210,7 @@ val mockAllArtists = listOf(
     ),
     Artist(
         id = "4",
-        name = "Daft Punk",
+        name = ARTIST_DAFT_PUNK,
         albumCount = 8,
         songCount = 96
     ),
@@ -217,7 +222,7 @@ val mockAllArtists = listOf(
     ),
     Artist(
         id = "6",
-        name = "Frank Ocean",
+        name = ARTIST_FRANK_OCEAN,
         albumCount = 3,
         songCount = 45
     ),
@@ -229,7 +234,7 @@ val mockAllArtists = listOf(
     ),
     Artist(
         id = "8",
-        name = "Kendrick Lamar",
+        name = ARTIST_KENDRICK_LAMAR,
         albumCount = 5,
         songCount = 78
     ),
@@ -253,7 +258,7 @@ val mockAllArtists = listOf(
     ),
     Artist(
         id = "12",
-        name = "Tame Impala",
+        name = ARTIST_TAME_IMPALA,
         albumCount = 4,
         songCount = 52
     )
@@ -266,7 +271,7 @@ val mockPopularSongs = listOf(
     Song(
         id = "1",
         title = "Nikes",
-        artist = "Frank Ocean",
+        artist = ARTIST_FRANK_OCEAN,
         duration = "5:14",
         albumCoverPlaceholder = "🌊"
     ),
@@ -280,21 +285,21 @@ val mockPopularSongs = listOf(
     Song(
         id = "3",
         title = "Get Lucky",
-        artist = "Daft Punk",
+        artist = ARTIST_DAFT_PUNK,
         duration = "6:09",
         albumCoverPlaceholder = "🎵"
     ),
     Song(
         id = "4",
         title = "King Kunta",
-        artist = "Kendrick Lamar",
+        artist = ARTIST_KENDRICK_LAMAR,
         duration = "3:54",
         albumCoverPlaceholder = "👑"
     ),
     Song(
         id = "5",
         title = "The Less I Know The Better",
-        artist = "Tame Impala",
+        artist = ARTIST_TAME_IMPALA,
         duration = "3:36",
         albumCoverPlaceholder = "🎹"
     )
@@ -306,7 +311,7 @@ val mockPopularSongs = listOf(
 val mockNowPlayingSong = Song(
     id = "1",
     title = "Nikes",
-    artist = "Frank Ocean",
+    artist = ARTIST_FRANK_OCEAN,
     duration = "5:14",
     albumCoverPlaceholder = "🌊"
 )

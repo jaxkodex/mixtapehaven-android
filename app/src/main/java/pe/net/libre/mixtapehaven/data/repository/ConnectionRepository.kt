@@ -22,18 +22,14 @@ class ConnectionRepository(
     suspend fun authenticateConnection(connection: ServerConnection): Result<Boolean> {
         return try {
             // Validate server URL format
-            if (!isValidUrl(connection.serverUrl)) {
-                throw IllegalArgumentException("Invalid server URL format. Must start with http:// or https://")
+            require(isValidUrl(connection.serverUrl)) {
+                "Invalid server URL format. Must start with http:// or https://"
             }
 
             // Validate non-empty credentials
-            if (connection.username.isBlank()) {
-                throw IllegalArgumentException("Username cannot be empty")
-            }
+            require(connection.username.isNotBlank()) { "Username cannot be empty" }
 
-            if (connection.password.isBlank()) {
-                throw IllegalArgumentException("Password cannot be empty")
-            }
+            require(connection.password.isNotBlank()) { "Password cannot be empty" }
 
             // Create API service for the provided server URL
             val apiService = JellyfinApiClient.createService(connection.serverUrl)

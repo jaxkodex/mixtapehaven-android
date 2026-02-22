@@ -49,12 +49,10 @@ class MediaRepository(
             serverUrl = currentServerUrl
             accessToken = currentAccessToken
 
-            if (serverUrl.isNullOrBlank()) {
-                throw IllegalStateException("No server URL configured")
-            }
-            if (accessToken.isNullOrBlank()) {
-                throw IllegalStateException("No access token found. Please login again.")
-            }
+            val safeServerUrl = currentServerUrl?.takeIf { it.isNotBlank() }
+                ?: throw IllegalStateException("No server URL configured")
+            val safeAccessToken = currentAccessToken?.takeIf { it.isNotBlank() }
+                ?: throw IllegalStateException("No access token found. Please login again.")
 
             val deviceId = Settings.Secure.getString(
                 context.contentResolver,
@@ -62,12 +60,12 @@ class MediaRepository(
             ) ?: "unknown_device"
 
             apiService = JellyfinApiClient.createAuthenticatedService(
-                baseUrl = serverUrl!!,
-                accessToken = accessToken!!,
+                baseUrl = safeServerUrl,
+                accessToken = safeAccessToken,
                 deviceId = deviceId
             )
         }
-        return apiService!!
+        return checkNotNull(apiService) { "API service initialization failed" }
     }
 
     /**
@@ -79,7 +77,7 @@ class MediaRepository(
                 userId = userId,
                 includeItemTypes = "MusicAlbum",
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+                fields = FIELDS_ALBUM
             )
             items.map { item -> mapToAlbum(item) }
         }
@@ -98,7 +96,7 @@ class MediaRepository(
                 sortOrder = "Ascending",
                 limit = limit,
                 startIndex = startIndex,
-                fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+                fields = FIELDS_ALBUM
             )
             response.items.map { item -> mapToAlbum(item) }
         }
@@ -116,7 +114,7 @@ class MediaRepository(
                 sortBy = "SortName",
                 sortOrder = "Ascending",
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,SortName,ChildCount"
+                fields = FIELDS_ARTIST
             )
             response.items.map { item -> mapToArtist(item) }
         }
@@ -135,7 +133,7 @@ class MediaRepository(
                 sortOrder = "Ascending",
                 limit = limit,
                 startIndex = startIndex,
-                fields = "PrimaryImageAspectRatio,SortName,ChildCount"
+                fields = FIELDS_ARTIST
             )
             response.items.map { item -> mapToArtist(item) }
         }
@@ -153,7 +151,7 @@ class MediaRepository(
                 sortBy = "PlayCount,DatePlayed",
                 sortOrder = "Descending",
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+                fields = FIELDS_AUDIO
             )
             response.items.map { item -> mapToSong(item) }
         }
@@ -172,7 +170,7 @@ class MediaRepository(
                 sortOrder = "Ascending",
                 limit = limit,
                 startIndex = startIndex,
-                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+                fields = FIELDS_AUDIO
             )
             response.items.map { item -> mapToSong(item) }
         }
@@ -191,7 +189,7 @@ class MediaRepository(
                 sortOrder = "Ascending",
                 limit = limit,
                 startIndex = startIndex,
-                fields = "PrimaryImageAspectRatio,ChildCount"
+                fields = FIELDS_PLAYLIST
             )
             response.items.map { item -> mapToPlaylist(item) }
         }
@@ -206,7 +204,7 @@ class MediaRepository(
                 userId = userId,
                 parentId = playlistId,
                 includeItemTypes = "Audio",
-                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+                fields = FIELDS_AUDIO
             )
             response.items.map { item -> mapToSong(item) }
         }
@@ -220,7 +218,7 @@ class MediaRepository(
             val response = service.getItems(
                 userId = userId,
                 includeItemTypes = "Playlist",
-                fields = "PrimaryImageAspectRatio,ChildCount"
+                fields = FIELDS_PLAYLIST
             )
             val playlist = response.items.find { it.id == playlistId }
                 ?: throw IllegalStateException("Playlist not found")
@@ -237,7 +235,7 @@ class MediaRepository(
                 userId = userId,
                 includeItemTypes = "MusicArtist",
                 ids = artistId,
-                fields = "PrimaryImageAspectRatio,ChildCount"
+                fields = FIELDS_ARTIST
             )
             val artist = response.items.firstOrNull()
                 ?: throw IllegalStateException("Artist not found")
@@ -258,7 +256,7 @@ class MediaRepository(
                 sortBy = "ProductionYear,SortName",
                 sortOrder = "Descending",
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+                fields = FIELDS_ALBUM
             )
             response.items.map { item -> mapToAlbum(item) }
         }
@@ -277,7 +275,7 @@ class MediaRepository(
                 sortBy = "ParentIndexNumber,IndexNumber",
                 sortOrder = "Ascending",
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+                fields = FIELDS_AUDIO
             )
             response.items.map { item -> mapToSong(item) }
         }
@@ -308,7 +306,7 @@ class MediaRepository(
                 includeItemTypes = "Audio",
                 recursive = true,
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,Path,MediaSources"
+                fields = FIELDS_AUDIO
             )
             response.items.map { item -> mapToSong(item) }
         }
@@ -325,7 +323,7 @@ class MediaRepository(
                 includeItemTypes = "MusicAlbum",
                 recursive = true,
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+                fields = FIELDS_ALBUM
             )
             response.items.map { item -> mapToAlbum(item) }
         }
@@ -342,7 +340,7 @@ class MediaRepository(
                 includeItemTypes = "MusicArtist",
                 recursive = true,
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,SortName,ChildCount"
+                fields = FIELDS_ARTIST
             )
             response.items.map { item -> mapToArtist(item) }
         }
@@ -359,7 +357,7 @@ class MediaRepository(
                 includeItemTypes = "Playlist",
                 recursive = true,
                 limit = limit,
-                fields = "PrimaryImageAspectRatio,ChildCount"
+                fields = FIELDS_PLAYLIST
             )
             response.items.map { item -> mapToPlaylist(item) }
         }
@@ -390,7 +388,11 @@ class MediaRepository(
     }
 
     companion object {
-        private const val INSTANT_MIX_FIELDS = "PrimaryImageAspectRatio,Path,MediaSources"
+        private const val FIELDS_AUDIO = "PrimaryImageAspectRatio,Path,MediaSources"
+        private const val FIELDS_ALBUM = "PrimaryImageAspectRatio,SortName,Path,ChildCount"
+        private const val FIELDS_ARTIST = "PrimaryImageAspectRatio,SortName,ChildCount"
+        private const val FIELDS_PLAYLIST = "PrimaryImageAspectRatio,ChildCount"
+        private const val INSTANT_MIX_FIELDS = FIELDS_AUDIO
     }
 
     private suspend fun getInstantMix(

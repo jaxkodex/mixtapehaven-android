@@ -70,7 +70,7 @@ class MediaPlaybackService : Service() {
             .build()
 
         // Initialize PlaybackManager if not already initialized
-        val dataStoreManager = DataStoreManager(applicationContext)
+        DataStoreManager(applicationContext)
         playbackManager = PlaybackManager.getInstance()
         notificationManager = getSystemService(NOTIFICATION_SERVICE) as NotificationManager
 

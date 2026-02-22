@@ -57,57 +57,7 @@ fun SongContextMenuBottomSheet(
                 .padding(vertical = 8.dp)
         ) {
             // Song header row (non-interactive, for context)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Album art thumbnail
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(GunmetalGray),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (song.albumCoverUrl != null) {
-                        AsyncImage(
-                            model = song.albumCoverUrl,
-                            contentDescription = song.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                    } else {
-                        Text(
-                            text = song.albumCoverPlaceholder,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
-
-                // Song info
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text(
-                        text = song.title,
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = LunarWhite,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    Text(
-                        text = song.artist,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
-            }
+            SongContextHeader(song = song)
 
             Divider(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
@@ -158,26 +108,87 @@ fun SongContextMenuBottomSheet(
 
             // Download action
             if (onDownloadClick != null) {
-                ListItem(
-                    headlineContent = {
-                        Text(
-                            text = if (song.isDownloaded) "Downloaded" else "Download",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (song.isDownloaded) CyberNeonBlue else LunarWhite
-                        )
-                    },
-                    leadingContent = {
-                        Icon(
-                            imageVector = if (song.isDownloaded) Icons.Default.CheckCircle else Icons.Default.CloudDownload,
-                            contentDescription = if (song.isDownloaded) "Downloaded" else "Download",
-                            tint = if (song.isDownloaded) CyberNeonBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                        )
-                    },
-                    modifier = Modifier.clickable(enabled = !song.isDownloaded) {
-                        onDownloadClick(song)
-                    }
-                )
+                SongContextDownloadItem(song = song, onDownloadClick = onDownloadClick)
             }
         }
     }
+}
+
+@Composable
+private fun SongContextHeader(song: Song, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(8.dp))
+                .background(GunmetalGray),
+            contentAlignment = Alignment.Center
+        ) {
+            if (song.albumCoverUrl != null) {
+                AsyncImage(
+                    model = song.albumCoverUrl,
+                    contentDescription = song.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                Text(
+                    text = song.albumCoverPlaceholder,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+            }
+        }
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = song.title,
+                style = MaterialTheme.typography.bodyMedium,
+                color = LunarWhite,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Text(
+                text = song.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
+}
+
+@Composable
+private fun SongContextDownloadItem(
+    song: Song,
+    onDownloadClick: (Song) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    ListItem(
+        headlineContent = {
+            Text(
+                text = if (song.isDownloaded) "Downloaded" else "Download",
+                style = MaterialTheme.typography.bodyMedium,
+                color = if (song.isDownloaded) CyberNeonBlue else LunarWhite
+            )
+        },
+        leadingContent = {
+            Icon(
+                imageVector = if (song.isDownloaded) Icons.Default.CheckCircle else Icons.Default.CloudDownload,
+                contentDescription = if (song.isDownloaded) "Downloaded" else "Download",
+                tint = if (song.isDownloaded) CyberNeonBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            )
+        },
+        modifier = modifier.clickable(enabled = !song.isDownloaded) {
+            onDownloadClick(song)
+        }
+    )
 }

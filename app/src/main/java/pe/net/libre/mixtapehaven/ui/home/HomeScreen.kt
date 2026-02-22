@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
@@ -186,25 +185,15 @@ fun HomeScreen(
                         contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
                         if (uiState.isOfflineMode) {
-                            item { HomeOfflineBanner() }
                             item {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                SectionHeader(title = "Downloaded Songs", onSeeMoreClick = null)
-                            }
-                            if (uiState.downloadedSongs.isEmpty()) {
-                                item { HomeOfflineEmptyContent(onRetry = { viewModel.retry() }) }
-                            } else {
-                                itemsIndexed(uiState.downloadedSongs) { index, song ->
-                                    SongListItem(
-                                        song = song,
-                                        trackNumber = index + 1,
-                                        onClick = { viewModel.onSongClick(song) },
-                                        isCurrentSong = playbackState.currentSong?.id == song.id,
-                                        isPlaying = playbackState.isPlaying,
-                                        onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                        onMoreClick = null
-                                    )
-                                }
+                                HomeOfflineSongsList(
+                                    songs = uiState.downloadedSongs,
+                                    currentSongId = playbackState.currentSong?.id,
+                                    isPlaying = playbackState.isPlaying,
+                                    onRetry = { viewModel.retry() },
+                                    onSongClick = { viewModel.onSongClick(it) },
+                                    onPlayPauseClick = { viewModel.onPlayPauseClick() }
+                                )
                             }
                         } else {
                             if (uiState.recentlyAddedAlbums.isNotEmpty()) {
@@ -236,21 +225,14 @@ fun HomeScreen(
                             }
                             if (uiState.popularSongs.isNotEmpty()) {
                                 item {
-                                    Spacer(modifier = Modifier.height(24.dp))
-                                    SectionHeader(
-                                        title = "Popular Songs",
-                                        onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") }
-                                    )
-                                }
-                                itemsIndexed(uiState.popularSongs) { index, song ->
-                                    SongListItem(
-                                        song = song,
-                                        trackNumber = index + 1,
-                                        onClick = { viewModel.onSongClick(song) },
-                                        isCurrentSong = playbackState.currentSong?.id == song.id,
+                                    HomePopularSongsSection(
+                                        songs = uiState.popularSongs,
+                                        currentSongId = playbackState.currentSong?.id,
                                         isPlaying = playbackState.isPlaying,
+                                        onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") },
+                                        onSongClick = { viewModel.onSongClick(it) },
                                         onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                        onMoreClick = { onSongMoreClick(song) }
+                                        onSongMoreClick = { onSongMoreClick(it) }
                                     )
                                 }
                             }
@@ -375,6 +357,66 @@ private fun HomeTopArtistsSection(
             items(artists) { artist ->
                 ArtistCircle(artist = artist, onClick = { onArtistClick(artist) })
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeOfflineSongsList(
+    songs: List<Song>,
+    currentSongId: String?,
+    isPlaying: Boolean,
+    onRetry: () -> Unit,
+    onSongClick: (Song) -> Unit,
+    onPlayPauseClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        HomeOfflineBanner()
+        Spacer(modifier = Modifier.height(16.dp))
+        SectionHeader(title = "Downloaded Songs", onSeeMoreClick = null)
+        if (songs.isEmpty()) {
+            HomeOfflineEmptyContent(onRetry = onRetry)
+        } else {
+            songs.forEachIndexed { index, song ->
+                SongListItem(
+                    song = song,
+                    trackNumber = index + 1,
+                    onClick = { onSongClick(song) },
+                    isCurrentSong = currentSongId == song.id,
+                    isPlaying = isPlaying,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onMoreClick = null
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HomePopularSongsSection(
+    songs: List<Song>,
+    currentSongId: String?,
+    isPlaying: Boolean,
+    onSeeMoreClick: () -> Unit,
+    onSongClick: (Song) -> Unit,
+    onPlayPauseClick: () -> Unit,
+    onSongMoreClick: (Song) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier) {
+        Spacer(modifier = Modifier.height(24.dp))
+        SectionHeader(title = "Popular Songs", onSeeMoreClick = onSeeMoreClick)
+        songs.forEachIndexed { index, song ->
+            SongListItem(
+                song = song,
+                trackNumber = index + 1,
+                onClick = { onSongClick(song) },
+                isCurrentSong = currentSongId == song.id,
+                isPlaying = isPlaying,
+                onPlayPauseClick = onPlayPauseClick,
+                onMoreClick = { onSongMoreClick(song) }
+            )
         }
     }
 }

@@ -44,6 +44,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
+import pe.net.libre.mixtapehaven.data.playback.PlaybackState
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
@@ -141,67 +142,10 @@ fun NavGraph(
             containerColor = DeepSpaceBlack,
             bottomBar = {
                 if (shouldShowBottomBar) {
-                    NavigationBar(
-                        containerColor = DeepSpaceBlack,
-                        tonalElevation = 0.dp
-                    ) {
-                        bottomNavItems.forEach { item ->
-                            val isSelected = currentRoute == item.route
-
-                            if (item.isCenter) {
-                                // Center Search button - elevated FAB-like
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = {
-                                        navigateToBottomNavRoute(navController, item.route)
-                                    },
-                                    icon = {
-                                        Box(
-                                            modifier = Modifier
-                                                .size(48.dp)
-                                                .background(Color(0xFF5C6BC0), CircleShape),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Icon(
-                                                imageVector = item.selectedIcon,
-                                                contentDescription = item.label,
-                                                tint = DeepSpaceBlack,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    },
-                                    label = null,
-                                    colors = NavigationBarItemDefaults.colors(
-                                        indicatorColor = Color.Transparent
-                                    )
-                                )
-                            } else {
-                                NavigationBarItem(
-                                    selected = isSelected,
-                                    onClick = {
-                                        navigateToBottomNavRoute(navController, item.route)
-                                    },
-                                    icon = {
-                                        Icon(
-                                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                                            contentDescription = item.label,
-                                            tint = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
-                                        )
-                                    },
-                                    label = {
-                                        Text(
-                                            text = item.label,
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
-                                        )
-                                    },
-                                    colors = NavigationBarItemDefaults.colors(
-                                        indicatorColor = Color.Transparent
-                                    )
-                                )
-                            }
-                        }
-                    }
+                    BottomNavigationBar(
+                        currentRoute = currentRoute,
+                        onNavigate = { item -> navigateToBottomNavRoute(navController, item.route) }
+                    )
                 }
             }
         ) { paddingValues ->
@@ -411,21 +355,99 @@ fun NavGraph(
 
         // Floating NowPlayingBar overlay - sits above bottom nav with transparent background
         if (shouldShowNowPlayingBar) {
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth()
-                    .padding(bottom = 80.dp) // offset above the bottom nav bar
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                NowPlayingBar(
-                    playbackState = playbackState,
-                    onPlayPauseClick = { playbackManager.togglePlayPause() },
-                    onBarClick = { navController.navigate(Screen.NowPlaying.route) },
-                    modifier = Modifier.fillMaxWidth()
+            NowPlayingBarOverlay(
+                playbackState = playbackState,
+                onPlayPauseClick = { playbackManager.togglePlayPause() },
+                onNowPlayingClick = { navController.navigate(Screen.NowPlaying.route) },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
+    }
+}
+
+@Composable
+private fun BottomNavigationBar(
+    currentRoute: String?,
+    onNavigate: (BottomNavItem) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    NavigationBar(
+        containerColor = DeepSpaceBlack,
+        tonalElevation = 0.dp,
+        modifier = modifier
+    ) {
+        bottomNavItems.forEach { item ->
+            val isSelected = currentRoute == item.route
+            if (item.isCenter) {
+                NavigationBarItem(
+                    selected = isSelected,
+                    onClick = { onNavigate(item) },
+                    icon = {
+                        Box(
+                            modifier = Modifier
+                                .size(48.dp)
+                                .background(Color(0xFF5C6BC0), CircleShape),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = item.selectedIcon,
+                                contentDescription = item.label,
+                                tint = DeepSpaceBlack,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    },
+                    label = null,
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = Color.Transparent
+                    )
+                )
+            } else {
+                NavigationBarItem(
+                    selected = isSelected,
+                    onClick = { onNavigate(item) },
+                    icon = {
+                        Icon(
+                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                            contentDescription = item.label,
+                            tint = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = item.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        indicatorColor = Color.Transparent
+                    )
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun NowPlayingBarOverlay(
+    playbackState: PlaybackState,
+    onPlayPauseClick: () -> Unit,
+    onNowPlayingClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = 80.dp) // offset above the bottom nav bar
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        NowPlayingBar(
+            playbackState = playbackState,
+            onPlayPauseClick = onPlayPauseClick,
+            onBarClick = onNowPlayingClick,
+            modifier = Modifier.fillMaxWidth()
+        )
     }
 }
 

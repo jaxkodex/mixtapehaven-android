@@ -125,44 +125,17 @@ fun AllSongsScreen(
                     )
                 }
                 uiState.errorMessage != null -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = uiState.errorMessage ?: "An error occurred",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = LunarWhite,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Button(onClick = { viewModel.loadSongs() }) {
-                            Text("Retry")
-                        }
-                    }
+                    AllSongsErrorState(
+                        errorMessage = uiState.errorMessage ?: "An error occurred",
+                        onRetry = { viewModel.loadSongs() },
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 uiState.songs.isEmpty() -> {
-                    Column(
-                        modifier = Modifier
-                            .align(Alignment.Center)
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "No songs found",
-                            style = MaterialTheme.typography.headlineSmall,
-                            color = LunarWhite
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = if (uiState.isOfflineMode) "No downloaded songs available" else "Add media to your Jellyfin server",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LunarWhite.copy(alpha = 0.7f),
-                            textAlign = TextAlign.Center
-                        )
-                    }
+                    AllSongsEmptyState(
+                        isOfflineMode = uiState.isOfflineMode,
+                        modifier = Modifier.align(Alignment.Center)
+                    )
                 }
                 else -> {
                     val listState = rememberLazyListState()
@@ -192,35 +165,7 @@ fun AllSongsScreen(
                         ) {
                             // Offline Mode Banner
                             if (uiState.isOfflineMode) {
-                                item {
-                                    Card(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 16.dp, vertical = 8.dp),
-                                        colors = CardDefaults.cardColors(
-                                            containerColor = WarningAmber.copy(alpha = 0.2f)
-                                        )
-                                    ) {
-                                        Row(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(12.dp),
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.CloudOff,
-                                                contentDescription = null,
-                                                tint = WarningAmber
-                                            )
-                                            Text(
-                                                text = "Offline Mode - Showing downloaded content",
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = LunarWhite
-                                            )
-                                        }
-                                    }
-                                }
+                                item { AllSongsOfflineBanner() }
                             }
 
                             itemsIndexed(uiState.songs) { index, song ->
@@ -236,16 +181,7 @@ fun AllSongsScreen(
                             }
 
                             if (uiState.isLoadingMore) {
-                                item {
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(16.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        CircularProgressIndicator(color = CyberNeonBlue)
-                                    }
-                                }
+                                item { AllSongsLoadingMoreIndicator() }
                             }
                         }
                     }
@@ -255,4 +191,94 @@ fun AllSongsScreen(
         }
         }
 }
+}
+
+@Composable
+private fun AllSongsErrorState(
+    errorMessage: String,
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = errorMessage,
+            style = MaterialTheme.typography.bodyLarge,
+            color = LunarWhite,
+            textAlign = TextAlign.Center
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onRetry) {
+            Text("Retry")
+        }
+    }
+}
+
+@Composable
+private fun AllSongsEmptyState(
+    isOfflineMode: Boolean,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier.padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "No songs found",
+            style = MaterialTheme.typography.headlineSmall,
+            color = LunarWhite
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (isOfflineMode) "No downloaded songs available" else "Add media to your Jellyfin server",
+            style = MaterialTheme.typography.bodyMedium,
+            color = LunarWhite.copy(alpha = 0.7f),
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun AllSongsOfflineBanner(modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = WarningAmber.copy(alpha = 0.2f)
+        )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.CloudOff,
+                contentDescription = null,
+                tint = WarningAmber
+            )
+            Text(
+                text = "Offline Mode - Showing downloaded content",
+                style = MaterialTheme.typography.bodyMedium,
+                color = LunarWhite
+            )
+        }
+    }
+}
+
+@Composable
+private fun AllSongsLoadingMoreIndicator(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(16.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator(color = CyberNeonBlue)
+    }
 }

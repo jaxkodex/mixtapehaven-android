@@ -11,6 +11,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
@@ -21,13 +22,14 @@ internal fun SongAlbumArtThumbnail(
     albumCoverUrl: String?,
     albumCoverPlaceholder: String,
     contentDescription: String,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    backgroundColor: Color = DeepSpaceBlack
 ) {
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(DeepSpaceBlack),
+            .background(backgroundColor),
         contentAlignment = Alignment.Center
     ) {
         if (albumCoverUrl != null) {

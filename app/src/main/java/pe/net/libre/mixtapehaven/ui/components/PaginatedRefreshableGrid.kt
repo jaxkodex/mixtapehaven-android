@@ -24,6 +24,7 @@ fun PaginatedRefreshableGrid(
     onRefresh: () -> Unit,
     onLoadMore: () -> Unit,
     modifier: Modifier = Modifier,
+    loadMoreThreshold: Int = 5,
     content: LazyGridScope.() -> Unit
 ) {
     val gridState = rememberLazyGridState()
@@ -34,7 +35,7 @@ fun PaginatedRefreshableGrid(
         }.collect { lastVisibleIndex ->
             if (lastVisibleIndex != null) {
                 val totalItems = gridState.layoutInfo.totalItemsCount
-                if (lastVisibleIndex >= totalItems - 5 && !isLoadingMore) {
+                if (lastVisibleIndex >= totalItems - loadMoreThreshold && !isLoadingMore) {
                     onLoadMore()
                 }
             }

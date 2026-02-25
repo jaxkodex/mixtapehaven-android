@@ -117,7 +117,7 @@ class ArtistDetailViewModel(
         performInstantMix(
             fetchMix = { mediaRepository.getArtistInstantMix(artistId) },
             onStartLoading = { _uiState.update { it.copy(isLoadingMix = true, errorMessage = null) } },
-            onError = { msg -> _uiState.update { it.copy(errorMessage = msg) } },
+            onError = { error -> _uiState.update { it.copy(errorMessage = error.message ?: "Failed to generate instant mix") } },
             onStopLoading = { _uiState.update { it.copy(isLoadingMix = false) } }
         )
     }

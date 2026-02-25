@@ -46,7 +46,7 @@ abstract class BasePlaybackViewModel(
     protected fun performInstantMix(
         fetchMix: suspend () -> Result<List<Song>>,
         onStartLoading: () -> Unit,
-        onError: (String?) -> Unit,
+        onError: (Throwable) -> Unit,
         onStopLoading: () -> Unit
     ) {
         viewModelScope.launch {
@@ -59,7 +59,7 @@ abstract class BasePlaybackViewModel(
                         }
                     }
                     .onFailure { error ->
-                        onError(error.message ?: "Failed to generate instant mix")
+                        onError(error)
                     }
             } finally {
                 onStopLoading()

@@ -21,8 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -54,7 +52,7 @@ import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
-import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
+import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -245,37 +243,6 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeOfflineBanner(modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = WarningAmber.copy(alpha = 0.2f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.CloudOff,
-                contentDescription = null,
-                tint = WarningAmber
-            )
-            Text(
-                text = "Offline Mode - Showing downloaded content",
-                style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite
-            )
-        }
-    }
-}
-
-@Composable
 private fun HomeOfflineEmptyContent(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
@@ -372,7 +339,7 @@ private fun HomeOfflineSongsList(
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier) {
-        HomeOfflineBanner()
+        OfflineBanner()
         Spacer(modifier = Modifier.height(16.dp))
         SectionHeader(title = "Downloaded Songs", onSeeMoreClick = null)
         if (songs.isEmpty()) {

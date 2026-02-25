@@ -96,27 +96,11 @@ private fun CardStyleSongItem(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Album art thumbnail
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(DeepSpaceBlack),
-                contentAlignment = Alignment.Center
-            ) {
-                if (song.albumCoverUrl != null) {
-                    AsyncImage(
-                        model = song.albumCoverUrl,
-                        contentDescription = song.title,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Text(
-                        text = song.albumCoverPlaceholder,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
+            SongAlbumArtThumbnail(
+                albumCoverUrl = song.albumCoverUrl,
+                albumCoverPlaceholder = song.albumCoverPlaceholder,
+                contentDescription = song.title
+            )
 
             // Song info
             Column(

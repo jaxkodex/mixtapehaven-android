@@ -1,6 +1,5 @@
 package pe.net.libre.mixtapehaven.ui.artist
 
-import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -10,6 +9,8 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.common.BasePlaybackViewModel
+import pe.net.libre.mixtapehaven.ui.common.calculateTotalDuration
 import pe.net.libre.mixtapehaven.ui.home.Album
 import pe.net.libre.mixtapehaven.ui.home.Artist
 import pe.net.libre.mixtapehaven.ui.home.Song
@@ -32,11 +33,13 @@ data class ArtistDetailUiState(
 class ArtistDetailViewModel(
     private val artistId: String,
     private val mediaRepository: MediaRepository,
-    private val playbackManager: PlaybackManager
-) : ViewModel() {
+    playbackManager: PlaybackManager
+) : BasePlaybackViewModel(playbackManager) {
 
     private val _uiState = MutableStateFlow(ArtistDetailUiState())
     val uiState: StateFlow<ArtistDetailUiState> = _uiState.asStateFlow()
+
+    override fun getSongs(): List<Song> = _uiState.value.songs
 
     init {
         loadArtistData()
@@ -110,81 +113,16 @@ class ArtistDetailViewModel(
         _uiState.value = _uiState.value.copy(selectedTab = tab)
     }
 
-    fun onPlayAllClick() {
-        val songs = _uiState.value.songs
-        if (songs.isNotEmpty()) {
-            playbackManager.setQueue(songs, startIndex = 0)
-        }
-    }
-
-    fun onShuffleClick() {
-        val songs = _uiState.value.songs
-        if (songs.isNotEmpty()) {
-            val shuffledSongs = songs.shuffled()
-            playbackManager.setQueue(shuffledSongs, startIndex = 0)
-        }
-    }
-
     fun onInstantMixClick() {
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoadingMix = true, errorMessage = null) }
-            try {
-                mediaRepository.getArtistInstantMix(artistId)
-                    .onSuccess { songs ->
-                        if (songs.isNotEmpty()) {
-                            playbackManager.setQueue(songs, 0)
-                        }
-                    }
-                    .onFailure { error ->
-                        _uiState.update {
-                            it.copy(errorMessage = error.message ?: "Failed to generate instant mix")
-                        }
-                    }
-            } finally {
-                _uiState.update { it.copy(isLoadingMix = false) }
-            }
-        }
-    }
-
-    fun onSongClick(song: Song) {
-        val songs = _uiState.value.songs
-        val index = songs.indexOf(song)
-        if (index != -1) {
-            // Set queue starting from the clicked song
-            playbackManager.setQueue(songs, startIndex = index)
-        } else {
-            // Fallback to just playing the song
-            playbackManager.playSong(song)
-        }
+        performInstantMix(
+            fetchMix = { mediaRepository.getArtistInstantMix(artistId) },
+            onStartLoading = { _uiState.update { it.copy(isLoadingMix = true, errorMessage = null) } },
+            onError = { error -> _uiState.update { it.copy(errorMessage = error.message ?: "Failed to generate instant mix") } },
+            onStopLoading = { _uiState.update { it.copy(isLoadingMix = false) } }
+        )
     }
 
     fun onAlbumClick(album: Album) {
         // TODO: Navigate to album details
-    }
-
-    fun onPlayPauseClick() {
-        playbackManager.togglePlayPause()
-    }
-
-    private fun calculateTotalDuration(songs: List<Song>): String {
-        // Parse duration strings (format: "M:SS") and sum them
-        var totalSeconds = 0
-        songs.forEach { song ->
-            val parts = song.duration.split(":")
-            if (parts.size == 2) {
-                val minutes = parts[0].toIntOrNull() ?: 0
-                val seconds = parts[1].toIntOrNull() ?: 0
-                totalSeconds += (minutes * 60) + seconds
-            }
-        }
-
-        val hours = totalSeconds / 3600
-        val minutes = (totalSeconds % 3600) / 60
-
-        return if (hours > 0) {
-            "$hours hr $minutes min"
-        } else {
-            "$minutes min"
-        }
     }
 }

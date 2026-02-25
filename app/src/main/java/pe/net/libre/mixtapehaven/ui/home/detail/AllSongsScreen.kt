@@ -15,11 +15,9 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.CloudOff
+import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -49,7 +47,6 @@ import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -165,7 +162,7 @@ fun AllSongsScreen(
                         ) {
                             // Offline Mode Banner
                             if (uiState.isOfflineMode) {
-                                item { AllSongsOfflineBanner() }
+                                item { OfflineBanner() }
                             }
 
                             itemsIndexed(uiState.songs) { index, song ->
@@ -237,37 +234,6 @@ private fun AllSongsEmptyState(
             color = LunarWhite.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
-    }
-}
-
-@Composable
-private fun AllSongsOfflineBanner(modifier: Modifier = Modifier) {
-    Card(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = WarningAmber.copy(alpha = 0.2f)
-        )
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Icon(
-                imageVector = Icons.Default.CloudOff,
-                contentDescription = null,
-                tint = WarningAmber
-            )
-            Text(
-                text = "Offline Mode - Showing downloaded content",
-                style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite
-            )
-        }
     }
 }
 

@@ -3,10 +3,8 @@ package pe.net.libre.mixtapehaven.ui.home.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -26,10 +24,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
 import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
@@ -65,27 +61,11 @@ fun NowPlayingBar(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Album art thumbnail
-                Box(
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(DeepSpaceBlack),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (song.albumCoverUrl != null) {
-                        AsyncImage(
-                            model = song.albumCoverUrl,
-                            contentDescription = song.title,
-                            contentScale = ContentScale.Crop,
-                            modifier = Modifier.fillMaxSize()
-                        )
-                    } else {
-                        Text(
-                            text = song.albumCoverPlaceholder,
-                            style = MaterialTheme.typography.bodyLarge
-                        )
-                    }
-                }
+                SongAlbumArtThumbnail(
+                    albumCoverUrl = song.albumCoverUrl,
+                    albumCoverPlaceholder = song.albumCoverPlaceholder,
+                    contentDescription = song.title
+                )
 
                 // Song info
                 Column(

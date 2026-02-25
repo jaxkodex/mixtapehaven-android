@@ -28,13 +28,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PlaylistPlay
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -84,7 +81,7 @@ import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
 import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
 import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
 import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
+import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 
 // Constants for grid calculations (in dp)
 private const val ALBUM_CARD_HEIGHT_DP = 200
@@ -334,33 +331,7 @@ private fun SearchResults(
         // Offline banner
         if (uiState.isOfflineMode) {
             item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    colors = CardDefaults.cardColors(
-                        containerColor = WarningAmber.copy(alpha = 0.2f)
-                    )
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CloudOff,
-                            contentDescription = null,
-                            tint = WarningAmber
-                        )
-                        Text(
-                            text = "Offline Mode - Showing downloaded songs only",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = LunarWhite
-                        )
-                    }
-                }
+                OfflineBanner(message = "Offline Mode - Showing downloaded songs only")
             }
         }
 

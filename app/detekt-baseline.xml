@@ -1,0 +1,304 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CognitiveComplexMethod:AllArtistsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllArtistsScreen( mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit, onArtistClick: (String) -&gt; Unit = {}, onSearchClick: () -&gt; Unit = {}, onArtistMenuClick: (String) -&gt; Unit = {} )</ID>
+    <ID>CognitiveComplexMethod:AllSongsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllSongsScreen( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, onNavigateBack: () -&gt; Unit, onSearchClick: () -&gt; Unit = {} )</ID>
+    <ID>CognitiveComplexMethod:ArtistDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ArtistDetailScreen( artistId: String, mediaRepository: MediaRepository, playbackManager: PlaybackManager, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>CognitiveComplexMethod:FileDownloader.kt$FileDownloader$suspend fun downloadSong( songId: String, quality: StreamingQuality, onProgress: (Float, Long, Long) -&gt; Unit ): DownloadResult</ID>
+    <ID>CognitiveComplexMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: pe.net.libre.mixtapehaven.data.repository.OfflineRepository, dataStoreManager: pe.net.libre.mixtapehaven.data.preferences.DataStoreManager, onNavigateToAllAlbums: () -&gt; Unit = {}, onNavigateToAllArtists: () -&gt; Unit = {}, onNavigateToAllSongs: () -&gt; Unit = {}, onNavigateToAllPlaylists: () -&gt; Unit = {}, onNavigateToPlaylistDetail: (String) -&gt; Unit = {}, onNavigateToArtistDetail: (String) -&gt; Unit = {}, onNavigateToNowPlaying: () -&gt; Unit = {}, onNavigateToSearch: () -&gt; Unit = {} )</ID>
+    <ID>CognitiveComplexMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>CognitiveComplexMethod:NavGraph.kt$@Composable private fun BottomNavigationBar( currentRoute: String?, onNavigate: (BottomNavItem) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>CognitiveComplexMethod:NowPlayingScreen.kt$@Composable private fun NowPlayingControls( playbackState: PlaybackState, onPreviousClick: () -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onNextClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>CognitiveComplexMethod:OnboardingScreen.kt$@Composable private fun OnboardingContent( uiState: OnboardingUiState, actions: OnboardingActions )</ID>
+    <ID>CognitiveComplexMethod:PlaylistDetailScreen.kt$@Composable private fun PlaylistMeta( name: String, downloadedCount: Int, totalSongs: Int, totalDuration: String, modifier: Modifier = Modifier )</ID>
+    <ID>CognitiveComplexMethod:SearchScreen.kt$@Composable private fun SearchResults( uiState: SearchUiState, playbackState: pe.net.libre.mixtapehaven.data.playback.PlaybackState, onFilterChange: (SearchFilter) -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onAlbumClick: (Album) -&gt; Unit, onArtistClick: (Artist) -&gt; Unit, onPlaylistClick: (Playlist) -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit )</ID>
+    <ID>CognitiveComplexMethod:SongContextMenuBottomSheet.kt$@Composable private fun SongContextDownloadItem( song: Song, onDownloadClick: (Song) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>CognitiveComplexMethod:SongListItem.kt$@Composable private fun CardStyleSongItem( song: Song, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null )</ID>
+    <ID>CognitiveComplexMethod:SongListItem.kt$@Composable private fun ClassicSongItem( song: Song, trackNumber: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null, onMoreClick: (() -&gt; Unit)? = null )</ID>
+    <ID>ComplexCondition:SearchScreen.kt$uiState.songs.isEmpty() &amp;&amp; uiState.albums.isEmpty() &amp;&amp; uiState.artists.isEmpty() &amp;&amp; uiState.playlists.isEmpty()</ID>
+    <ID>ComposableParamOrder:OfflineBanner.kt$OfflineBanner</ID>
+    <ID>ComposableParamOrder:PlaylistActionHandler.kt$PlaylistActionFlow</ID>
+    <ID>CyclomaticComplexMethod:FileDownloader.kt$FileDownloader$suspend fun downloadSong( songId: String, quality: StreamingQuality, onProgress: (Float, Long, Long) -&gt; Unit ): DownloadResult</ID>
+    <ID>CyclomaticComplexMethod:SearchScreen.kt$@Composable private fun SearchResults( uiState: SearchUiState, playbackState: pe.net.libre.mixtapehaven.data.playback.PlaybackState, onFilterChange: (SearchFilter) -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onAlbumClick: (Album) -&gt; Unit, onArtistClick: (Artist) -&gt; Unit, onPlaylistClick: (Playlist) -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit )</ID>
+    <ID>ForbiddenComment:AllArtistsScreen.kt$/* TODO: Implement scroll to letter */</ID>
+    <ID>ForbiddenComment:ArtistDetailScreen.kt$/* TODO: Show menu */</ID>
+    <ID>ForbiddenComment:ArtistDetailViewModel.kt$ArtistDetailViewModel$// TODO: Navigate to album details</ID>
+    <ID>ForbiddenComment:DownloadManager.kt$DownloadManager$// TODO: Get actual duration</ID>
+    <ID>ForbiddenComment:HomeViewModel.kt$HomeViewModel$// TODO: Implement now playing</ID>
+    <ID>ForbiddenComment:HomeViewModel.kt$HomeViewModel$// TODO: Navigate to album details</ID>
+    <ID>ForbiddenComment:PlaybackManager.kt$PlaybackManager$// TODO: Handle error (show toast/snackbar)</ID>
+    <ID>ForbiddenComment:PlaylistDetailScreen.kt$/* TODO: Add to playlist */</ID>
+    <ID>ForbiddenComment:PlaylistDetailScreen.kt$/* TODO: Show menu */</ID>
+    <ID>ForbiddenComment:SearchViewModel.kt$SearchViewModel$// TODO: Navigate to album detail</ID>
+    <ID>FunctionNaming:AddToPlaylistSheet.kt$@Composable private fun PlaylistRow( playlist: Playlist, onClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:AddToPlaylistSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AddToPlaylistSheet( playlists: List&lt;Playlist&gt;, isLoading: Boolean, onSelectPlaylist: (Playlist) -&gt; Unit, onCreateNew: () -&gt; Unit, onDismiss: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:AlbumCard.kt$@Composable fun AlbumCard( album: Album, onClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:AllAlbumsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllAlbumsScreen( mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit, onAlbumClick: (String) -&gt; Unit = {}, onSearchClick: () -&gt; Unit = {} )</ID>
+    <ID>FunctionNaming:AllArtistsScreen.kt$@Composable fun AlphabetIndex( modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:AllArtistsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllArtistsScreen( mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit, onArtistClick: (String) -&gt; Unit = {}, onSearchClick: () -&gt; Unit = {}, onArtistMenuClick: (String) -&gt; Unit = {} )</ID>
+    <ID>FunctionNaming:AllPlaylistsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllPlaylistsScreen( mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit, onPlaylistClick: (String) -&gt; Unit = {}, onSearchClick: () -&gt; Unit = {} )</ID>
+    <ID>FunctionNaming:AllSongsScreen.kt$@Composable private fun AllSongsEmptyState( isOfflineMode: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:AllSongsScreen.kt$@Composable private fun AllSongsErrorState( errorMessage: String, onRetry: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:AllSongsScreen.kt$@Composable private fun AllSongsLoadingMoreIndicator(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:AllSongsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllSongsScreen( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, onNavigateBack: () -&gt; Unit, onSearchClick: () -&gt; Unit = {} )</ID>
+    <ID>FunctionNaming:ArtistCircle.kt$@Composable fun ArtistCircle( artist: Artist, onClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ArtistDetailScreen.kt$@Composable private fun ArtistAlbumsGrid( albums: List&lt;Album&gt;, onAlbumClick: (Album) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ArtistDetailScreen.kt$@Composable private fun ArtistEmptyState( message: String, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ArtistDetailScreen.kt$@Composable private fun ArtistHeroImage( artist: Artist?, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ArtistDetailScreen.kt$@Composable private fun ArtistMetadata( artist: Artist?, albumsSize: Int, songsSize: Int, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ArtistDetailScreen.kt$@Composable private fun ArtistTabSelector( selectedTab: ArtistTab, onTabChange: (ArtistTab) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:ArtistDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ArtistDetailScreen( artistId: String, mediaRepository: MediaRepository, playbackManager: PlaybackManager, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:ArtistListItem.kt$@Composable fun ArtistListItem( artist: Artist, onClick: () -&gt; Unit, onMenuClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:CommonUiStates.kt$@Composable fun EmptyScreen( title: String, subtitle: String, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:CommonUiStates.kt$@Composable fun ErrorScreen( message: String, onRetry: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:CommonUiStates.kt$@Composable fun LoadingScreen(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:CommonUiStates.kt$@Composable fun PaginationLoadingRow(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:CommonUiStates.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ListScreenTopBar( title: String, onNavigateBack: () -&gt; Unit, onSearchClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:DownloadsScreen.kt$@Composable private fun DownloadedSongItem( song: DownloadedSongEntity, onPlayClick: () -&gt; Unit, onDeleteClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:DownloadsScreen.kt$@Composable private fun EmptyDownloadsState(modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:DownloadsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DownloadsScreen( viewModel: DownloadsViewModel, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:FuturisticTextField.kt$@Composable fun FuturisticTextField( value: String, onValueChange: (String) -&gt; Unit, label: String, modifier: Modifier = Modifier, placeholder: String = "", visualTransformation: VisualTransformation = VisualTransformation.None, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, trailingIcon: @Composable (() -&gt; Unit)? = null, singleLine: Boolean = true )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeOfflineEmptyContent( onRetry: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeOfflineSongsList( songs: List&lt;Song&gt;, currentSongId: String?, isPlaying: Boolean, onRetry: () -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomePlaylistsSection( playlists: List&lt;Playlist&gt;, onSeeMoreClick: () -&gt; Unit, onPlaylistClick: (Playlist) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomePopularSongsSection( songs: List&lt;Song&gt;, currentSongId: String?, isPlaying: Boolean, onSeeMoreClick: () -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeRecentlyAddedSection( albums: List&lt;Album&gt;, onSeeMoreClick: () -&gt; Unit, onAlbumClick: (Album) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@Composable private fun HomeTopArtistsSection( artists: List&lt;Artist&gt;, onSeeMoreClick: () -&gt; Unit, onArtistClick: (Artist) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: pe.net.libre.mixtapehaven.data.repository.OfflineRepository, dataStoreManager: pe.net.libre.mixtapehaven.data.preferences.DataStoreManager, onNavigateToAllAlbums: () -&gt; Unit = {}, onNavigateToAllArtists: () -&gt; Unit = {}, onNavigateToAllSongs: () -&gt; Unit = {}, onNavigateToAllPlaylists: () -&gt; Unit = {}, onNavigateToPlaylistDetail: (String) -&gt; Unit = {}, onNavigateToArtistDetail: (String) -&gt; Unit = {}, onNavigateToNowPlaying: () -&gt; Unit = {}, onNavigateToSearch: () -&gt; Unit = {} )</ID>
+    <ID>FunctionNaming:MediaPlaybackActions.kt$@Composable fun MediaPlaybackActions( onPlayAll: () -&gt; Unit, onShuffle: () -&gt; Unit, onInstantMix: () -&gt; Unit, isLoadingMix: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NavGraph.kt$@Composable fun NavGraph( navController: NavHostController, onboardingViewModel: OnboardingViewModel, mediaRepository: MediaRepository, connectionRepository: ConnectionRepository, playbackManager: PlaybackManager, dataStoreManager: DataStoreManager, offlineRepository: OfflineRepository, startDestination: String = Screen.Onboarding.route )</ID>
+    <ID>FunctionNaming:NavGraph.kt$@Composable private fun BottomNavigationBar( currentRoute: String?, onNavigate: (BottomNavItem) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NavGraph.kt$@Composable private fun NowPlayingBarOverlay( playbackState: PlaybackState, onPlayPauseClick: () -&gt; Unit, onNowPlayingClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NeonButton.kt$@Composable fun NeonButton( text: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, enabled: Boolean = true )</ID>
+    <ID>FunctionNaming:NeonButton.kt$@Composable private fun FuturisticLoadingSpinner()</ID>
+    <ID>FunctionNaming:NewPlaylistDialog.kt$@Composable fun NewPlaylistDialog( isCreating: Boolean, onConfirm: (name: String) -&gt; Unit, onDismiss: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:NowPlayingBar.kt$@Composable fun NowPlayingBar( playbackState: PlaybackState?, onPlayPauseClick: () -&gt; Unit, onBarClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NowPlayingScreen.kt$@Composable private fun NowPlayingAlbumArt( albumCoverUrl: String?, albumCoverPlaceholder: String, songTitle: String, isBuffering: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NowPlayingScreen.kt$@Composable private fun NowPlayingControls( playbackState: PlaybackState, onPreviousClick: () -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onNextClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NowPlayingScreen.kt$@Composable private fun NowPlayingInstantMix( isLoadingMix: Boolean, onInstantMix: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NowPlayingScreen.kt$@Composable private fun NowPlayingSongInfo( title: String, artist: String, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:NowPlayingScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NowPlayingScreen( playbackManager: PlaybackManager, mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:NowPlayingScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun NowPlayingProgressBar( playbackState: PlaybackState, isSeeking: Boolean, displayProgress: Float, onSeekStart: (Float) -&gt; Unit, onSeekFinished: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:OfflineBanner.kt$@Composable fun OfflineBanner( message: String = "Offline Mode - Showing downloaded content", modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Composable fun OnboardingScreen( viewModel: OnboardingViewModel, onNavigateToHome: () -&gt; Unit, onNavigateToTroubleshoot: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Composable private fun OnboardingContent( uiState: OnboardingUiState, actions: OnboardingActions )</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Composable private fun OnboardingScreen( viewModel: PreviewOnboardingViewModel, onNavigateToHome: () -&gt; Unit, onNavigateToTroubleshoot: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Preview( showBackground = true, showSystemUi = true, name = "Onboarding Screen - Empty" ) @Composable fun OnboardingScreenPreview()</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Preview( showBackground = true, showSystemUi = true, name = "Onboarding Screen - Error" ) @Composable fun OnboardingScreenErrorPreview()</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Preview( showBackground = true, showSystemUi = true, name = "Onboarding Screen - Filled" ) @Composable fun OnboardingScreenFilledPreview()</ID>
+    <ID>FunctionNaming:OnboardingScreen.kt$@Preview( showBackground = true, showSystemUi = true, name = "Onboarding Screen - Loading" ) @Composable fun OnboardingScreenLoadingPreview()</ID>
+    <ID>FunctionNaming:PaginatedRefreshableGrid.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PaginatedRefreshableGrid( isRefreshing: Boolean, isLoadingMore: Boolean, onRefresh: () -&gt; Unit, onLoadMore: () -&gt; Unit, modifier: Modifier = Modifier, loadMoreThreshold: Int = 5, content: LazyGridScope.() -&gt; Unit )</ID>
+    <ID>FunctionNaming:PlaylistActionHandler.kt$@Composable fun PlaylistActionHandler( mediaRepository: MediaRepository, playbackManager: PlaybackManager, enabled: Boolean = true, onPlaylistChanged: () -&gt; Unit = {}, onDownloadSong: ((Song) -&gt; Unit)? = null, content: @Composable (onSongMoreClick: (Song) -&gt; Unit) -&gt; Unit )</ID>
+    <ID>FunctionNaming:PlaylistActionHandler.kt$@Composable private fun PlaylistActionFlow( selectedSong: Song?, showContextMenu: Boolean, showAddToPlaylist: Boolean, showNewPlaylistDialog: Boolean, playlistActionState: PlaylistActionViewModel.UiState, isLoadingInstantMix: Boolean, onDownloadSong: ((Song) -&gt; Unit)? = null, onDismissContextMenu: () -&gt; Unit, onAddToPlaylist: () -&gt; Unit, onInstantMix: (Song) -&gt; Unit, onSelectPlaylist: (pe.net.libre.mixtapehaven.ui.home.Playlist) -&gt; Unit, onCreateNewPlaylist: () -&gt; Unit, onDismissAddToPlaylist: () -&gt; Unit, onConfirmNewPlaylist: (String) -&gt; Unit, onDismissNewPlaylist: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:PlaylistCard.kt$@Composable fun PlaylistCard( playlist: Playlist, onClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:PlaylistDetailScreen.kt$@Composable private fun PlaylistActions( onPlayAll: () -&gt; Unit, onShuffle: () -&gt; Unit, onInstantMix: () -&gt; Unit, isLoadingMix: Boolean, onDownloadAll: () -&gt; Unit, isDownloading: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:PlaylistDetailScreen.kt$@Composable private fun PlaylistCoverImage( coverUrl: String?, coverPlaceholder: String, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:PlaylistDetailScreen.kt$@Composable private fun PlaylistMeta( name: String, downloadedCount: Int, totalSongs: Int, totalDuration: String, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:PlaylistDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlaylistDetailScreen( playlistId: String, mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, dataStoreManager: DataStoreManager, networkConnectivityProvider: NetworkConnectivityProvider, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun ArtistListItemCompact( artist: Artist, onClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun EmptySearchResults()</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun FilterChipsRow( activeFilter: SearchFilter, onFilterChange: (SearchFilter) -&gt; Unit, songsCount: Int, albumsCount: Int, artistsCount: Int, playlistsCount: Int )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun InitialSearchState()</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun PlaylistListItem( playlist: Playlist, onClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun SearchHintItem( hint: SearchHint, onClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun SearchHintsList( hints: List&lt;SearchHint&gt;, onHintClick: (SearchHint) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun SearchResults( uiState: SearchUiState, playbackState: pe.net.libre.mixtapehaven.data.playback.PlaybackState, onFilterChange: (SearchFilter) -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onAlbumClick: (Album) -&gt; Unit, onArtistClick: (Artist) -&gt; Unit, onPlaylistClick: (Playlist) -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@Composable private fun SectionHeaderWithCount(title: String, count: Int)</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SearchScreen( mediaRepository: MediaRepository, offlineRepository: OfflineRepository, playbackManager: PlaybackManager, onNavigateBack: () -&gt; Unit, onNavigateToArtistDetail: (String) -&gt; Unit, onNavigateToPlaylistDetail: (String) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SearchScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun FilterChipItem( label: String, count: Int, isSelected: Boolean, onClick: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:SectionHeader.kt$@Composable fun SectionHeader( title: String, onSeeMoreClick: (() -&gt; Unit)?, modifier: Modifier = Modifier, actionText: String = "View All" )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun CacheSizeSlider( currentSize: Long, onSizeChanged: (Long) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun CacheStatisticsCard(stats: pe.net.libre.mixtapehaven.data.cache.CacheStatistics)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun SettingsSectionTitle(title: String)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun StatisticItem(label: String, value: String)</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@Composable private fun WifiOnlySetting( enabled: Boolean, onToggle: (Boolean) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( viewModel: SettingsViewModel, onNavigateBack: () -&gt; Unit, onLogout: () -&gt; Unit = {} )</ID>
+    <ID>FunctionNaming:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun QualityDropdown( selectedQuality: StreamingQuality, onQualitySelected: (StreamingQuality) -&gt; Unit )</ID>
+    <ID>FunctionNaming:SongAlbumArtThumbnail.kt$@Composable internal fun SongAlbumArtThumbnail( albumCoverUrl: String?, albumCoverPlaceholder: String, contentDescription: String, modifier: Modifier = Modifier, backgroundColor: Color = DeepSpaceBlack )</ID>
+    <ID>FunctionNaming:SongContextMenuBottomSheet.kt$@Composable private fun SongContextDownloadItem( song: Song, onDownloadClick: (Song) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>FunctionNaming:SongContextMenuBottomSheet.kt$@Composable private fun SongContextHeader(song: Song, modifier: Modifier = Modifier)</ID>
+    <ID>FunctionNaming:SongContextMenuBottomSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SongContextMenuBottomSheet( song: Song, onDismiss: () -&gt; Unit, onAddToPlaylist: (Song) -&gt; Unit, onInstantMix: (Song) -&gt; Unit, onDownloadClick: ((Song) -&gt; Unit)? = null )</ID>
+    <ID>FunctionNaming:SongListItem.kt$@Composable fun SongListItem( song: Song, trackNumber: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null, onMoreClick: (() -&gt; Unit)? = null, showCardStyle: Boolean = false )</ID>
+    <ID>FunctionNaming:SongListItem.kt$@Composable private fun CardStyleSongItem( song: Song, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null )</ID>
+    <ID>FunctionNaming:SongListItem.kt$@Composable private fun ClassicSongItem( song: Song, trackNumber: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null, onMoreClick: (() -&gt; Unit)? = null )</ID>
+    <ID>FunctionNaming:Theme.kt$@Composable fun MixtapeHavenTheme( content: @Composable () -&gt; Unit )</ID>
+    <ID>FunctionNaming:TroubleshootScreen.kt$@Composable fun TroubleshootScreen( onNavigateBack: () -&gt; Unit )</ID>
+    <ID>FunctionNaming:TroubleshootScreen.kt$@Composable private fun TroubleshootCard( title: String, description: String )</ID>
+    <ID>ImplicitDefaultLocale:CacheManager.kt$CacheStatistics$String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))</ID>
+    <ID>ImplicitDefaultLocale:CacheManager.kt$CacheStatistics$String.format("%.2f KB", bytes / 1024.0)</ID>
+    <ID>ImplicitDefaultLocale:CacheManager.kt$CacheStatistics$String.format("%.2f MB", bytes / (1024.0 * 1024.0))</ID>
+    <ID>ImplicitDefaultLocale:DownloadsScreen.kt$String.format("%.1f KB", bytes / 1024.0)</ID>
+    <ID>ImplicitDefaultLocale:DownloadsScreen.kt$String.format("%.1f MB", bytes / (1024.0 * 1024.0))</ID>
+    <ID>ImplicitDefaultLocale:DownloadsScreen.kt$String.format("%.2f GB", bytes / (1024.0 * 1024.0 * 1024.0))</ID>
+    <ID>ImplicitDefaultLocale:MediaRepository.kt$MediaRepository$String.format("%d:%02d", minutes, remainingSeconds)</ID>
+    <ID>ImplicitDefaultLocale:PlaybackManager.kt$PlaybackState$String.format("%d:%02d", minutes, seconds)</ID>
+    <ID>ImplicitDefaultLocale:SearchViewModel.kt$SearchViewModel$String.format("%d:%02d", minutes, remainingSeconds)</ID>
+    <ID>LambdaParameterInRestartableEffect:OnboardingScreen.kt$onNavigateToHome</ID>
+    <ID>LambdaParameterInRestartableEffect:PaginatedRefreshableGrid.kt$onLoadMore</ID>
+    <ID>LambdaParameterInRestartableEffect:PlaylistActionHandler.kt$onPlaylistChanged</ID>
+    <ID>LongMethod:AddToPlaylistSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AddToPlaylistSheet( playlists: List&lt;Playlist&gt;, isLoading: Boolean, onSelectPlaylist: (Playlist) -&gt; Unit, onCreateNew: () -&gt; Unit, onDismiss: () -&gt; Unit )</ID>
+    <ID>LongMethod:AlbumCard.kt$@Composable fun AlbumCard( album: Album, onClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:AllArtistsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllArtistsScreen( mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit, onArtistClick: (String) -&gt; Unit = {}, onSearchClick: () -&gt; Unit = {}, onArtistMenuClick: (String) -&gt; Unit = {} )</ID>
+    <ID>LongMethod:AllSongsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun AllSongsScreen( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, onNavigateBack: () -&gt; Unit, onSearchClick: () -&gt; Unit = {} )</ID>
+    <ID>LongMethod:ArtistDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun ArtistDetailScreen( artistId: String, mediaRepository: MediaRepository, playbackManager: PlaybackManager, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:ConnectionRepository.kt$ConnectionRepository$suspend fun authenticateConnection(connection: ServerConnection): Result&lt;Boolean&gt;</ID>
+    <ID>LongMethod:DownloadManager.kt$DownloadManager$private suspend fun downloadItem(queueItem: DownloadQueueEntity)</ID>
+    <ID>LongMethod:DownloadsScreen.kt$@Composable private fun DownloadedSongItem( song: DownloadedSongEntity, onPlayClick: () -&gt; Unit, onDeleteClick: () -&gt; Unit )</ID>
+    <ID>LongMethod:DownloadsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun DownloadsScreen( viewModel: DownloadsViewModel, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:FileDownloader.kt$FileDownloader$suspend fun downloadSong( songId: String, quality: StreamingQuality, onProgress: (Float, Long, Long) -&gt; Unit ): DownloadResult</ID>
+    <ID>LongMethod:HomeScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun HomeScreen( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: pe.net.libre.mixtapehaven.data.repository.OfflineRepository, dataStoreManager: pe.net.libre.mixtapehaven.data.preferences.DataStoreManager, onNavigateToAllAlbums: () -&gt; Unit = {}, onNavigateToAllArtists: () -&gt; Unit = {}, onNavigateToAllSongs: () -&gt; Unit = {}, onNavigateToAllPlaylists: () -&gt; Unit = {}, onNavigateToPlaylistDetail: (String) -&gt; Unit = {}, onNavigateToArtistDetail: (String) -&gt; Unit = {}, onNavigateToNowPlaying: () -&gt; Unit = {}, onNavigateToSearch: () -&gt; Unit = {} )</ID>
+    <ID>LongMethod:MainActivity.kt$MainActivity$override fun onCreate(savedInstanceState: Bundle?)</ID>
+    <ID>LongMethod:MediaPlaybackActions.kt$@Composable fun MediaPlaybackActions( onPlayAll: () -&gt; Unit, onShuffle: () -&gt; Unit, onInstantMix: () -&gt; Unit, isLoadingMix: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:NavGraph.kt$@Composable fun NavGraph( navController: NavHostController, onboardingViewModel: OnboardingViewModel, mediaRepository: MediaRepository, connectionRepository: ConnectionRepository, playbackManager: PlaybackManager, dataStoreManager: DataStoreManager, offlineRepository: OfflineRepository, startDestination: String = Screen.Onboarding.route )</ID>
+    <ID>LongMethod:NewPlaylistDialog.kt$@Composable fun NewPlaylistDialog( isCreating: Boolean, onConfirm: (name: String) -&gt; Unit, onDismiss: () -&gt; Unit )</ID>
+    <ID>LongMethod:NowPlayingBar.kt$@Composable fun NowPlayingBar( playbackState: PlaybackState?, onPlayPauseClick: () -&gt; Unit, onBarClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:NowPlayingScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun NowPlayingScreen( playbackManager: PlaybackManager, mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:NowPlayingScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun NowPlayingProgressBar( playbackState: PlaybackState, isSeeking: Boolean, displayProgress: Float, onSeekStart: (Float) -&gt; Unit, onSeekFinished: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongMethod:OnboardingScreen.kt$@Composable private fun OnboardingContent( uiState: OnboardingUiState, actions: OnboardingActions )</ID>
+    <ID>LongMethod:PlaylistActionHandler.kt$@Composable fun PlaylistActionHandler( mediaRepository: MediaRepository, playbackManager: PlaybackManager, enabled: Boolean = true, onPlaylistChanged: () -&gt; Unit = {}, onDownloadSong: ((Song) -&gt; Unit)? = null, content: @Composable (onSongMoreClick: (Song) -&gt; Unit) -&gt; Unit )</ID>
+    <ID>LongMethod:PlaylistDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun PlaylistDetailScreen( playlistId: String, mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, dataStoreManager: DataStoreManager, networkConnectivityProvider: NetworkConnectivityProvider, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>LongMethod:SearchScreen.kt$@Composable private fun SearchHintItem( hint: SearchHint, onClick: () -&gt; Unit )</ID>
+    <ID>LongMethod:SearchScreen.kt$@Composable private fun SearchResults( uiState: SearchUiState, playbackState: pe.net.libre.mixtapehaven.data.playback.PlaybackState, onFilterChange: (SearchFilter) -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onAlbumClick: (Album) -&gt; Unit, onArtistClick: (Artist) -&gt; Unit, onPlaylistClick: (Playlist) -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit )</ID>
+    <ID>LongMethod:SearchScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SearchScreen( mediaRepository: MediaRepository, offlineRepository: OfflineRepository, playbackManager: PlaybackManager, onNavigateBack: () -&gt; Unit, onNavigateToArtistDetail: (String) -&gt; Unit, onNavigateToPlaylistDetail: (String) -&gt; Unit )</ID>
+    <ID>LongMethod:SettingsScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SettingsScreen( viewModel: SettingsViewModel, onNavigateBack: () -&gt; Unit, onLogout: () -&gt; Unit = {} )</ID>
+    <ID>LongMethod:SongContextMenuBottomSheet.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun SongContextMenuBottomSheet( song: Song, onDismiss: () -&gt; Unit, onAddToPlaylist: (Song) -&gt; Unit, onInstantMix: (Song) -&gt; Unit, onDownloadClick: ((Song) -&gt; Unit)? = null )</ID>
+    <ID>LongMethod:SongListItem.kt$@Composable private fun CardStyleSongItem( song: Song, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null )</ID>
+    <ID>LongMethod:SongListItem.kt$@Composable private fun ClassicSongItem( song: Song, trackNumber: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null, onMoreClick: (() -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:AddToPlaylistSheet.kt$( playlists: List&lt;Playlist&gt;, isLoading: Boolean, onSelectPlaylist: (Playlist) -&gt; Unit, onCreateNew: () -&gt; Unit, onDismiss: () -&gt; Unit )</ID>
+    <ID>LongParameterList:AllArtistsScreen.kt$( mediaRepository: MediaRepository, onNavigateBack: () -&gt; Unit, onArtistClick: (String) -&gt; Unit = {}, onSearchClick: () -&gt; Unit = {}, onArtistMenuClick: (String) -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:AllSongsScreen.kt$( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, onNavigateBack: () -&gt; Unit, onSearchClick: () -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:DataStoreManager.kt$DataStoreManager$( serverUrl: String, username: String, password: String, accessToken: String, userId: String, serverId: String, serverName: String = "" )</ID>
+    <ID>LongParameterList:DownloadManager.kt$DownloadManager.Companion$( context: Context, database: OfflineDatabase, fileDownloader: FileDownloader, dataStoreManager: DataStoreManager, cacheManager: CacheManager )</ID>
+    <ID>LongParameterList:FuturisticTextField.kt$( value: String, onValueChange: (String) -&gt; Unit, label: String, modifier: Modifier = Modifier, placeholder: String = "", visualTransformation: VisualTransformation = VisualTransformation.None, keyboardOptions: KeyboardOptions = KeyboardOptions.Default, keyboardActions: KeyboardActions = KeyboardActions.Default, trailingIcon: @Composable (() -&gt; Unit)? = null, singleLine: Boolean = true )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: pe.net.libre.mixtapehaven.data.repository.OfflineRepository, dataStoreManager: pe.net.libre.mixtapehaven.data.preferences.DataStoreManager, onNavigateToAllAlbums: () -&gt; Unit = {}, onNavigateToAllArtists: () -&gt; Unit = {}, onNavigateToAllSongs: () -&gt; Unit = {}, onNavigateToAllPlaylists: () -&gt; Unit = {}, onNavigateToPlaylistDetail: (String) -&gt; Unit = {}, onNavigateToArtistDetail: (String) -&gt; Unit = {}, onNavigateToNowPlaying: () -&gt; Unit = {}, onNavigateToSearch: () -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( songs: List&lt;Song&gt;, currentSongId: String?, isPlaying: Boolean, onRetry: () -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:HomeScreen.kt$( songs: List&lt;Song&gt;, currentSongId: String?, isPlaying: Boolean, onSeeMoreClick: () -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:HomeViewModel.kt$HomeViewModel$( private val mediaRepository: MediaRepository, private val playbackManager: PlaybackManager, private val offlineRepository: OfflineRepository, private val dataStoreManager: DataStoreManager, private val context: Context, private val onNavigateToAllAlbums: () -&gt; Unit = {}, private val onNavigateToAllArtists: () -&gt; Unit = {}, private val onNavigateToAllSongs: () -&gt; Unit = {}, private val onNavigateToAllPlaylists: () -&gt; Unit = {}, private val onNavigateToPlaylistDetail: (String) -&gt; Unit = {}, private val onNavigateToArtistDetail: (String) -&gt; Unit = {}, private val onNavigateToNowPlaying: () -&gt; Unit = {}, private val onNavigateToSearch: () -&gt; Unit = {} )</ID>
+    <ID>LongParameterList:JellyfinApiService.kt$JellyfinApiService$( @Path("userId") userId: String, @Query("IncludeItemTypes") includeItemTypes: String? = null, @Query("Limit") limit: Int? = null, @Query("Fields") fields: String? = null, @Query("ImageTypeLimit") imageTypeLimit: Int? = 1, @Query("EnableImageTypes") enableImageTypes: String? = "Primary,Backdrop,Thumb" )</ID>
+    <ID>LongParameterList:JellyfinApiService.kt$JellyfinApiService$( @Path("userId") userId: String, @Query("IncludeItemTypes") includeItemTypes: String? = null, @Query("Recursive") recursive: Boolean? = true, @Query("SortBy") sortBy: String? = null, @Query("SortOrder") sortOrder: String? = null, @Query("Limit") limit: Int? = null, @Query("StartIndex") startIndex: Int? = null, @Query("Fields") fields: String? = null, @Query("ParentId") parentId: String? = null, @Query("ImageTypeLimit") imageTypeLimit: Int? = 1, @Query("EnableImageTypes") enableImageTypes: String? = "Primary,Backdrop,Thumb", @Query("Ids") ids: String? = null, @Query("ArtistIds") artistIds: String? = null, @Query("SearchTerm") searchTerm: String? = null )</ID>
+    <ID>LongParameterList:MediaPlaybackActions.kt$( onPlayAll: () -&gt; Unit, onShuffle: () -&gt; Unit, onInstantMix: () -&gt; Unit, isLoadingMix: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:NavGraph.kt$( navController: NavHostController, onboardingViewModel: OnboardingViewModel, mediaRepository: MediaRepository, connectionRepository: ConnectionRepository, playbackManager: PlaybackManager, dataStoreManager: DataStoreManager, offlineRepository: OfflineRepository, startDestination: String = Screen.Onboarding.route )</ID>
+    <ID>LongParameterList:NeonButton.kt$( text: String, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isLoading: Boolean = false, enabled: Boolean = true )</ID>
+    <ID>LongParameterList:NowPlayingScreen.kt$( albumCoverUrl: String?, albumCoverPlaceholder: String, songTitle: String, isBuffering: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:NowPlayingScreen.kt$( playbackState: PlaybackState, isSeeking: Boolean, displayProgress: Float, onSeekStart: (Float) -&gt; Unit, onSeekFinished: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:NowPlayingScreen.kt$( playbackState: PlaybackState, onPreviousClick: () -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onNextClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:PaginatedRefreshableGrid.kt$( isRefreshing: Boolean, isLoadingMore: Boolean, onRefresh: () -&gt; Unit, onLoadMore: () -&gt; Unit, modifier: Modifier = Modifier, loadMoreThreshold: Int = 5, content: LazyGridScope.() -&gt; Unit )</ID>
+    <ID>LongParameterList:PlaylistActionHandler.kt$( mediaRepository: MediaRepository, playbackManager: PlaybackManager, enabled: Boolean = true, onPlaylistChanged: () -&gt; Unit = {}, onDownloadSong: ((Song) -&gt; Unit)? = null, content: @Composable (onSongMoreClick: (Song) -&gt; Unit) -&gt; Unit )</ID>
+    <ID>LongParameterList:PlaylistActionHandler.kt$( selectedSong: Song?, showContextMenu: Boolean, showAddToPlaylist: Boolean, showNewPlaylistDialog: Boolean, playlistActionState: PlaylistActionViewModel.UiState, isLoadingInstantMix: Boolean, onDownloadSong: ((Song) -&gt; Unit)? = null, onDismissContextMenu: () -&gt; Unit, onAddToPlaylist: () -&gt; Unit, onInstantMix: (Song) -&gt; Unit, onSelectPlaylist: (pe.net.libre.mixtapehaven.ui.home.Playlist) -&gt; Unit, onCreateNewPlaylist: () -&gt; Unit, onDismissAddToPlaylist: () -&gt; Unit, onConfirmNewPlaylist: (String) -&gt; Unit, onDismissNewPlaylist: () -&gt; Unit )</ID>
+    <ID>LongParameterList:PlaylistDetailScreen.kt$( name: String, downloadedCount: Int, totalSongs: Int, totalDuration: String, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:PlaylistDetailScreen.kt$( onPlayAll: () -&gt; Unit, onShuffle: () -&gt; Unit, onInstantMix: () -&gt; Unit, isLoadingMix: Boolean, onDownloadAll: () -&gt; Unit, isDownloading: Boolean, modifier: Modifier = Modifier )</ID>
+    <ID>LongParameterList:PlaylistDetailScreen.kt$( playlistId: String, mediaRepository: MediaRepository, playbackManager: PlaybackManager, offlineRepository: OfflineRepository, dataStoreManager: DataStoreManager, networkConnectivityProvider: NetworkConnectivityProvider, onNavigateBack: () -&gt; Unit )</ID>
+    <ID>LongParameterList:SearchScreen.kt$( activeFilter: SearchFilter, onFilterChange: (SearchFilter) -&gt; Unit, songsCount: Int, albumsCount: Int, artistsCount: Int, playlistsCount: Int )</ID>
+    <ID>LongParameterList:SearchScreen.kt$( mediaRepository: MediaRepository, offlineRepository: OfflineRepository, playbackManager: PlaybackManager, onNavigateBack: () -&gt; Unit, onNavigateToArtistDetail: (String) -&gt; Unit, onNavigateToPlaylistDetail: (String) -&gt; Unit )</ID>
+    <ID>LongParameterList:SearchScreen.kt$( uiState: SearchUiState, playbackState: pe.net.libre.mixtapehaven.data.playback.PlaybackState, onFilterChange: (SearchFilter) -&gt; Unit, onSongClick: (Song) -&gt; Unit, onPlayPauseClick: () -&gt; Unit, onAlbumClick: (Album) -&gt; Unit, onArtistClick: (Artist) -&gt; Unit, onPlaylistClick: (Playlist) -&gt; Unit, onSongMoreClick: (Song) -&gt; Unit )</ID>
+    <ID>LongParameterList:SongAlbumArtThumbnail.kt$( albumCoverUrl: String?, albumCoverPlaceholder: String, contentDescription: String, modifier: Modifier = Modifier, backgroundColor: Color = DeepSpaceBlack )</ID>
+    <ID>LongParameterList:SongContextMenuBottomSheet.kt$( song: Song, onDismiss: () -&gt; Unit, onAddToPlaylist: (Song) -&gt; Unit, onInstantMix: (Song) -&gt; Unit, onDownloadClick: ((Song) -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:SongListItem.kt$( song: Song, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:SongListItem.kt$( song: Song, trackNumber: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null, onMoreClick: (() -&gt; Unit)? = null )</ID>
+    <ID>LongParameterList:SongListItem.kt$( song: Song, trackNumber: Int, onClick: () -&gt; Unit, modifier: Modifier = Modifier, isCurrentSong: Boolean = false, isPlaying: Boolean = false, onPlayPauseClick: (() -&gt; Unit)? = null, onMoreClick: (() -&gt; Unit)? = null, showCardStyle: Boolean = false )</ID>
+    <ID>LoopWithTooManyJumpStatements:DownloadManager.kt$DownloadManager$while</ID>
+    <ID>MaxLineLength:ArtistDetailViewModel.kt$ArtistDetailViewModel$onError = { error -&gt; _uiState.update { it.copy(errorMessage = error.message ?: "Failed to generate instant mix") } }</ID>
+    <ID>MaxLineLength:DownloadedSongDao.kt$DownloadedSongDao$@Query("SELECT * FROM downloaded_songs WHERE title LIKE '%' || :query || '%' OR artist LIKE '%' || :query || '%' OR album LIKE '%' || :query || '%' ORDER BY title ASC")</ID>
+    <ID>MaxLineLength:DownloadsScreen.kt$Text("Remove \"${song.title}\" from downloads? This will free ${formatFileSize(song.fileSize + song.imageSize)}.")</ID>
+    <ID>MaxLineLength:FileDownloader.kt$FileDownloader$if</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$val cacheManager = pe.net.libre.mixtapehaven.data.cache.CacheManager(offlineDatabase, dataStoreManager, applicationContext)</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$val fileDownloader = pe.net.libre.mixtapehaven.data.download.FileDownloader(dataStoreManager, applicationContext)</ID>
+    <ID>MaxLineLength:MainActivity.kt$MainActivity$val offlineRepository = pe.net.libre.mixtapehaven.data.repository.OfflineRepository(offlineDatabase, downloadManager, cacheManager)</ID>
+    <ID>MaxLineLength:MediaRepository.kt$MediaRepository$suspend</ID>
+    <ID>MaxLineLength:PlaybackManager.kt$PlaybackManager.Companion$"PlaybackManager must be initialized with getInstance(context, dataStoreManager, offlineRepository) first"</ID>
+    <ID>MaxLineLength:PlaylistDetailScreen.kt$"You are on mobile data. Downloading ${uiState.songs.size} songs may use significant data. Continue?"</ID>
+    <ID>MaxLineLength:PlaylistDetailViewModel.kt$PlaylistDetailViewModel$onError = { error -&gt; _uiState.update { it.copy(errorMessage = error.message ?: "Failed to generate instant mix") } }</ID>
+    <ID>MaxLineLength:SearchScreen.kt$modifier = Modifier.height((uiState.albums.size * ALBUM_CARD_HEIGHT_DP).coerceAtMost(MAX_GRID_HEIGHT_DP).dp)</ID>
+    <ID>MaxLineLength:TroubleshootScreen.kt$description = "Double-check your login information:\n\n• Username is case-sensitive\n• Password is entered correctly\n• Account has proper permissions\n• Account is not locked"</ID>
+    <ID>MaxLineLength:TroubleshootScreen.kt$description = "Ensure Jellyfin server settings allow:\n\n• Remote connections if not on local network\n• API access is enabled\n• HTTPS certificate is valid (if using HTTPS)\n• Port forwarding is configured correctly"</ID>
+    <ID>MaxLineLength:TroubleshootScreen.kt$description = "Ensure your server URL is correctly formatted:\n\n• Include http:// or https://\n• Example: http://192.168.1.100:8096\n• Example: https://jellyfin.example.com"</ID>
+    <ID>MaxLineLength:TroubleshootScreen.kt$description = "Verify that:\n\n• Your device is connected to the network\n• The Jellyfin server is running\n• You can access the server from a web browser\n• Firewall settings allow connections"</ID>
+    <ID>ModifierMissing:AllAlbumsScreen.kt$AllAlbumsScreen</ID>
+    <ID>ModifierMissing:AllArtistsScreen.kt$AllArtistsScreen</ID>
+    <ID>ModifierMissing:AllPlaylistsScreen.kt$AllPlaylistsScreen</ID>
+    <ID>ModifierMissing:AllSongsScreen.kt$AllSongsScreen</ID>
+    <ID>ModifierMissing:ArtistDetailScreen.kt$ArtistDetailScreen</ID>
+    <ID>ModifierMissing:CommonUiStates.kt$ListScreenTopBar</ID>
+    <ID>ModifierMissing:DownloadsScreen.kt$DownloadsScreen</ID>
+    <ID>ModifierMissing:HomeScreen.kt$HomeScreen</ID>
+    <ID>ModifierMissing:NavGraph.kt$NavGraph</ID>
+    <ID>ModifierMissing:NowPlayingScreen.kt$NowPlayingScreen</ID>
+    <ID>ModifierMissing:PlaylistActionHandler.kt$PlaylistActionHandler</ID>
+    <ID>ModifierMissing:PlaylistDetailScreen.kt$PlaylistDetailScreen</ID>
+    <ID>ModifierMissing:SearchScreen.kt$SearchScreen</ID>
+    <ID>ModifierMissing:SettingsScreen.kt$SettingsScreen</ID>
+    <ID>ModifierMissing:TroubleshootScreen.kt$TroubleshootScreen</ID>
+    <ID>MultipleEmitters:SearchScreen.kt$ArtistListItemCompact</ID>
+    <ID>MultipleEmitters:SearchScreen.kt$PlaylistListItem</ID>
+    <ID>MultipleEmitters:SearchScreen.kt$SearchHintItem</ID>
+    <ID>NestedBlockDepth:FileDownloader.kt$FileDownloader$suspend fun downloadSong( songId: String, quality: StreamingQuality, onProgress: (Float, Long, Long) -&gt; Unit ): DownloadResult</ID>
+    <ID>NewLineAtEndOfFile:Color.kt$pe.net.libre.mixtapehaven.ui.theme.Color.kt</ID>
+    <ID>NewLineAtEndOfFile:ExampleUnitTest.kt$pe.net.libre.mixtapehaven.ExampleUnitTest.kt</ID>
+    <ID>NewLineAtEndOfFile:MainActivity.kt$pe.net.libre.mixtapehaven.MainActivity.kt</ID>
+    <ID>NewLineAtEndOfFile:MediaPlaybackService.kt$pe.net.libre.mixtapehaven.data.playback.MediaPlaybackService.kt</ID>
+    <ID>NewLineAtEndOfFile:Theme.kt$pe.net.libre.mixtapehaven.ui.theme.Theme.kt</ID>
+    <ID>NewLineAtEndOfFile:Type.kt$pe.net.libre.mixtapehaven.ui.theme.Type.kt</ID>
+    <ID>ParameterNaming:NowPlayingScreen.kt$onSeekFinished</ID>
+    <ID>ParameterNaming:PlaylistActionHandler.kt$onPlaylistChanged</ID>
+    <ID>ParameterNaming:SettingsScreen.kt$onQualitySelected</ID>
+    <ID>ParameterNaming:SettingsScreen.kt$onSizeChanged</ID>
+    <ID>PreviewPublic:OnboardingScreen.kt$OnboardingScreenErrorPreview</ID>
+    <ID>PreviewPublic:OnboardingScreen.kt$OnboardingScreenFilledPreview</ID>
+    <ID>PreviewPublic:OnboardingScreen.kt$OnboardingScreenLoadingPreview</ID>
+    <ID>PreviewPublic:OnboardingScreen.kt$OnboardingScreenPreview</ID>
+    <ID>ReturnCount:FileDownloader.kt$FileDownloader$suspend fun downloadImage( itemId: String, imageType: String = "Primary", tag: String ): String?</ID>
+    <ID>ReturnCount:FileDownloader.kt$FileDownloader$suspend fun downloadSong( songId: String, quality: StreamingQuality, onProgress: (Float, Long, Long) -&gt; Unit ): DownloadResult</ID>
+    <ID>ReturnCount:NetworkUtil.kt$NetworkUtil$fun getNetworkType(context: Context): NetworkType</ID>
+    <ID>SwallowedException:BluetoothDisconnectionReceiver.kt$BluetoothDisconnectionReceiver$e: SecurityException</ID>
+    <ID>SwallowedException:DataStoreManager.kt$DataStoreManager$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:DownloadsViewModel.kt$DownloadsViewModel$e: Exception</ID>
+    <ID>SwallowedException:PlaybackManager.kt$PlaybackManager$e: Exception</ID>
+    <ID>SwallowedException:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:AllSongsViewModel.kt$AllSongsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CacheManager.kt$CacheManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:ConnectionRepository.kt$ConnectionRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DownloadManager.kt$DownloadManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DownloadsViewModel.kt$DownloadsViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FileDownloader.kt$FileDownloader$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:HomeViewModel.kt$HomeViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MediaPlaybackService.kt$MediaPlaybackService$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MediaRepository.kt$MediaRepository$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:PlaybackManager.kt$PlaybackManager$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SearchViewModel.kt$SearchViewModel$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SettingsViewModel.kt$SettingsViewModel$e: Exception</ID>
+    <ID>TooManyFunctions:MediaRepository.kt$MediaRepository</ID>
+    <ID>TooManyFunctions:PlaybackManager.kt$PlaybackManager</ID>
+    <ID>UnstableCollections:AddToPlaylistSheet.kt$List&lt;Playlist&gt;</ID>
+    <ID>UnstableCollections:ArtistDetailScreen.kt$List&lt;Album&gt;</ID>
+    <ID>UnstableCollections:HomeScreen.kt$List&lt;Album&gt;</ID>
+    <ID>UnstableCollections:HomeScreen.kt$List&lt;Artist&gt;</ID>
+    <ID>UnstableCollections:HomeScreen.kt$List&lt;Playlist&gt;</ID>
+    <ID>UnstableCollections:HomeScreen.kt$List&lt;Song&gt;</ID>
+    <ID>UnstableCollections:SearchScreen.kt$List&lt;SearchHint&gt;</ID>
+    <ID>UnusedParameter:ArtistDetailViewModel.kt$ArtistDetailViewModel$album: Album</ID>
+    <ID>UnusedParameter:HomeViewModel.kt$HomeViewModel$album: Album</ID>
+    <ID>UnusedParameter:OnboardingScreen.kt$PreviewOnboardingViewModel$password: String</ID>
+    <ID>UnusedParameter:OnboardingScreen.kt$PreviewOnboardingViewModel$url: String</ID>
+    <ID>UnusedParameter:OnboardingScreen.kt$PreviewOnboardingViewModel$username: String</ID>
+    <ID>UnusedParameter:SearchViewModel.kt$SearchViewModel$album: Album</ID>
+    <ID>UnusedPrivateProperty:NowPlayingViewModel.kt$NowPlayingViewModel$private val onNavigateBack: () -&gt; Unit</ID>
+    <ID>UseCheckOrError:MediaRepository.kt$MediaRepository$throw IllegalStateException("Artist not found")</ID>
+    <ID>UseCheckOrError:MediaRepository.kt$MediaRepository$throw IllegalStateException("No access token found. Please login again.")</ID>
+    <ID>UseCheckOrError:MediaRepository.kt$MediaRepository$throw IllegalStateException("No server URL configured")</ID>
+    <ID>UseCheckOrError:MediaRepository.kt$MediaRepository$throw IllegalStateException("No user ID found")</ID>
+    <ID>UseCheckOrError:MediaRepository.kt$MediaRepository$throw IllegalStateException("Playlist not found")</ID>
+    <ID>UseCheckOrError:PlaybackManager.kt$PlaybackManager.Companion$throw IllegalStateException( "PlaybackManager must be initialized with getInstance(context, dataStoreManager, offlineRepository) first" )</ID>
+    <ID>ViewModelForwarding:NavGraph.kt$OnboardingScreen( viewModel = onboardingViewModel, onNavigateToHome = { navController.navigate(Screen.Home.route) { popUpTo(Screen.Onboarding.route) { inclusive = true } } }, onNavigateToTroubleshoot = { navController.navigate(Screen.Troubleshoot.route) } )</ID>
+    <ID>ViewModelInjection:AllAlbumsScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:AllArtistsScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:AllPlaylistsScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:AllSongsScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:ArtistDetailScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:HomeScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:NowPlayingScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:PlaylistActionHandler.kt$playlistActionViewModel</ID>
+    <ID>ViewModelInjection:PlaylistDetailScreen.kt$viewModel</ID>
+    <ID>ViewModelInjection:SearchScreen.kt$viewModel</ID>
+  </CurrentIssues>
+</SmellBaseline>

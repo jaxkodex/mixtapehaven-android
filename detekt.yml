@@ -1,0 +1,70 @@
+complexity:
+  active: true
+  CognitiveComplexMethod:
+    active: true
+    threshold: 15
+  CyclomaticComplexMethod:
+    active: true
+    threshold: 14
+  LongMethod:
+    active: true
+    threshold: 60
+  LongParameterList:
+    active: true
+    functionThreshold: 5
+    constructorThreshold: 7
+  NestedBlockDepth:
+    active: true
+    threshold: 4
+  LargeClass:
+    active: true
+    threshold: 600
+  TooManyFunctions:
+    active: true
+    thresholdInFiles: 20
+    thresholdInClasses: 20
+    thresholdInInterfaces: 20
+    thresholdInObjects: 20
+    thresholdInEnums: 20
+    ignoreDeprecated: false
+    ignorePrivate: false
+    ignoreOverridden: false
+
+style:
+  active: true
+  MagicNumber:
+    active: false
+
+Compose:
+  CompositionLocalAllowlist:
+    active: false
+  ContentEmitterReturningValues:
+    active: true
+  ModifierMissing:
+    active: true
+  ModifierReused:
+    active: true
+  ModifierWithoutDefault:
+    active: true
+  MultipleEmitters:
+    active: true
+  MutableStateAutoboxing:
+    active: true
+  MutableStateParameter:
+    active: true
+  ComposableNaming:
+    active: true
+  ComposableParamOrder:
+    active: true
+  PreviewNaming:
+    active: true
+  PreviewPublic:
+    active: true
+  RememberMissing:
+    active: true
+  UnstableCollections:
+    active: true
+  ViewModelForwarding:
+    active: true
+  ViewModelInjection:
+    active: true

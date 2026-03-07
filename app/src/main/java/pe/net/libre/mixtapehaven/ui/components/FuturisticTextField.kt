@@ -77,6 +77,7 @@ fun FuturisticTextField(
     }
 }
 
+@Suppress("LongParameterList")
 @Composable
 private fun FuturisticTextFieldInput(
     value: String,

@@ -22,5 +22,4 @@ val AccentGlow      = Color(0xFF00FF00)   // Decorative only — use at 15–30%
 val AccentNeonCyan  = Color(0xFF00E5FF)   // Tertiary accent, links
 
 // Semantic
-val WarningAmber    = Color(0xFFFFB74D)   // Offline/warning indicator
 val ErrorRed        = Color(0xFFCF6679)   // Error states (WCAG-compliant on dark)

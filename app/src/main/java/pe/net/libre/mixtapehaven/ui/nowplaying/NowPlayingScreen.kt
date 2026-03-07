@@ -54,9 +54,7 @@ import pe.net.libre.mixtapehaven.data.playback.PlaybackState
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.unit.sp
-import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
 import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
-import pe.net.libre.mixtapehaven.ui.theme.SurfaceActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -98,7 +96,7 @@ fun NowPlayingScreen(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Back",
-                            tint = AccentPrimary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(32.dp)
                         )
                     }
@@ -209,7 +207,7 @@ private fun NowPlayingAlbumArt(
             modifier = Modifier
                 .size(280.dp)
                 .blur(40.dp)
-                .background(AccentPrimary.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
         )
         Box(
             modifier = Modifier
@@ -241,7 +239,7 @@ private fun NowPlayingAlbumArt(
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = AccentPrimary,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(64.dp),
                     strokeWidth = 4.dp
                 )
@@ -298,8 +296,8 @@ private fun NowPlayingProgressBar(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                color = AccentPrimary,
-                trackColor = SurfaceActive
+                color = MaterialTheme.colorScheme.primary,
+                trackColor = MaterialTheme.colorScheme.surfaceVariant
             )
         } else {
             Slider(
@@ -311,12 +309,12 @@ private fun NowPlayingProgressBar(
                     .height(8.dp),
                 enabled = playbackState.duration > 0 && playbackState.currentSong != null && !playbackState.isBuffering,
                 colors = SliderDefaults.colors(
-                    thumbColor = if (isSeeking) AccentPrimary else AccentPrimary.copy(alpha = 0f),
-                    activeTrackColor = AccentPrimary,
-                    inactiveTrackColor = SurfaceActive,
-                    disabledThumbColor = AccentPrimary.copy(alpha = 0f),
-                    disabledActiveTrackColor = AccentPrimary.copy(alpha = 0.3f),
-                    disabledInactiveTrackColor = SurfaceActive.copy(alpha = 0.5f)
+                    thumbColor = if (isSeeking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0f),
+                    activeTrackColor = MaterialTheme.colorScheme.primary,
+                    inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    disabledThumbColor = MaterialTheme.colorScheme.primary.copy(alpha = 0f),
+                    disabledActiveTrackColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f),
+                    disabledInactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ),
                 track = { sliderState ->
                     SliderDefaults.Track(
@@ -325,8 +323,8 @@ private fun NowPlayingProgressBar(
                             .height(3.dp)
                             .clip(RoundedCornerShape(1.5.dp)),
                         colors = SliderDefaults.colors(
-                            activeTrackColor = AccentPrimary,
-                            inactiveTrackColor = SurfaceActive
+                            activeTrackColor = MaterialTheme.colorScheme.primary,
+                            inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
                         )
                     )
                 },
@@ -335,7 +333,7 @@ private fun NowPlayingProgressBar(
                         Box(
                             modifier = Modifier
                                 .size(12.dp)
-                                .background(AccentPrimary, CircleShape)
+                                .background(MaterialTheme.colorScheme.primary, CircleShape)
                         )
                     }
                 }
@@ -396,7 +394,7 @@ private fun NowPlayingControls(
             modifier = Modifier
                 .size(80.dp)
                 .background(
-                    if (playbackState.isBuffering) AccentPrimary.copy(alpha = 0.5f) else AccentPrimary,
+                    if (playbackState.isBuffering) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary,
                     CircleShape
                 ),
             enabled = !playbackState.isBuffering
@@ -440,7 +438,7 @@ private fun NowPlayingInstantMix(
     ) {
         if (isLoadingMix) {
             CircularProgressIndicator(
-                color = AccentPrimary,
+                color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp
             )
@@ -448,7 +446,7 @@ private fun NowPlayingInstantMix(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Sort,
                 contentDescription = "Instant Mix",
-                tint = AccentPrimary,
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp)
             )
         }

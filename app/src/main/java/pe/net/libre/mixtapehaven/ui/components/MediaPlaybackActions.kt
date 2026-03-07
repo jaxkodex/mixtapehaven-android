@@ -23,11 +23,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
-import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
-import pe.net.libre.mixtapehaven.ui.theme.AccentSecondary
 
 @Composable
 fun MediaPlaybackActions(
@@ -48,8 +45,8 @@ fun MediaPlaybackActions(
                     .weight(1f)
                     .height(56.dp),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = AccentPrimary,
-                    contentColor = BackgroundDeep
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
                 ),
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -100,15 +97,15 @@ fun MediaPlaybackActions(
                 .fillMaxWidth()
                 .height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = AccentSecondary,
-                contentColor = TextPrimary
+                containerColor = MaterialTheme.colorScheme.secondary,
+                contentColor = MaterialTheme.colorScheme.onSecondary
             ),
             shape = RoundedCornerShape(12.dp),
             enabled = !isLoadingMix
         ) {
             if (isLoadingMix) {
                 CircularProgressIndicator(
-                    color = TextPrimary,
+                    color = MaterialTheme.colorScheme.onSecondary,
                     modifier = Modifier.size(24.dp),
                     strokeWidth = 2.dp
                 )

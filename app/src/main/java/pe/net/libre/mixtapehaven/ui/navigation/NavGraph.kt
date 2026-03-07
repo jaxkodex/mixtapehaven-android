@@ -1,5 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -47,7 +48,6 @@ import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
-import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.data.util.NetworkUtil
@@ -370,7 +370,7 @@ private fun BottomNavigationBar(
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
-        containerColor = BackgroundDeep,
+        containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp,
         modifier = modifier
     ) {
@@ -386,7 +386,7 @@ private fun BottomNavigationBar(
 }
 
 @Composable
-private fun CenterNavItem(
+private fun RowScope.CenterNavItem(
     item: BottomNavItem,
     isSelected: Boolean,
     onNavigate: (BottomNavItem) -> Unit,
@@ -415,7 +415,7 @@ private fun CenterNavItem(
 }
 
 @Composable
-private fun RegularNavItem(
+private fun RowScope.RegularNavItem(
     item: BottomNavItem,
     isSelected: Boolean,
     onNavigate: (BottomNavItem) -> Unit,

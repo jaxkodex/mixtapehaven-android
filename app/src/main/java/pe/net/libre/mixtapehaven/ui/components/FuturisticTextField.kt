@@ -23,9 +23,7 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
 import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
-import pe.net.libre.mixtapehaven.ui.theme.Border
 
 @Composable
 fun FuturisticTextField(
@@ -43,7 +41,7 @@ fun FuturisticTextField(
     var isFocused by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (isFocused) AccentPrimary else Border,
+        targetValue = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
         animationSpec = tween(durationMillis = 300),
         label = "borderColor"
     )
@@ -69,7 +67,7 @@ fun FuturisticTextField(
             label = {
                 Text(
                     text = label,
-                    color = if (isFocused) AccentPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             placeholder = {
@@ -88,7 +86,7 @@ fun FuturisticTextField(
                 unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
                 focusedContainerColor = BackgroundDeep,
                 unfocusedContainerColor = BackgroundDeep,
-                cursorColor = AccentPrimary,
+                cursorColor = MaterialTheme.colorScheme.primary,
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent
             ),

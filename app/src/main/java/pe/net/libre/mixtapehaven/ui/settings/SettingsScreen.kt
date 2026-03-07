@@ -305,7 +305,7 @@ private fun WifiOnlySetting(
 private fun CacheStatisticsCard(stats: pe.net.libre.mixtapehaven.data.cache.CacheStatistics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SurfaceElevated.copy(alpha = 0.6f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(

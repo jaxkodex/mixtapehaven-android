@@ -47,7 +47,6 @@ import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.home.components.SectionHeader
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
 import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -125,7 +124,7 @@ fun HomeScreen(
                             Box(
                                 modifier = Modifier
                                     .size(12.dp)
-                                    .background(AccentPrimary, CircleShape)
+                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
                                     .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
                                     .align(Alignment.BottomEnd)
                             )

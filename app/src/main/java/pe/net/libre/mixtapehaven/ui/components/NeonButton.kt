@@ -24,8 +24,8 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 
 @Composable
 fun NeonButton(
@@ -42,10 +42,10 @@ fun NeonButton(
             .height(56.dp),
         enabled = enabled && !isLoading,
         colors = ButtonDefaults.buttonColors(
-            containerColor = CyberNeonBlue,
-            contentColor = DeepSpaceBlack,
-            disabledContainerColor = CyberNeonBlue.copy(alpha = 0.5f),
-            disabledContentColor = DeepSpaceBlack.copy(alpha = 0.5f)
+            containerColor = AccentPrimary,
+            contentColor = BackgroundDeep,
+            disabledContainerColor = AccentPrimary.copy(alpha = 0.5f),
+            disabledContentColor = BackgroundDeep.copy(alpha = 0.5f)
         ),
         shape = RoundedCornerShape(8.dp),
         contentPadding = PaddingValues(16.dp)
@@ -84,7 +84,7 @@ private fun FuturisticLoadingSpinner() {
         modifier = Modifier
             .size(24.dp)
             .rotate(rotation),
-        color = DeepSpaceBlack,
+        color = BackgroundDeep,
         strokeWidth = 3.dp
     )
 }

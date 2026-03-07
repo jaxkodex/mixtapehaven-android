@@ -24,8 +24,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.ui.home.Artist
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun ArtistListItem(
@@ -47,13 +47,13 @@ fun ArtistListItem(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = Icons.Default.Person,
                 contentDescription = artist.name,
-                tint = LunarWhite.copy(alpha = 0.5f),
+                tint = TextPrimary.copy(alpha = 0.5f),
                 modifier = Modifier.size(32.dp)
             )
         }
@@ -66,14 +66,14 @@ fun ArtistListItem(
             Text(
                 text = artist.name,
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${artist.albumCount} Albums, ${artist.songCount} Songs",
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray,
+                color = SurfaceElevated,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(top = 4.dp)
@@ -85,7 +85,7 @@ fun ArtistListItem(
             Icon(
                 imageVector = Icons.Default.MoreVert,
                 contentDescription = "More options",
-                tint = LunarWhite
+                tint = TextPrimary
             )
         }
     }

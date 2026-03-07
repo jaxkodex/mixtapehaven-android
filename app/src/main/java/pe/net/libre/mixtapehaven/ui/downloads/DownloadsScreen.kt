@@ -46,10 +46,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.local.entity.DownloadedSongEntity
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -75,7 +75,7 @@ fun DownloadsScreen(
                         Text(
                             text = "${downloadedSongs.size} songs",
                             style = MaterialTheme.typography.bodySmall,
-                            color = GunmetalGray
+                            color = SurfaceElevated
                         )
                     }
                 },
@@ -113,10 +113,10 @@ fun DownloadsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack,
-                    titleContentColor = LunarWhite,
-                    navigationIconContentColor = LunarWhite,
-                    actionIconContentColor = LunarWhite
+                    containerColor = BackgroundDeep,
+                    titleContentColor = TextPrimary,
+                    navigationIconContentColor = TextPrimary,
+                    actionIconContentColor = TextPrimary
                 )
             )
         },
@@ -124,17 +124,17 @@ fun DownloadsScreen(
             if (downloadedSongs.isNotEmpty()) {
                 FloatingActionButton(
                     onClick = { viewModel.playDownloadedSongs() },
-                    containerColor = CyberNeonBlue
+                    containerColor = AccentPrimary
                 ) {
                     Icon(
                         imageVector = Icons.Default.PlayArrow,
                         contentDescription = "Play All",
-                        tint = DeepSpaceBlack
+                        tint = BackgroundDeep
                     )
                 }
             }
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         if (downloadedSongs.isEmpty()) {
             EmptyDownloadsState(modifier = Modifier.padding(paddingValues))
@@ -149,7 +149,7 @@ fun DownloadsScreen(
                     Text(
                         text = "Sort: ${sortOrder.displayName}",
                         style = MaterialTheme.typography.bodySmall,
-                        color = GunmetalGray,
+                        color = SurfaceElevated,
                         modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
                     )
                 }
@@ -215,7 +215,7 @@ private fun DownloadedSongItem(
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (song.imagePath != null) {
@@ -240,14 +240,14 @@ private fun DownloadedSongItem(
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray,
+                color = SurfaceElevated,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -257,27 +257,27 @@ private fun DownloadedSongItem(
                 Text(
                     text = song.quality,
                     style = MaterialTheme.typography.bodySmall,
-                    color = CyberNeonBlue
+                    color = AccentPrimary
                 )
                 Text(
                     text = "•",
                     style = MaterialTheme.typography.bodySmall,
-                    color = GunmetalGray
+                    color = SurfaceElevated
                 )
                 Text(
                     text = formatFileSize(song.fileSize + song.imageSize),
                     style = MaterialTheme.typography.bodySmall,
-                    color = GunmetalGray
+                    color = SurfaceElevated
                 )
                 Text(
                     text = "•",
                     style = MaterialTheme.typography.bodySmall,
-                    color = GunmetalGray
+                    color = SurfaceElevated
                 )
                 Text(
                     text = formatDate(song.downloadDate),
                     style = MaterialTheme.typography.bodySmall,
-                    color = GunmetalGray
+                    color = SurfaceElevated
                 )
             }
         }
@@ -287,7 +287,7 @@ private fun DownloadedSongItem(
             Icon(
                 imageVector = Icons.Default.Delete,
                 contentDescription = "Delete",
-                tint = GunmetalGray
+                tint = SurfaceElevated
             )
         }
     }
@@ -310,13 +310,13 @@ private fun EmptyDownloadsState(modifier: Modifier = Modifier) {
         Text(
             text = "No Downloaded Songs",
             style = MaterialTheme.typography.titleLarge,
-            color = LunarWhite
+            color = TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Download songs to listen offline",
             style = MaterialTheme.typography.bodyMedium,
-            color = GunmetalGray
+            color = SurfaceElevated
         )
     }
 }

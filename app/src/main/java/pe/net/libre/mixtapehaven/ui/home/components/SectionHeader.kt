@@ -11,8 +11,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun SectionHeader(
@@ -31,7 +31,7 @@ fun SectionHeader(
         Text(
             text = title,
             style = MaterialTheme.typography.titleLarge,
-            color = LunarWhite
+            color = TextPrimary
         )
 
         if (onSeeMoreClick != null) {
@@ -39,7 +39,7 @@ fun SectionHeader(
                 Text(
                     text = actionText,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = CyberNeonBlue
+                    color = AccentPrimary
                 )
             }
         }

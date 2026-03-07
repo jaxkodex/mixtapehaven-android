@@ -25,10 +25,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Artist
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
+import pe.net.libre.mixtapehaven.ui.theme.AccentSecondary
 
 @Composable
 fun ArtistCircle(
@@ -49,13 +49,13 @@ fun ArtistCircle(
                 .border(
                     width = 3.dp,
                     brush = Brush.linearGradient(
-                        colors = listOf(VaporwaveMagenta, CyberNeonBlue)
+                        colors = listOf(AccentSecondary, AccentPrimary)
                     ),
                     shape = CircleShape
                 )
                 .padding(3.dp)
                 .clip(CircleShape)
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (artist.imageUrl != null) {
@@ -69,7 +69,7 @@ fun ArtistCircle(
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = artist.name,
-                    tint = LunarWhite.copy(alpha = 0.5f),
+                    tint = TextPrimary.copy(alpha = 0.5f),
                     modifier = Modifier.size(40.dp)
                 )
             }
@@ -79,7 +79,7 @@ fun ArtistCircle(
         Text(
             text = artist.name,
             style = MaterialTheme.typography.bodySmall,
-            color = LunarWhite,
+            color = TextPrimary,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis,
             textAlign = TextAlign.Center,

@@ -23,14 +23,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun LoadingScreen(modifier: Modifier = Modifier) {
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
-        CircularProgressIndicator(color = CyberNeonBlue)
+        CircularProgressIndicator(color = AccentPrimary)
     }
 }
 
@@ -48,7 +48,7 @@ fun ErrorScreen(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite,
+                color = TextPrimary,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -73,13 +73,13 @@ fun EmptyScreen(
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineSmall,
-                color = LunarWhite
+                color = TextPrimary
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
                 text = subtitle,
                 style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite.copy(alpha = 0.7f),
+                color = TextPrimary.copy(alpha = 0.7f),
                 textAlign = TextAlign.Center
             )
         }
@@ -94,7 +94,7 @@ fun PaginationLoadingRow(modifier: Modifier = Modifier) {
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(color = CyberNeonBlue)
+        CircularProgressIndicator(color = AccentPrimary)
     }
 }
 
@@ -110,7 +110,7 @@ fun ListScreenTopBar(
             Text(
                 text = title,
                 style = MaterialTheme.typography.headlineMedium,
-                color = LunarWhite
+                color = TextPrimary
             )
         },
         navigationIcon = {
@@ -118,7 +118,7 @@ fun ListScreenTopBar(
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                     contentDescription = "Back",
-                    tint = CyberNeonBlue
+                    tint = AccentPrimary
                 )
             }
         },
@@ -127,12 +127,12 @@ fun ListScreenTopBar(
                 Icon(
                     imageVector = Icons.Default.Search,
                     contentDescription = "Search",
-                    tint = CyberNeonBlue
+                    tint = AccentPrimary
                 )
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = DeepSpaceBlack
+            containerColor = BackgroundDeep
         )
     )
 }

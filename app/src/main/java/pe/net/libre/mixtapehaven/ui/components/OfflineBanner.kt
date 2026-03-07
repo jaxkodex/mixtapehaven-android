@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
 
 @Composable
@@ -46,7 +46,7 @@ fun OfflineBanner(
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite
+                color = TextPrimary
             )
         }
     }

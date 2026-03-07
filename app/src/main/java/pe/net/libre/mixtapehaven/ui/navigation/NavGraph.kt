@@ -47,6 +47,7 @@ import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
 import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.ConnectionRepository
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.data.util.NetworkUtil
@@ -66,9 +67,6 @@ import pe.net.libre.mixtapehaven.ui.playlist.PlaylistDetailScreen
 import pe.net.libre.mixtapehaven.ui.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
 
 sealed class Screen(val route: String) {
@@ -139,7 +137,7 @@ fun NavGraph(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = DeepSpaceBlack,
+            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 if (shouldShowBottomBar) {
                     BottomNavigationBar(
@@ -372,7 +370,7 @@ private fun BottomNavigationBar(
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
-        containerColor = DeepSpaceBlack,
+        containerColor = BackgroundDeep,
         tonalElevation = 0.dp,
         modifier = modifier
     ) {
@@ -386,13 +384,13 @@ private fun BottomNavigationBar(
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .background(Color(0xFF5C6BC0), CircleShape),
+                                .background(MaterialTheme.colorScheme.primary, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = item.selectedIcon,
                                 contentDescription = item.label,
-                                tint = DeepSpaceBlack,
+                                tint = MaterialTheme.colorScheme.onPrimary,
                                 modifier = Modifier.size(24.dp)
                             )
                         }
@@ -410,14 +408,14 @@ private fun BottomNavigationBar(
                         Icon(
                             imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                             contentDescription = item.label,
-                            tint = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
+                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     label = {
                         Text(
                             text = item.label,
                             style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     },
                     colors = NavigationBarItemDefaults.colors(

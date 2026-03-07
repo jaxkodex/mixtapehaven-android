@@ -57,10 +57,10 @@ import pe.net.libre.mixtapehaven.ui.home.Album
 import pe.net.libre.mixtapehaven.ui.home.Artist
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
+import pe.net.libre.mixtapehaven.ui.theme.AccentSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,7 +89,7 @@ fun ArtistDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = LunarWhite
+                            tint = TextPrimary
                         )
                     }
                 },
@@ -98,7 +98,7 @@ fun ArtistDetailScreen(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More options",
-                            tint = LunarWhite
+                            tint = TextPrimary
                         )
                     }
                 },
@@ -107,7 +107,7 @@ fun ArtistDetailScreen(
                 )
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
@@ -231,7 +231,7 @@ private fun ArtistHeroImage(
                         .fillMaxSize()
                         .background(
                             Brush.verticalGradient(
-                                colors = listOf(VaporwaveMagenta, DeepSpaceBlack)
+                                colors = listOf(AccentSecondary, BackgroundDeep)
                             )
                         ),
                     contentAlignment = Alignment.Center
@@ -240,7 +240,7 @@ private fun ArtistHeroImage(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         modifier = Modifier.size(100.dp),
-                        tint = LunarWhite.copy(alpha = 0.6f)
+                        tint = TextPrimary.copy(alpha = 0.6f)
                     )
                 }
             }
@@ -266,14 +266,14 @@ private fun ArtistMetadata(
             style = MaterialTheme.typography.displaySmall.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = LunarWhite,
+            color = TextPrimary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "$albumsSize Albums • $songsSize Songs",
             style = MaterialTheme.typography.bodyLarge,
-            color = LunarWhite.copy(alpha = 0.6f)
+            color = TextPrimary.copy(alpha = 0.6f)
         )
     }
 }
@@ -287,13 +287,13 @@ private fun ArtistTabSelector(
     TabRow(
         selectedTabIndex = selectedTab.ordinal,
         containerColor = Color.Transparent,
-        contentColor = CyberNeonBlue,
+        contentColor = AccentPrimary,
         modifier = modifier,
         indicator = { tabPositions ->
             if (tabPositions.isNotEmpty()) {
                 TabRowDefaults.SecondaryIndicator(
                     Modifier.tabIndicatorOffset(tabPositions[selectedTab.ordinal]),
-                    color = CyberNeonBlue
+                    color = AccentPrimary
                 )
             }
         }
@@ -359,7 +359,7 @@ private fun ArtistEmptyState(
         Text(
             text = message,
             style = MaterialTheme.typography.bodyLarge,
-            color = LunarWhite.copy(alpha = 0.6f)
+            color = TextPrimary.copy(alpha = 0.6f)
         )
     }
 }

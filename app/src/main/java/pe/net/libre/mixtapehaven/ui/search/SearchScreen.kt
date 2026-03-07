@@ -77,10 +77,10 @@ import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 
 // Constants for grid calculations (in dp)
@@ -139,7 +139,7 @@ fun SearchScreen(
                                     Icon(
                                         imageVector = Icons.Default.Clear,
                                         contentDescription = "Clear",
-                                        tint = GunmetalGray
+                                        tint = SurfaceElevated
                                     )
                                 }
                             }
@@ -151,16 +151,16 @@ fun SearchScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = LunarWhite
+                            tint = TextPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack
+                    containerColor = BackgroundDeep
                 )
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
@@ -187,7 +187,7 @@ fun SearchScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             CircularProgressIndicator(
-                                color = CyberNeonBlue,
+                                color = AccentPrimary,
                                 strokeWidth = 4.dp
                             )
                         }
@@ -257,7 +257,7 @@ private fun SearchHintItem(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = CyberNeonBlue,
+            tint = AccentPrimary,
             modifier = Modifier.size(24.dp)
         )
 
@@ -267,7 +267,7 @@ private fun SearchHintItem(
             Text(
                 text = hint.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -282,7 +282,7 @@ private fun SearchHintItem(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodySmall,
-                    color = GunmetalGray,
+                    color = SurfaceElevated,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -293,7 +293,7 @@ private fun SearchHintItem(
         Box(
             modifier = Modifier
                 .background(
-                    color = GunmetalGray.copy(alpha = 0.5f),
+                    color = SurfaceElevated.copy(alpha = 0.5f),
                     shape = RoundedCornerShape(12.dp)
                 )
                 .padding(horizontal = 8.dp, vertical = 4.dp)
@@ -301,13 +301,13 @@ private fun SearchHintItem(
             Text(
                 text = typeLabel,
                 style = MaterialTheme.typography.labelSmall,
-                color = CyberNeonBlue
+                color = AccentPrimary
             )
         }
     }
 
     HorizontalDivider(
-        color = GunmetalGray.copy(alpha = 0.3f),
+        color = SurfaceElevated.copy(alpha = 0.3f),
         modifier = Modifier.padding(horizontal = 16.dp)
     )
 }
@@ -562,10 +562,10 @@ private fun FilterChipItem(
         onClick = onClick,
         label = { Text("$label ($count)") },
         colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = CyberNeonBlue.copy(alpha = 0.2f),
-            selectedLabelColor = CyberNeonBlue,
-            containerColor = GunmetalGray.copy(alpha = 0.5f),
-            labelColor = LunarWhite.copy(alpha = 0.7f)
+            selectedContainerColor = AccentPrimary.copy(alpha = 0.2f),
+            selectedLabelColor = AccentPrimary,
+            containerColor = SurfaceElevated.copy(alpha = 0.5f),
+            labelColor = TextPrimary.copy(alpha = 0.7f)
         )
     )
 }
@@ -582,12 +582,12 @@ private fun SectionHeaderWithCount(title: String, count: Int) {
         Text(
             text = title,
             style = MaterialTheme.typography.titleMedium,
-            color = LunarWhite
+            color = TextPrimary
         )
         Text(
             text = "$count",
             style = MaterialTheme.typography.bodyMedium,
-            color = CyberNeonBlue
+            color = AccentPrimary
         )
     }
 }
@@ -610,7 +610,7 @@ private fun ArtistListItemCompact(
             modifier = Modifier
                 .size(56.dp)
                 .clip(CircleShape)
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (artist.imageUrl != null) {
@@ -624,7 +624,7 @@ private fun ArtistListItemCompact(
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = artist.name,
-                    tint = LunarWhite.copy(alpha = 0.5f),
+                    tint = TextPrimary.copy(alpha = 0.5f),
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -636,20 +636,20 @@ private fun ArtistListItemCompact(
             Text(
                 text = artist.name,
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${artist.albumCount} Albums, ${artist.songCount} Songs",
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray
+                color = SurfaceElevated
             )
         }
     }
 
     HorizontalDivider(
-        color = GunmetalGray.copy(alpha = 0.3f),
+        color = SurfaceElevated.copy(alpha = 0.3f),
         modifier = Modifier.padding(horizontal = 16.dp)
     )
 }
@@ -672,7 +672,7 @@ private fun PlaylistListItem(
             modifier = Modifier
                 .size(56.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (playlist.coverUrl != null) {
@@ -686,7 +686,7 @@ private fun PlaylistListItem(
                 Icon(
                     imageVector = Icons.Default.PlaylistPlay,
                     contentDescription = playlist.name,
-                    tint = LunarWhite.copy(alpha = 0.5f),
+                    tint = TextPrimary.copy(alpha = 0.5f),
                     modifier = Modifier.size(32.dp)
                 )
             }
@@ -698,20 +698,20 @@ private fun PlaylistListItem(
             Text(
                 text = playlist.name,
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
             Text(
                 text = "${playlist.songCount} songs",
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray
+                color = SurfaceElevated
             )
         }
     }
 
     HorizontalDivider(
-        color = GunmetalGray.copy(alpha = 0.3f),
+        color = SurfaceElevated.copy(alpha = 0.3f),
         modifier = Modifier.padding(horizontal = 16.dp)
     )
 }
@@ -727,20 +727,20 @@ private fun EmptySearchResults() {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = GunmetalGray,
+            tint = SurfaceElevated,
             modifier = Modifier.size(64.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No results found",
             style = MaterialTheme.typography.headlineSmall,
-            color = LunarWhite
+            color = TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Try a different search term",
             style = MaterialTheme.typography.bodyMedium,
-            color = GunmetalGray
+            color = SurfaceElevated
         )
     }
 }
@@ -757,21 +757,21 @@ private fun InitialSearchState() {
         Icon(
             imageVector = Icons.Default.Search,
             contentDescription = null,
-            tint = GunmetalGray.copy(alpha = 0.5f),
+            tint = SurfaceElevated.copy(alpha = 0.5f),
             modifier = Modifier.size(80.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "Search your library",
             style = MaterialTheme.typography.headlineSmall,
-            color = LunarWhite.copy(alpha = 0.7f),
+            color = TextPrimary.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Type to search for songs, artists, albums, and playlists",
             style = MaterialTheme.typography.bodyMedium,
-            color = GunmetalGray,
+            color = SurfaceElevated,
             textAlign = TextAlign.Center
         )
     }

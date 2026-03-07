@@ -27,10 +27,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.Surface
 
 @Composable
 fun NowPlayingBar(
@@ -44,7 +43,7 @@ fun NowPlayingBar(
 
     Surface(
         modifier = modifier,
-        color = GunmetalGray.copy(alpha = 0.85f),
+        color = Surface.copy(alpha = 0.92f),
         shadowElevation = 12.dp,
         shape = RoundedCornerShape(16.dp)
     ) {
@@ -75,14 +74,14 @@ fun NowPlayingBar(
                     Text(
                         text = song.title,
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LunarWhite,
+                        color = MaterialTheme.colorScheme.onBackground,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = song.artist,
                         style = MaterialTheme.typography.bodySmall,
-                        color = LunarWhite.copy(alpha = 0.7f),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = 2.dp)
@@ -94,7 +93,7 @@ fun NowPlayingBar(
                     onClick = onPlayPauseClick,
                     modifier = Modifier
                         .size(56.dp)
-                        .background(CyberNeonBlue, CircleShape)
+                        .background(AccentPrimary, CircleShape)
                 ) {
                     Icon(
                         imageVector = if (playbackState.isPlaying) {
@@ -103,7 +102,7 @@ fun NowPlayingBar(
                             Icons.Default.PlayArrow
                         },
                         contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                        tint = DeepSpaceBlack,
+                        tint = BackgroundDeep,
                         modifier = Modifier.size(32.dp)
                     )
                 }
@@ -116,8 +115,8 @@ fun NowPlayingBar(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(RoundedCornerShape(bottomStart = 16.dp, bottomEnd = 16.dp)),
-                color = CyberNeonBlue,
-                trackColor = DeepSpaceBlack,
+                color = AccentPrimary,
+                trackColor = BackgroundDeep,
             )
         }
     }

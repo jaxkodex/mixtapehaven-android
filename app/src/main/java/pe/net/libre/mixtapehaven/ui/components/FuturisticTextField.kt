@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -22,10 +23,9 @@ import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.Border
 
 @Composable
 fun FuturisticTextField(
@@ -43,7 +43,7 @@ fun FuturisticTextField(
     var isFocused by remember { mutableStateOf(false) }
 
     val borderColor by animateColorAsState(
-        targetValue = if (isFocused) CyberNeonBlue else GunmetalGray,
+        targetValue = if (isFocused) AccentPrimary else Border,
         animationSpec = tween(durationMillis = 300),
         label = "borderColor"
     )
@@ -69,13 +69,13 @@ fun FuturisticTextField(
             label = {
                 Text(
                     text = label,
-                    color = if (isFocused) CyberNeonBlue else LunarWhite.copy(alpha = 0.7f)
+                    color = if (isFocused) AccentPrimary else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             placeholder = {
                 Text(
                     text = placeholder,
-                    color = GunmetalGray
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             modifier = Modifier
@@ -84,11 +84,11 @@ fun FuturisticTextField(
                     isFocused = focusState.isFocused
                 },
             colors = OutlinedTextFieldDefaults.colors(
-                focusedTextColor = LunarWhite,
-                unfocusedTextColor = LunarWhite,
-                focusedContainerColor = DeepSpaceBlack,
-                unfocusedContainerColor = DeepSpaceBlack,
-                cursorColor = CyberNeonBlue,
+                focusedTextColor = MaterialTheme.colorScheme.onBackground,
+                unfocusedTextColor = MaterialTheme.colorScheme.onBackground,
+                focusedContainerColor = BackgroundDeep,
+                unfocusedContainerColor = BackgroundDeep,
+                cursorColor = AccentPrimary,
                 focusedBorderColor = Color.Transparent,
                 unfocusedBorderColor = Color.Transparent
             ),

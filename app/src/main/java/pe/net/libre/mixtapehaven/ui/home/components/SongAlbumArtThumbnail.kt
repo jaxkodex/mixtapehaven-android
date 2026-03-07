@@ -15,7 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 
 @Composable
 internal fun SongAlbumArtThumbnail(
@@ -23,7 +23,7 @@ internal fun SongAlbumArtThumbnail(
     albumCoverPlaceholder: String,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = DeepSpaceBlack
+    backgroundColor: Color = BackgroundDeep
 ) {
     Box(
         modifier = modifier

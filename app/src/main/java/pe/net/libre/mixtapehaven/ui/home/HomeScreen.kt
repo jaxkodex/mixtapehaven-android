@@ -34,7 +34,6 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -48,10 +47,7 @@ import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.home.components.SectionHeader
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
 import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -100,13 +96,13 @@ fun HomeScreen(
                             text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
-                            color = VaporwaveMagenta
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                         if (uiState.serverName.isNotEmpty()) {
                             Text(
                                 text = "JELLYFIN SERVER: ${uiState.serverName.uppercase()}",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = LunarWhite.copy(alpha = 0.4f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -116,32 +112,32 @@ fun HomeScreen(
                         Box(
                             modifier = Modifier
                                 .size(40.dp)
-                                .background(Color(0xFFE87C5E), CircleShape),
+                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = "Profile",
-                                tint = LunarWhite
+                                tint = MaterialTheme.colorScheme.onBackground
                             )
                         }
                         if (!uiState.isOfflineMode) {
                             Box(
                                 modifier = Modifier
                                     .size(12.dp)
-                                    .background(Color(0xFF4CAF50), CircleShape)
-                                    .border(2.dp, DeepSpaceBlack, CircleShape)
+                                    .background(AccentPrimary, CircleShape)
+                                    .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
                                     .align(Alignment.BottomEnd)
                             )
                         }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack
+                    containerColor = MaterialTheme.colorScheme.background
                 )
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
@@ -164,14 +160,14 @@ fun HomeScreen(
                         ) {
                             CircularProgressIndicator(
                                 modifier = Modifier.size(48.dp),
-                                color = CyberNeonBlue,
+                                color = MaterialTheme.colorScheme.primary,
                                 strokeWidth = 4.dp
                             )
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 text = "Loading your library...",
                                 style = MaterialTheme.typography.bodyLarge,
-                                color = LunarWhite.copy(alpha = 0.7f)
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
@@ -256,20 +252,20 @@ private fun HomeOfflineEmptyContent(
         Icon(
             imageVector = Icons.Default.CloudOff,
             contentDescription = null,
-            tint = LunarWhite.copy(alpha = 0.5f),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.size(48.dp)
         )
         Spacer(modifier = Modifier.height(16.dp))
         Text(
             text = "No offline content available",
             style = MaterialTheme.typography.headlineSmall,
-            color = LunarWhite
+            color = MaterialTheme.colorScheme.onBackground
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Download songs while online to access them offline",
             style = MaterialTheme.typography.bodyMedium,
-            color = LunarWhite.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))

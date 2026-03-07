@@ -4,125 +4,128 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.googlefonts.Font
+import androidx.compose.ui.text.googlefonts.GoogleFont
 import androidx.compose.ui.unit.sp
+import pe.net.libre.mixtapehaven.R
 
-// Digital Precision Typography System
-// Primary Font: Clean, highly legible sans-serif (Default/SansSerif)
-// Secondary Font: Monospace for digital immersion
+// Retro-Modern Typography System
+// Primary: Inter — clean, modern, excellent small-size legibility
+// Accent:  JetBrains Mono — applied to timestamps, bitrate labels, EQ frequency values
+//          Creates the retro-technical feel of Winamp's LED displays
+
+private val fontProvider = GoogleFont.Provider(
+    providerAuthority = "com.google.android.gms.fonts",
+    providerPackage = "com.google.android.gms",
+    certificates = R.array.com_google_android_gms_fonts_certs
+)
+
+private val interFont = GoogleFont("Inter")
+private val jetbrainsMonoFont = GoogleFont("JetBrains Mono")
+
+val InterFontFamily = FontFamily(
+    Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+    Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
+    Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.Bold),
+)
+
+val JetbrainsMonoFontFamily = FontFamily(
+    Font(googleFont = jetbrainsMonoFont, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = jetbrainsMonoFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+)
 
 val Typography = Typography(
-    // Display - Large titles, album titles (Monospace for digital feel)
-    displayLarge = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
-        fontSize = 57.sp,
-        lineHeight = 64.sp,
-        letterSpacing = 0.sp
-    ),
-    displayMedium = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
-        fontSize = 45.sp,
-        lineHeight = 52.sp,
-        letterSpacing = 0.sp
-    ),
-    displaySmall = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.Bold,
-        fontSize = 36.sp,
-        lineHeight = 44.sp,
-        letterSpacing = 0.sp
-    ),
-
-    // Headline - Section headers (Monospace for accent)
+    // Now Playing title
     headlineLarge = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.SemiBold,
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Bold,
         fontSize = 32.sp,
         lineHeight = 40.sp,
         letterSpacing = 0.sp
     ),
+    // Screen titles
     headlineMedium = TextStyle(
-        fontFamily = FontFamily.Monospace,
-        fontWeight = FontWeight.SemiBold,
-        fontSize = 28.sp,
-        lineHeight = 36.sp,
-        letterSpacing = 0.sp
-    ),
-    headlineSmall = TextStyle(
-        fontFamily = FontFamily.Monospace,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.SemiBold,
         fontSize = 24.sp,
         lineHeight = 32.sp,
         letterSpacing = 0.sp
     ),
-
-    // Title - Key UI elements (Sans-serif for readability)
-    titleLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+    // Section headers
+    headlineSmall = TextStyle(
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.SemiBold,
-        fontSize = 22.sp,
+        fontSize = 20.sp,
         lineHeight = 28.sp,
         letterSpacing = 0.sp
     ),
+    // Song names in lists
+    titleLarge = TextStyle(
+        fontFamily = InterFontFamily,
+        fontWeight = FontWeight.Medium,
+        fontSize = 17.sp,
+        lineHeight = 24.sp,
+        letterSpacing = 0.sp
+    ),
     titleMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 16.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.15.sp
+        letterSpacing = 0.sp
     ),
     titleSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 14.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.sp
     ),
-
-    // Body - Main content text (Sans-serif for efficiency and clarity)
+    // Body / descriptions
     bodyLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 16.sp,
+        fontSize = 15.sp,
         lineHeight = 24.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     ),
+    // Artist / album captions
     bodyMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
-        fontSize = 14.sp,
+        fontSize = 13.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.25.sp
+        letterSpacing = 0.sp
     ),
     bodySmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = InterFontFamily,
         fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.4.sp
+        letterSpacing = 0.sp
     ),
-
-    // Label - Buttons, tabs, and UI labels (Sans-serif for clarity)
+    // Timestamps, elapsed/remaining time, bitrate labels — JetBrains Mono for retro feel
     labelLarge = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
-        fontSize = 14.sp,
+        fontFamily = JetbrainsMonoFontFamily,
+        fontWeight = FontWeight.Normal,
+        fontSize = 13.sp,
         lineHeight = 20.sp,
-        letterSpacing = 0.1.sp
+        letterSpacing = 0.sp
     ),
     labelMedium = TextStyle(
-        fontFamily = FontFamily.SansSerif,
-        fontWeight = FontWeight.Medium,
+        fontFamily = JetbrainsMonoFontFamily,
+        fontWeight = FontWeight.Normal,
         fontSize = 12.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     ),
+    // Overlines, bitrate badges — JetBrains Mono
     labelSmall = TextStyle(
-        fontFamily = FontFamily.SansSerif,
+        fontFamily = JetbrainsMonoFontFamily,
         fontWeight = FontWeight.Medium,
         fontSize = 11.sp,
         lineHeight = 16.sp,
-        letterSpacing = 0.5.sp
+        letterSpacing = 0.sp
     )
 )

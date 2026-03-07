@@ -18,9 +18,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import pe.net.libre.mixtapehaven.ui.components.NeonButton
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun TroubleshootScreen(
@@ -37,7 +37,7 @@ fun TroubleshootScreen(
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
             fontFamily = FontFamily.Monospace,
-            color = LunarWhite
+            color = TextPrimary
         )
 
         Spacer(modifier = Modifier.height(24.dp))
@@ -85,7 +85,7 @@ private fun TroubleshootCard(
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = GunmetalGray
+            containerColor = SurfaceElevated
         )
     ) {
         Column(
@@ -96,7 +96,7 @@ private fun TroubleshootCard(
                 fontSize = 18.sp,
                 fontWeight = FontWeight.SemiBold,
                 fontFamily = FontFamily.Monospace,
-                color = CyberNeonBlue
+                color = AccentPrimary
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -105,7 +105,7 @@ private fun TroubleshootCard(
                 text = description,
                 fontSize = 14.sp,
                 fontFamily = FontFamily.SansSerif,
-                color = LunarWhite,
+                color = TextPrimary,
                 lineHeight = 20.sp
             )
         }

@@ -60,11 +60,11 @@ import pe.net.libre.mixtapehaven.ui.components.LoadingScreen
 import pe.net.libre.mixtapehaven.ui.components.MediaPlaybackActions
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
+import pe.net.libre.mixtapehaven.ui.theme.AccentSecondary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,7 +99,7 @@ fun PlaylistDetailScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = LunarWhite
+                            tint = TextPrimary
                         )
                     }
                 },
@@ -108,7 +108,7 @@ fun PlaylistDetailScreen(
                         Icon(
                             imageVector = Icons.Default.MoreVert,
                             contentDescription = "More options",
-                            tint = LunarWhite
+                            tint = TextPrimary
                         )
                     }
                 },
@@ -120,8 +120,8 @@ fun PlaylistDetailScreen(
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { /* TODO: Add to playlist */ },
-                containerColor = CyberNeonBlue,
-                contentColor = DeepSpaceBlack
+                containerColor = AccentPrimary,
+                contentColor = BackgroundDeep
             ) {
                 Icon(
                     imageVector = Icons.Default.Add,
@@ -130,7 +130,7 @@ fun PlaylistDetailScreen(
                 )
             }
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
@@ -244,9 +244,9 @@ private fun PlaylistCoverImage(
                     .background(
                         Brush.verticalGradient(
                             colors = listOf(
-                                DeepSpaceBlack,
-                                GunmetalGray.copy(alpha = 0.5f),
-                                VaporwaveMagenta.copy(alpha = 0.3f)
+                                BackgroundDeep,
+                                SurfaceElevated.copy(alpha = 0.5f),
+                                AccentSecondary.copy(alpha = 0.3f)
                             )
                         )
                     ),
@@ -280,7 +280,7 @@ private fun PlaylistMeta(
             style = MaterialTheme.typography.displaySmall.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = LunarWhite
+            color = TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Row(
@@ -290,7 +290,7 @@ private fun PlaylistMeta(
             Text(
                 text = "$totalSongs Tracks, $totalDuration",
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite.copy(alpha = 0.6f)
+                color = TextPrimary.copy(alpha = 0.6f)
             )
             if (downloadedCount > 0) {
                 Icon(
@@ -304,14 +304,14 @@ private fun PlaylistMeta(
                     } else {
                         "$downloadedCount of $totalSongs downloaded"
                     },
-                    tint = CyberNeonBlue,
+                    tint = AccentPrimary,
                     modifier = Modifier.size(18.dp)
                 )
                 if (downloadedCount < totalSongs) {
                     Text(
                         text = "$downloadedCount/$totalSongs",
                         style = MaterialTheme.typography.bodySmall,
-                        color = CyberNeonBlue
+                        color = AccentPrimary
                     )
                 }
             }
@@ -347,15 +347,15 @@ private fun PlaylistActions(
             onClick = onDownloadAll,
             modifier = Modifier.fillMaxWidth().height(56.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = GunmetalGray,
-                contentColor = LunarWhite
+                containerColor = SurfaceElevated,
+                contentColor = TextPrimary
             ),
             shape = RoundedCornerShape(12.dp),
             enabled = !isDownloading
         ) {
             if (isDownloading) {
                 CircularProgressIndicator(
-                    color = LunarWhite,
+                    color = TextPrimary,
                     modifier = Modifier.size(24.dp),
                     strokeWidth = 2.dp
                 )

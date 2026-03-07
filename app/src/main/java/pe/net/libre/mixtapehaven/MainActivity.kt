@@ -31,7 +31,7 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.navigation.NavGraph
 import pe.net.libre.mixtapehaven.ui.navigation.Screen
 import pe.net.libre.mixtapehaven.ui.onboarding.OnboardingViewModel
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 import pe.net.libre.mixtapehaven.ui.theme.MixtapeHavenTheme
 
 class MainActivity : ComponentActivity() {
@@ -75,7 +75,7 @@ class MainActivity : ComponentActivity() {
             MixtapeHavenTheme {
                 Surface(
                     modifier = Modifier.fillMaxSize(),
-                    color = DeepSpaceBlack
+                    color = BackgroundDeep
                 ) {
                     var startDestination by remember { mutableStateOf<String?>(null) }
 

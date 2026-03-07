@@ -52,9 +52,11 @@ import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import androidx.compose.ui.draw.blur
+import androidx.compose.ui.unit.sp
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceActive
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -85,8 +87,8 @@ fun NowPlayingScreen(
                 title = {
                     Text(
                         text = "NOW PLAYING",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = LunarWhite,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onBackground,
                         modifier = Modifier.fillMaxWidth(),
                         textAlign = TextAlign.Center
                     )
@@ -96,17 +98,17 @@ fun NowPlayingScreen(
                         Icon(
                             imageVector = Icons.Default.KeyboardArrowDown,
                             contentDescription = "Back",
-                            tint = CyberNeonBlue,
+                            tint = AccentPrimary,
                             modifier = Modifier.size(32.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack
+                    containerColor = BackgroundDeep
                 )
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         if (song != null) {
             Column(
@@ -183,7 +185,7 @@ fun NowPlayingScreen(
                 Text(
                     text = "No song playing",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = LunarWhite.copy(alpha = 0.7f)
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -199,12 +201,23 @@ private fun NowPlayingAlbumArt(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .size(300.dp)
-            .clip(RoundedCornerShape(16.dp))
-            .background(DeepSpaceBlack),
+        modifier = modifier.size(320.dp),
         contentAlignment = Alignment.Center
     ) {
+        // Ambient glow behind album art
+        Box(
+            modifier = Modifier
+                .size(280.dp)
+                .blur(40.dp)
+                .background(AccentPrimary.copy(alpha = 0.25f), RoundedCornerShape(16.dp))
+        )
+        Box(
+            modifier = Modifier
+                .size(300.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(BackgroundDeep),
+            contentAlignment = Alignment.Center
+        ) {
         if (albumCoverUrl != null) {
             AsyncImage(
                 model = albumCoverUrl,
@@ -224,17 +237,18 @@ private fun NowPlayingAlbumArt(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(DeepSpaceBlack.copy(alpha = 0.7f)),
+                    .background(BackgroundDeep.copy(alpha = 0.7f)),
                 contentAlignment = Alignment.Center
             ) {
                 CircularProgressIndicator(
-                    color = CyberNeonBlue,
+                    color = AccentPrimary,
                     modifier = Modifier.size(64.dp),
                     strokeWidth = 4.dp
                 )
             }
         }
-    }
+        } // close inner 300dp Box
+    } // close outer 320dp Box
 }
 
 @Composable
@@ -250,7 +264,7 @@ private fun NowPlayingSongInfo(
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
-            color = LunarWhite,
+            color = MaterialTheme.colorScheme.onBackground,
             textAlign = TextAlign.Center,
             maxLines = 2,
             overflow = TextOverflow.Ellipsis
@@ -259,7 +273,7 @@ private fun NowPlayingSongInfo(
         Text(
             text = artist,
             style = MaterialTheme.typography.bodyLarge,
-            color = LunarWhite.copy(alpha = 0.7f),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
@@ -284,8 +298,8 @@ private fun NowPlayingProgressBar(
                     .fillMaxWidth()
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp)),
-                color = CyberNeonBlue,
-                trackColor = LunarWhite.copy(alpha = 0.2f)
+                color = AccentPrimary,
+                trackColor = SurfaceActive
             )
         } else {
             Slider(
@@ -297,12 +311,12 @@ private fun NowPlayingProgressBar(
                     .height(8.dp),
                 enabled = playbackState.duration > 0 && playbackState.currentSong != null && !playbackState.isBuffering,
                 colors = SliderDefaults.colors(
-                    thumbColor = if (isSeeking) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0f),
-                    activeTrackColor = CyberNeonBlue,
-                    inactiveTrackColor = LunarWhite.copy(alpha = 0.2f),
-                    disabledThumbColor = LunarWhite.copy(alpha = 0f),
-                    disabledActiveTrackColor = CyberNeonBlue.copy(alpha = 0.3f),
-                    disabledInactiveTrackColor = LunarWhite.copy(alpha = 0.1f)
+                    thumbColor = if (isSeeking) AccentPrimary else AccentPrimary.copy(alpha = 0f),
+                    activeTrackColor = AccentPrimary,
+                    inactiveTrackColor = SurfaceActive,
+                    disabledThumbColor = AccentPrimary.copy(alpha = 0f),
+                    disabledActiveTrackColor = AccentPrimary.copy(alpha = 0.3f),
+                    disabledInactiveTrackColor = SurfaceActive.copy(alpha = 0.5f)
                 ),
                 track = { sliderState ->
                     SliderDefaults.Track(
@@ -311,8 +325,8 @@ private fun NowPlayingProgressBar(
                             .height(3.dp)
                             .clip(RoundedCornerShape(1.5.dp)),
                         colors = SliderDefaults.colors(
-                            activeTrackColor = CyberNeonBlue,
-                            inactiveTrackColor = LunarWhite.copy(alpha = 0.2f)
+                            activeTrackColor = AccentPrimary,
+                            inactiveTrackColor = SurfaceActive
                         )
                     )
                 },
@@ -321,7 +335,7 @@ private fun NowPlayingProgressBar(
                         Box(
                             modifier = Modifier
                                 .size(12.dp)
-                                .background(CyberNeonBlue, CircleShape)
+                                .background(AccentPrimary, CircleShape)
                         )
                     }
                 }
@@ -336,13 +350,13 @@ private fun NowPlayingProgressBar(
         ) {
             Text(
                 text = playbackState.currentPositionFormatted,
-                style = MaterialTheme.typography.bodySmall,
-                color = LunarWhite.copy(alpha = 0.7f)
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Text(
                 text = playbackState.durationFormatted,
-                style = MaterialTheme.typography.bodySmall,
-                color = LunarWhite.copy(alpha = 0.7f)
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
     }
@@ -370,7 +384,7 @@ private fun NowPlayingControls(
                 imageVector = Icons.Default.SkipPrevious,
                 contentDescription = "Previous",
                 tint = if (playbackState.isBuffering || !playbackState.hasPrevious)
-                    LunarWhite.copy(alpha = 0.3f) else LunarWhite,
+                    MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -382,7 +396,7 @@ private fun NowPlayingControls(
             modifier = Modifier
                 .size(80.dp)
                 .background(
-                    if (playbackState.isBuffering) CyberNeonBlue.copy(alpha = 0.5f) else CyberNeonBlue,
+                    if (playbackState.isBuffering) AccentPrimary.copy(alpha = 0.5f) else AccentPrimary,
                     CircleShape
                 ),
             enabled = !playbackState.isBuffering
@@ -390,7 +404,7 @@ private fun NowPlayingControls(
             Icon(
                 imageVector = if (playbackState.isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                 contentDescription = if (playbackState.isPlaying) "Pause" else "Play",
-                tint = if (playbackState.isBuffering) DeepSpaceBlack.copy(alpha = 0.5f) else DeepSpaceBlack,
+                tint = if (playbackState.isBuffering) BackgroundDeep.copy(alpha = 0.5f) else BackgroundDeep,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -406,7 +420,7 @@ private fun NowPlayingControls(
                 imageVector = Icons.Default.SkipNext,
                 contentDescription = "Next",
                 tint = if (playbackState.isBuffering || !playbackState.hasNext)
-                    LunarWhite.copy(alpha = 0.3f) else LunarWhite,
+                    MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier.size(48.dp)
             )
         }
@@ -426,7 +440,7 @@ private fun NowPlayingInstantMix(
     ) {
         if (isLoadingMix) {
             CircularProgressIndicator(
-                color = CyberNeonBlue,
+                color = AccentPrimary,
                 modifier = Modifier.size(24.dp),
                 strokeWidth = 2.dp
             )
@@ -434,7 +448,7 @@ private fun NowPlayingInstantMix(
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Sort,
                 contentDescription = "Instant Mix",
-                tint = CyberNeonBlue,
+                tint = AccentPrimary,
                 modifier = Modifier.size(24.dp)
             )
         }

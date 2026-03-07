@@ -32,9 +32,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Song
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -61,7 +61,7 @@ fun SongContextMenuBottomSheet(
 
             Divider(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                color = GunmetalGray.copy(alpha = 0.5f)
+                color = SurfaceElevated.copy(alpha = 0.5f)
             )
 
             // Add to playlist action
@@ -70,7 +70,7 @@ fun SongContextMenuBottomSheet(
                     Text(
                         text = "Add to playlist",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LunarWhite
+                        color = TextPrimary
                     )
                 },
                 leadingContent = {
@@ -91,7 +91,7 @@ fun SongContextMenuBottomSheet(
                     Text(
                         text = "Instant Mix",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LunarWhite
+                        color = TextPrimary
                     )
                 },
                 leadingContent = {
@@ -127,7 +127,7 @@ private fun SongContextHeader(song: Song, modifier: Modifier = Modifier) {
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (song.albumCoverUrl != null) {
@@ -151,7 +151,7 @@ private fun SongContextHeader(song: Song, modifier: Modifier = Modifier) {
             Text(
                 text = song.title,
                 style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -177,14 +177,14 @@ private fun SongContextDownloadItem(
             Text(
                 text = if (song.isDownloaded) "Downloaded" else "Download",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (song.isDownloaded) CyberNeonBlue else LunarWhite
+                color = if (song.isDownloaded) AccentPrimary else TextPrimary
             )
         },
         leadingContent = {
             Icon(
                 imageVector = if (song.isDownloaded) Icons.Default.CheckCircle else Icons.Default.CloudDownload,
                 contentDescription = if (song.isDownloaded) "Downloaded" else "Download",
-                tint = if (song.isDownloaded) CyberNeonBlue else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                tint = if (song.isDownloaded) AccentPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         },
         modifier = modifier.clickable(enabled = !song.isDownloaded) {

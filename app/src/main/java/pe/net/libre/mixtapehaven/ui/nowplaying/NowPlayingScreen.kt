@@ -80,8 +80,7 @@ fun NowPlayingScreen(
     ) { paddingValues ->
         NowPlayingBody(
             viewModel = viewModel,
-            paddingValues = paddingValues,
-            audioSessionId = playbackManager.getAudioSessionId()
+            paddingValues = paddingValues
         )
     }
 }
@@ -116,8 +115,7 @@ private fun NowPlayingTopBar(onNavigateBack: () -> Unit) {
 @Composable
 private fun NowPlayingBody(
     viewModel: NowPlayingViewModel,
-    paddingValues: PaddingValues,
-    audioSessionId: Int
+    paddingValues: PaddingValues
 ) {
     val playbackState by viewModel.playbackState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
@@ -141,8 +139,7 @@ private fun NowPlayingBody(
         ) {
             Spacer(modifier = Modifier.height(32.dp))
             NowPlayingAlbumArt(song.albumCoverUrl, song.albumCoverPlaceholder, song.title, playbackState.isBuffering)
-            VisualizerSection(isEnabled = isVisualizerEnabled, audioSessionId = audioSessionId,
-                isPlaying = playbackState.isPlaying)
+            VisualizerSection(isEnabled = isVisualizerEnabled, isPlaying = playbackState.isPlaying)
             Spacer(modifier = Modifier.height(48.dp))
             NowPlayingSongInfo(title = song.title, artist = song.artist)
             Spacer(modifier = Modifier.height(48.dp))
@@ -168,11 +165,10 @@ private fun NowPlayingBody(
 @Composable
 private fun VisualizerSection(
     isEnabled: Boolean,
-    audioSessionId: Int,
     isPlaying: Boolean
 ) {
     if (isEnabled) {
-        SpectrumVisualizer(audioSessionId = audioSessionId, isPlaying = isPlaying)
+        SpectrumVisualizer(isPlaying = isPlaying)
     } else {
         Spacer(modifier = Modifier.height(64.dp))
     }

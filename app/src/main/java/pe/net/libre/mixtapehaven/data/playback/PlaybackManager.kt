@@ -8,7 +8,6 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
-import androidx.media3.common.util.UnstableApi
 import androidx.media3.common.Player
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -168,9 +167,6 @@ class PlaybackManager private constructor(
 
     // Expose player for MediaPlaybackService
     internal val player: ExoPlayer get() = _player
-
-    @androidx.annotation.OptIn(UnstableApi::class)
-    fun getAudioSessionId(): Int = _player.audioSessionId
 
     /**
      * Play a song

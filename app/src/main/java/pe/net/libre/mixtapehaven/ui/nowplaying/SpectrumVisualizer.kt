@@ -1,8 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.nowplaying
 
-import android.media.audiofx.Visualizer
 import android.provider.Settings
-import android.util.Log
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -10,7 +8,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -18,17 +16,16 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 import pe.net.libre.mixtapehaven.ui.theme.AccentGlow
 import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
-import kotlin.math.sqrt
+import kotlin.random.Random
 
-private const val TAG = "SpectrumVisualizer"
 private const val BAR_COUNT = 32
-private const val CAPTURE_SIZE = 1024
+private const val UPDATE_INTERVAL_MS = 100L
 
 @Composable
 fun SpectrumVisualizer(
-    audioSessionId: Int,
     isPlaying: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -44,23 +41,22 @@ fun SpectrumVisualizer(
     }
     if (animatorScale == 0f) return
 
-    var barValues by remember { mutableStateOf(FloatArray(BAR_COUNT)) }
+    var targetBars by remember { mutableStateOf(FloatArray(BAR_COUNT)) }
 
-    DisposableEffect(audioSessionId) {
-        val visualizer = createVisualizer(audioSessionId) { fft ->
-            barValues = processFft(fft)
+    LaunchedEffect(isPlaying) {
+        if (!isPlaying) {
+            targetBars = FloatArray(BAR_COUNT)
+            return@LaunchedEffect
         }
-        onDispose {
-            visualizer?.enabled = false
-            visualizer?.release()
+        while (true) {
+            targetBars = FloatArray(BAR_COUNT) { i -> simulatedBarValue(i) }
+            delay(UPDATE_INTERVAL_MS)
         }
     }
 
-    val targetValues = if (isPlaying) barValues else FloatArray(BAR_COUNT)
-
     val animatedBars = FloatArray(BAR_COUNT) { i ->
         animateFloatAsState(
-            targetValue = targetValues.getOrElse(i) { 0f },
+            targetValue = targetBars.getOrElse(i) { 0f },
             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
             label = "bar_$i"
         ).value
@@ -69,58 +65,19 @@ fun SpectrumVisualizer(
     VisualizerCanvas(animatedBars = animatedBars, modifier = modifier)
 }
 
-private fun createVisualizer(
-    audioSessionId: Int,
-    onFftData: (ByteArray) -> Unit
-): Visualizer? {
-    if (audioSessionId == 0) return null
-    return try {
-        Visualizer(audioSessionId).apply {
-            captureSize = CAPTURE_SIZE
-            setDataCaptureListener(
-                object : Visualizer.OnDataCaptureListener {
-                    override fun onWaveFormDataCapture(
-                        v: Visualizer, waveform: ByteArray, samplingRate: Int
-                    ) { /* waveform disabled */ }
-
-                    override fun onFftDataCapture(
-                        v: Visualizer, fft: ByteArray, samplingRate: Int
-                    ) {
-                        onFftData(fft)
-                    }
-                },
-                Visualizer.getMaxCaptureRate() / 2,
-                /* waveform = */ false,
-                /* fft = */ true
-            )
-            enabled = true
-        }
-    } catch (e: IllegalStateException) {
-        Log.w(TAG, "Visualizer unavailable for session $audioSessionId", e)
-        null
-    } catch (e: IllegalArgumentException) {
-        Log.w(TAG, "Invalid audio session $audioSessionId", e)
-        null
+/**
+ * Returns a random bar height shaped to mimic a typical music spectrum:
+ * most energy in the bass/low-mid range, rolling off at the high end.
+ */
+private fun simulatedBarValue(barIndex: Int): Float {
+    val (min, max) = when {
+        barIndex < 4  -> 0.30f to 0.80f  // sub-bass
+        barIndex < 12 -> 0.50f to 1.00f  // bass / low-mid (most energy)
+        barIndex < 20 -> 0.30f to 0.70f  // mid
+        barIndex < 28 -> 0.10f to 0.50f  // high-mid
+        else          -> 0.05f to 0.25f  // highs
     }
-}
-
-private fun processFft(fft: ByteArray): FloatArray {
-    val magnitudes = FloatArray(BAR_COUNT)
-    val binsPerBar = (fft.size / 2) / BAR_COUNT
-    for (bar in 0 until BAR_COUNT) {
-        var sum = 0f
-        val startBin = bar * binsPerBar + 1 // skip DC (bin 0)
-        val endBin = startBin + binsPerBar
-        for (k in startBin until endBin) {
-            if (k * 2 + 1 < fft.size) {
-                val re = fft[k * 2].toFloat()
-                val im = fft[k * 2 + 1].toFloat()
-                sum += sqrt(re * re + im * im)
-            }
-        }
-        magnitudes[bar] = (sum / binsPerBar / 128f).coerceIn(0f, 1f)
-    }
-    return magnitudes
+    return min + Random.nextFloat() * (max - min)
 }
 
 @Composable

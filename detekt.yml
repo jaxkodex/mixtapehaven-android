@@ -30,6 +30,11 @@ complexity:
     ignorePrivate: false
     ignoreOverridden: false
 
+naming:
+  FunctionNaming:
+    ignoreAnnotated:
+      - 'Composable'
+
 style:
   active: true
   MagicNumber:

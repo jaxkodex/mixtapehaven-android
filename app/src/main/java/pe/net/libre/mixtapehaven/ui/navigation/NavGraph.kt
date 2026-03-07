@@ -377,54 +377,69 @@ private fun BottomNavigationBar(
         bottomNavItems.forEach { item ->
             val isSelected = currentRoute == item.route
             if (item.isCenter) {
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onNavigate(item) },
-                    icon = {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(MaterialTheme.colorScheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = item.selectedIcon,
-                                contentDescription = item.label,
-                                tint = MaterialTheme.colorScheme.onPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    },
-                    label = null,
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color.Transparent
-                    )
-                )
+                CenterNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
             } else {
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onNavigate(item) },
-                    icon = {
-                        Icon(
-                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.label,
-                            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = item.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color.Transparent
-                    )
-                )
+                RegularNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
             }
         }
     }
+}
+
+@Composable
+private fun CenterNavItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    onNavigate: (BottomNavItem) -> Unit,
+) {
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = { onNavigate(item) },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.selectedIcon,
+                    contentDescription = item.label,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        label = null,
+        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+    )
+}
+
+@Composable
+private fun RegularNavItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    onNavigate: (BottomNavItem) -> Unit,
+) {
+    val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = { onNavigate(item) },
+        icon = {
+            Icon(
+                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                contentDescription = item.label,
+                tint = tint
+            )
+        },
+        label = {
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = tint
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+    )
 }
 
 @Composable

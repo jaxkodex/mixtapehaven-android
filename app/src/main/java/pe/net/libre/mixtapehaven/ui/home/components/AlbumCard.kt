@@ -23,8 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Album
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
 
 @Composable
 fun AlbumCard(
@@ -44,7 +44,7 @@ fun AlbumCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .aspectRatio(16f / 10f)
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (album.coverUrl != null) {
@@ -78,7 +78,7 @@ fun AlbumCard(
                             colors = listOf(
                                 Color.Transparent,
                                 Color.Transparent,
-                                Color.Black.copy(alpha = 0.7f)
+                                BackgroundDeep.copy(alpha = 0.7f)
                             )
                         )
                     )
@@ -89,14 +89,14 @@ fun AlbumCard(
                 Text(
                     text = album.title,
                     style = MaterialTheme.typography.titleMedium,
-                    color = LunarWhite,
+                    color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = album.artist,
                     style = MaterialTheme.typography.bodySmall,
-                    color = LunarWhite.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )

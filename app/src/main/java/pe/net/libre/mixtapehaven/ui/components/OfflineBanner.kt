@@ -15,8 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
-import pe.net.libre.mixtapehaven.ui.theme.WarningAmber
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun OfflineBanner(
@@ -28,7 +27,7 @@ fun OfflineBanner(
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
         colors = CardDefaults.cardColors(
-            containerColor = WarningAmber.copy(alpha = 0.2f)
+            containerColor = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
         )
     ) {
         Row(
@@ -41,12 +40,12 @@ fun OfflineBanner(
             Icon(
                 imageVector = Icons.Default.CloudOff,
                 contentDescription = null,
-                tint = WarningAmber
+                tint = MaterialTheme.colorScheme.secondary
             )
             Text(
                 text = message,
                 style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite
+                color = TextPrimary
             )
         }
     }

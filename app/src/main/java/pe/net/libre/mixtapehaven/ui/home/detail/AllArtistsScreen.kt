@@ -32,8 +32,8 @@ import pe.net.libre.mixtapehaven.ui.components.ListScreenTopBar
 import pe.net.libre.mixtapehaven.ui.components.LoadingScreen
 import pe.net.libre.mixtapehaven.ui.components.PaginationLoadingRow
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistListItem
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,7 +57,7 @@ fun AllArtistsScreen(
                 onSearchClick = onSearchClick
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         Box(
             modifier = Modifier
@@ -147,7 +147,7 @@ fun AlphabetIndex(
             Text(
                 text = letter,
                 style = MaterialTheme.typography.labelSmall,
-                color = CyberNeonBlue,
+                color = AccentPrimary,
                 fontSize = 10.sp,
                 modifier = Modifier
                     .clickable { /* TODO: Implement scroll to letter */ }

@@ -18,7 +18,7 @@ import pe.net.libre.mixtapehaven.ui.components.ListScreenTopBar
 import pe.net.libre.mixtapehaven.ui.components.LoadingScreen
 import pe.net.libre.mixtapehaven.ui.components.PaginatedRefreshableGrid
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -41,7 +41,7 @@ fun AllPlaylistsScreen(
                 onSearchClick = onSearchClick
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         Box(
             modifier = Modifier

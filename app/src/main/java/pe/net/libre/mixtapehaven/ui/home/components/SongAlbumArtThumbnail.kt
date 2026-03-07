@@ -11,11 +11,10 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 
 @Composable
 internal fun SongAlbumArtThumbnail(
@@ -23,13 +22,12 @@ internal fun SongAlbumArtThumbnail(
     albumCoverPlaceholder: String,
     contentDescription: String,
     modifier: Modifier = Modifier,
-    backgroundColor: Color = DeepSpaceBlack
 ) {
     Box(
         modifier = modifier
             .size(48.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(backgroundColor),
+            .background(BackgroundDeep),
         contentAlignment = Alignment.Center
     ) {
         if (albumCoverUrl != null) {

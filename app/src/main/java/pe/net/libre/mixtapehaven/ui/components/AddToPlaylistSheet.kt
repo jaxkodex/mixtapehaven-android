@@ -30,9 +30,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Playlist
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +58,7 @@ fun AddToPlaylistSheet(
             Text(
                 text = "Add to playlist",
                 style = MaterialTheme.typography.titleMedium,
-                color = LunarWhite,
+                color = TextPrimary,
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
@@ -68,14 +68,14 @@ fun AddToPlaylistSheet(
                     Text(
                         text = "New playlist",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = CyberNeonBlue
+                        color = AccentPrimary
                     )
                 },
                 leadingContent = {
                     Icon(
                         imageVector = Icons.Default.Add,
                         contentDescription = "New playlist",
-                        tint = CyberNeonBlue
+                        tint = AccentPrimary
                     )
                 },
                 modifier = Modifier.clickable(onClick = onCreateNew)
@@ -83,7 +83,7 @@ fun AddToPlaylistSheet(
 
             Divider(
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                color = GunmetalGray.copy(alpha = 0.5f)
+                color = SurfaceElevated.copy(alpha = 0.5f)
             )
 
             // Loading indicator
@@ -94,7 +94,7 @@ fun AddToPlaylistSheet(
                         .padding(vertical = 24.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    CircularProgressIndicator(color = CyberNeonBlue)
+                    CircularProgressIndicator(color = AccentPrimary)
                 }
             } else {
                 // Existing playlists list
@@ -121,7 +121,7 @@ private fun PlaylistRow(
             Text(
                 text = playlist.name,
                 style = MaterialTheme.typography.bodyMedium,
-                color = LunarWhite,
+                color = TextPrimary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -130,7 +130,7 @@ private fun PlaylistRow(
             Text(
                 text = "${playlist.songCount} songs",
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray
+                color = SurfaceElevated
             )
         },
         leadingContent = {
@@ -138,7 +138,7 @@ private fun PlaylistRow(
                 modifier = Modifier
                     .size(40.dp)
                     .clip(RoundedCornerShape(4.dp))
-                    .background(GunmetalGray),
+                    .background(SurfaceElevated),
                 contentAlignment = Alignment.Center
             ) {
                 if (playlist.coverUrl != null) {

@@ -43,13 +43,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.ui.home.StreamingQuality
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -79,13 +75,13 @@ fun SettingsScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack,
-                    titleContentColor = LunarWhite,
-                    navigationIconContentColor = LunarWhite
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.onBackground,
+                    navigationIconContentColor = MaterialTheme.colorScheme.onBackground
                 )
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -151,7 +147,7 @@ fun SettingsScreen(
             ) {
                 Text(
                     text = "Sign Out",
-                    color = Color.Red,
+                    color = MaterialTheme.colorScheme.error,
                     style = MaterialTheme.typography.bodyLarge
                 )
             }
@@ -193,7 +189,7 @@ private fun SettingsSectionTitle(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleMedium,
-        color = CyberNeonBlue
+        color = MaterialTheme.colorScheme.primary
     )
 }
 
@@ -248,7 +244,7 @@ private fun CacheSizeSlider(
         Text(
             text = "%.1f GB".format(sizeInGB),
             style = MaterialTheme.typography.bodyLarge,
-            color = LunarWhite,
+            color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
@@ -267,8 +263,8 @@ private fun CacheSizeSlider(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            Text("0.5 GB", style = MaterialTheme.typography.bodySmall, color = GunmetalGray)
-            Text("10 GB", style = MaterialTheme.typography.bodySmall, color = GunmetalGray)
+            Text("0.5 GB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
+            Text("10 GB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
         }
     }
 }
@@ -289,12 +285,12 @@ private fun WifiOnlySetting(
             Text(
                 text = "WiFi Only Downloads",
                 style = MaterialTheme.typography.bodyLarge,
-                color = LunarWhite
+                color = MaterialTheme.colorScheme.onBackground
             )
             Text(
                 text = "Only download when connected to WiFi",
                 style = MaterialTheme.typography.bodySmall,
-                color = GunmetalGray,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = 4.dp)
             )
         }
@@ -309,7 +305,7 @@ private fun WifiOnlySetting(
 private fun CacheStatisticsCard(stats: pe.net.libre.mixtapehaven.data.cache.CacheStatistics) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = GunmetalGray.copy(alpha = 0.2f)),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column(
@@ -327,12 +323,12 @@ private fun CacheStatisticsCard(stats: pe.net.libre.mixtapehaven.data.cache.Cach
                     Text(
                         text = "${stats.totalSizeFormatted} / ${stats.maxSizeFormatted}",
                         style = MaterialTheme.typography.bodyMedium,
-                        color = LunarWhite
+                        color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
                         text = "%.1f%%".format(stats.usagePercent),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = CyberNeonBlue
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
 
@@ -342,8 +338,8 @@ private fun CacheStatisticsCard(stats: pe.net.libre.mixtapehaven.data.cache.Cach
                         .fillMaxWidth()
                         .padding(top = 8.dp)
                         .height(8.dp)
-                        .background(GunmetalGray.copy(alpha = 0.3f), RoundedCornerShape(4.dp)),
-                    color = CyberNeonBlue,
+                        .background(SurfaceElevated, RoundedCornerShape(4.dp)),
+                    color = MaterialTheme.colorScheme.primary,
                 )
             }
 
@@ -365,12 +361,12 @@ private fun StatisticItem(label: String, value: String) {
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,
-            color = GunmetalGray
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         Text(
             text = value,
             style = MaterialTheme.typography.bodyLarge,
-            color = LunarWhite
+            color = MaterialTheme.colorScheme.onBackground
         )
     }
 }

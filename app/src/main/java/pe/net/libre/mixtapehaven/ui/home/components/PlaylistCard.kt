@@ -21,8 +21,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Playlist
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
 
 @Composable
 fun PlaylistCard(
@@ -40,7 +40,7 @@ fun PlaylistCard(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (playlist.coverUrl != null) {
@@ -67,7 +67,7 @@ fun PlaylistCard(
                         colors = listOf(
                             Color.Transparent,
                             Color.Transparent,
-                            Color.Black.copy(alpha = 0.7f)
+                            BackgroundDeep.copy(alpha = 0.7f)
                         )
                     )
                 ),
@@ -77,7 +77,7 @@ fun PlaylistCard(
                 text = playlist.name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = LunarWhite,
+                color = MaterialTheme.colorScheme.onBackground,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(12.dp)

@@ -21,10 +21,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun NewPlaylistDialog(
@@ -41,7 +41,7 @@ fun NewPlaylistDialog(
             Text(
                 text = "New playlist",
                 style = MaterialTheme.typography.titleMedium,
-                color = LunarWhite
+                color = TextPrimary
             )
         },
         text = {
@@ -54,25 +54,25 @@ fun NewPlaylistDialog(
                     label = {
                         Text(
                             text = "Playlist name",
-                            color = LunarWhite.copy(alpha = 0.6f)
+                            color = TextPrimary.copy(alpha = 0.6f)
                         )
                     },
                     placeholder = {
                         Text(
                             text = "Enter playlist name",
-                            color = LunarWhite.copy(alpha = 0.4f)
+                            color = TextPrimary.copy(alpha = 0.4f)
                         )
                     },
                     singleLine = true,
                     enabled = !isCreating,
                     colors = OutlinedTextFieldDefaults.colors(
-                        focusedTextColor = LunarWhite,
-                        unfocusedTextColor = LunarWhite,
-                        focusedBorderColor = CyberNeonBlue,
-                        unfocusedBorderColor = LunarWhite.copy(alpha = 0.4f),
-                        focusedLabelColor = CyberNeonBlue,
-                        unfocusedLabelColor = LunarWhite.copy(alpha = 0.6f),
-                        cursorColor = CyberNeonBlue
+                        focusedTextColor = TextPrimary,
+                        unfocusedTextColor = TextPrimary,
+                        focusedBorderColor = AccentPrimary,
+                        unfocusedBorderColor = TextPrimary.copy(alpha = 0.4f),
+                        focusedLabelColor = AccentPrimary,
+                        unfocusedLabelColor = TextPrimary.copy(alpha = 0.6f),
+                        cursorColor = AccentPrimary
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -92,14 +92,14 @@ fun NewPlaylistDialog(
                     ) {
                         CircularProgressIndicator(
                             modifier = Modifier.size(20.dp),
-                            color = CyberNeonBlue,
+                            color = AccentPrimary,
                             strokeWidth = 2.dp
                         )
                     }
                 } else {
                     Text(
                         text = "Create",
-                        color = if (isCreateEnabled) CyberNeonBlue else LunarWhite.copy(alpha = 0.3f)
+                        color = if (isCreateEnabled) AccentPrimary else TextPrimary.copy(alpha = 0.3f)
                     )
                 }
             }
@@ -111,10 +111,10 @@ fun NewPlaylistDialog(
             ) {
                 Text(
                     text = "Cancel",
-                    color = if (isCreating) GunmetalGray else LunarWhite
+                    color = if (isCreating) SurfaceElevated else TextPrimary
                 )
             }
         },
-        containerColor = DeepSpaceBlack.copy(alpha = 0.95f)
+        containerColor = BackgroundDeep.copy(alpha = 0.95f)
     )
 }

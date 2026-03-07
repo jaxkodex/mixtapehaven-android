@@ -44,9 +44,9 @@ import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.data.repository.OfflineRepository
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,7 +76,7 @@ fun AllSongsScreen(
                     Text(
                         text = if (uiState.isOfflineMode) "All Songs (Offline)" else "All Songs",
                         style = MaterialTheme.typography.headlineMedium,
-                        color = LunarWhite
+                        color = TextPrimary
                     )
                 },
                 navigationIcon = {
@@ -84,7 +84,7 @@ fun AllSongsScreen(
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
-                            tint = CyberNeonBlue
+                            tint = AccentPrimary
                         )
                     }
                 },
@@ -93,16 +93,16 @@ fun AllSongsScreen(
                         Icon(
                             imageVector = Icons.Default.Search,
                             contentDescription = "Search",
-                            tint = CyberNeonBlue
+                            tint = AccentPrimary
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = DeepSpaceBlack
+                    containerColor = BackgroundDeep
                 )
             )
         },
-        containerColor = DeepSpaceBlack
+        containerColor = BackgroundDeep
     ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
@@ -118,7 +118,7 @@ fun AllSongsScreen(
                 uiState.isLoading -> {
                     CircularProgressIndicator(
                         modifier = Modifier.align(Alignment.Center),
-                        color = CyberNeonBlue
+                        color = AccentPrimary
                     )
                 }
                 uiState.errorMessage != null -> {
@@ -203,7 +203,7 @@ private fun AllSongsErrorState(
         Text(
             text = errorMessage,
             style = MaterialTheme.typography.bodyLarge,
-            color = LunarWhite,
+            color = TextPrimary,
             textAlign = TextAlign.Center
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -225,13 +225,13 @@ private fun AllSongsEmptyState(
         Text(
             text = "No songs found",
             style = MaterialTheme.typography.headlineSmall,
-            color = LunarWhite
+            color = TextPrimary
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = if (isOfflineMode) "No downloaded songs available" else "Add media to your Jellyfin server",
             style = MaterialTheme.typography.bodyMedium,
-            color = LunarWhite.copy(alpha = 0.7f),
+            color = TextPrimary.copy(alpha = 0.7f),
             textAlign = TextAlign.Center
         )
     }
@@ -245,6 +245,6 @@ private fun AllSongsLoadingMoreIndicator(modifier: Modifier = Modifier) {
             .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
-        CircularProgressIndicator(color = CyberNeonBlue)
+        CircularProgressIndicator(color = AccentPrimary)
     }
 }

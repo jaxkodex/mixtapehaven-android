@@ -31,10 +31,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Song
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.GunmetalGray
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 @Composable
 fun SongListItem(
@@ -84,7 +84,7 @@ private fun CardStyleSongItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 4.dp),
-        color = GunmetalGray,
+        color = SurfaceElevated,
         shape = RoundedCornerShape(12.dp)
     ) {
         Row(
@@ -110,7 +110,7 @@ private fun CardStyleSongItem(
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = LunarWhite,
+                    color = TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -123,7 +123,7 @@ private fun CardStyleSongItem(
                         }
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = LunarWhite.copy(alpha = 0.5f),
+                    color = TextPrimary.copy(alpha = 0.5f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(top = 2.dp)
@@ -141,12 +141,12 @@ private fun CardStyleSongItem(
                 },
                 modifier = Modifier
                     .size(36.dp)
-                    .background(CyberNeonBlue, CircleShape)
+                    .background(AccentPrimary, CircleShape)
             ) {
                 Icon(
                     imageVector = if (isCurrentSong && isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isCurrentSong && isPlaying) "Pause" else "Play",
-                    tint = DeepSpaceBlack,
+                    tint = BackgroundDeep,
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -177,7 +177,7 @@ private fun ClassicSongItem(
         Text(
             text = trackNumber.toString().padStart(2, '0'),
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isCurrentSong) CyberNeonBlue else CyberNeonBlue.copy(alpha = 0.6f),
+            color = if (isCurrentSong) AccentPrimary else AccentPrimary.copy(alpha = 0.6f),
             modifier = Modifier.padding(end = 4.dp)
         )
 
@@ -186,7 +186,7 @@ private fun ClassicSongItem(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(GunmetalGray),
+                .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
             if (song.albumCoverUrl != null) {
@@ -216,7 +216,7 @@ private fun ClassicSongItem(
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = LunarWhite,
+                    color = TextPrimary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -225,7 +225,7 @@ private fun ClassicSongItem(
                     Icon(
                         imageVector = Icons.Default.CloudDone,
                         contentDescription = "Downloaded",
-                        tint = CyberNeonBlue,
+                        tint = AccentPrimary,
                         modifier = Modifier.size(14.dp)
                     )
                 }
@@ -270,7 +270,7 @@ private fun ClassicSongItem(
                 Icon(
                     imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                     contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = CyberNeonBlue
+                    tint = AccentPrimary
                 )
             }
         }

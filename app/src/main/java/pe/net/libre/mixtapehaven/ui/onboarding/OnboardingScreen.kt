@@ -48,10 +48,10 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import pe.net.libre.mixtapehaven.ui.components.FuturisticTextField
 import pe.net.libre.mixtapehaven.ui.components.NeonButton
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.theme.MixtapeHavenTheme
-import pe.net.libre.mixtapehaven.ui.theme.VaporwaveMagenta
+import pe.net.libre.mixtapehaven.ui.theme.AccentSecondary
 
 private const val LABEL_SERVER_URL = "Server URL"
 private const val PLACEHOLDER_SERVER_URL = "https://jellyfin.example.com"
@@ -117,7 +117,7 @@ private fun OnboardingContent(
             Icon(
                 imageVector = Icons.Filled.Album,
                 contentDescription = "Mixtape Haven Logo",
-                tint = CyberNeonBlue,
+                tint = AccentPrimary,
                 modifier = Modifier.size(48.dp)
             )
             Spacer(modifier = Modifier.size(12.dp))
@@ -126,7 +126,7 @@ private fun OnboardingContent(
                 fontSize = 36.sp,
                 fontWeight = FontWeight.Bold,
                 fontFamily = FontFamily.Monospace,
-                color = LunarWhite
+                color = TextPrimary
             )
         }
 
@@ -137,7 +137,7 @@ private fun OnboardingContent(
             text = SUBTITLE_CONNECT,
             fontSize = 18.sp,
             fontFamily = FontFamily.SansSerif,
-            color = LunarWhite.copy(alpha = 0.8f)
+            color = TextPrimary.copy(alpha = 0.8f)
         )
 
         Spacer(modifier = Modifier.height(48.dp))
@@ -148,7 +148,7 @@ private fun OnboardingContent(
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
-            color = LunarWhite,
+            color = TextPrimary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
@@ -176,7 +176,7 @@ private fun OnboardingContent(
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
-            color = LunarWhite,
+            color = TextPrimary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
@@ -204,7 +204,7 @@ private fun OnboardingContent(
             fontSize = 14.sp,
             fontWeight = FontWeight.Medium,
             fontFamily = FontFamily.SansSerif,
-            color = LunarWhite,
+            color = TextPrimary,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
@@ -243,7 +243,7 @@ private fun OnboardingContent(
                         } else {
                             "Show password"
                         },
-                        tint = LunarWhite
+                        tint = TextPrimary
                     )
                 }
             }
@@ -265,7 +265,7 @@ private fun OnboardingContent(
                 ) {
                     Text(
                         text = error,
-                        color = VaporwaveMagenta,
+                        color = AccentSecondary,
                         fontSize = 14.sp,
                         fontFamily = if (error.contains("Technical Details:")) {
                             FontFamily.Monospace
@@ -295,7 +295,7 @@ private fun OnboardingContent(
         TextButton(onClick = actions.onNavigateToTroubleshoot) {
             Text(
                 text = "Troubleshoot Connection",
-                color = CyberNeonBlue,
+                color = AccentPrimary,
                 fontSize = 14.sp,
                 fontFamily = FontFamily.SansSerif
             )
@@ -306,7 +306,7 @@ private fun OnboardingContent(
         // Privacy Message
         Text(
             text = "Your connection data is stored locally on this device\nand is never shared.",
-            color = LunarWhite.copy(alpha = 0.6f),
+            color = TextPrimary.copy(alpha = 0.6f),
             fontSize = 12.sp,
             fontFamily = FontFamily.SansSerif,
             textAlign = TextAlign.Center,

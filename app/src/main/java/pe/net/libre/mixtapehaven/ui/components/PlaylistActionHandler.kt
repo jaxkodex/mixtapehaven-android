@@ -22,9 +22,9 @@ import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import pe.net.libre.mixtapehaven.ui.home.Song
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
+import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 /**
  * A reusable component that handles the complete playlist action flow.
@@ -121,9 +121,9 @@ fun PlaylistActionHandler(
             snackbar = { data ->
                 Snackbar(
                     snackbarData = data,
-                    containerColor = DeepSpaceBlack,
-                    contentColor = LunarWhite,
-                    actionColor = CyberNeonBlue
+                    containerColor = BackgroundDeep,
+                    contentColor = TextPrimary,
+                    actionColor = AccentPrimary
                 )
             }
         )

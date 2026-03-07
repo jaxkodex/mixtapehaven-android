@@ -10,58 +10,58 @@ import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
 /**
- * Seamless Hyper-Efficiency Color Scheme
- * AMOLED Black theme for battery efficiency and futuristic aesthetic
+ * Retro-Modern Color Scheme
+ * Grayscale base with green/amber accents so album art can pop without competing tints
  */
 private val MixtapeHavenColorScheme = darkColorScheme(
-    // Primary colors - Cyber Neon Blue for CTAs
-    primary = CyberNeonBlue,
-    onPrimary = DeepSpaceBlack,
-    primaryContainer = CyberNeonBlue,
-    onPrimaryContainer = DeepSpaceBlack,
+    // Primary - Accent green for CTAs and active states
+    primary = AccentPrimary,
+    onPrimary = BackgroundDeep,
+    primaryContainer = SurfaceActive,
+    onPrimaryContainer = TextPrimary,
 
-    // Secondary colors - Vaporwave Magenta for highlights
-    secondary = VaporwaveMagenta,
-    onSecondary = DeepSpaceBlack,
-    secondaryContainer = VaporwaveMagenta,
-    onSecondaryContainer = DeepSpaceBlack,
+    // Secondary - Warm amber for timestamps and secondary highlights
+    secondary = AccentSecondary,
+    onSecondary = BackgroundDeep,
+    secondaryContainer = SurfaceElevated,
+    onSecondaryContainer = TextPrimary,
 
-    // Tertiary colors - Additional accent
-    tertiary = CyberNeonBlue,
-    onTertiary = DeepSpaceBlack,
-    tertiaryContainer = GunmetalGray,
-    onTertiaryContainer = LunarWhite,
+    // Tertiary - Neon cyan for links and tertiary accents
+    tertiary = AccentNeonCyan,
+    onTertiary = BackgroundDeep,
+    tertiaryContainer = SurfaceElevated,
+    onTertiaryContainer = TextPrimary,
 
-    // Background - AMOLED Black
-    background = DeepSpaceBlack,
-    onBackground = LunarWhite,
+    // Background
+    background = BackgroundDeep,
+    onBackground = TextPrimary,
 
-    // Surface - Dark surfaces with Gunmetal Gray
-    surface = DeepSpaceBlack,
-    onSurface = LunarWhite,
-    surfaceVariant = GunmetalGray,
-    onSurfaceVariant = LunarWhite,
+    // Surface
+    surface = Surface,
+    onSurface = TextPrimary,
+    surfaceVariant = SurfaceElevated,
+    onSurfaceVariant = TextSecondary,
 
     // Surface tints
-    surfaceTint = CyberNeonBlue,
+    surfaceTint = AccentPrimary,
 
     // Inverse colors
-    inverseSurface = LunarWhite,
-    inverseOnSurface = DeepSpaceBlack,
-    inversePrimary = CyberNeonBlue,
+    inverseSurface = TextPrimary,
+    inverseOnSurface = BackgroundDeep,
+    inversePrimary = AccentPrimary,
 
     // Error colors
-    error = VaporwaveMagenta,
-    onError = DeepSpaceBlack,
-    errorContainer = VaporwaveMagenta,
-    onErrorContainer = DeepSpaceBlack,
+    error = ErrorRed,
+    onError = BackgroundDeep,
+    errorContainer = SurfaceElevated,
+    onErrorContainer = ErrorRed,
 
     // Outline colors
-    outline = GunmetalGray,
-    outlineVariant = GunmetalGray,
+    outline = Border,
+    outlineVariant = SurfaceElevated,
 
     // Scrim
-    scrim = DeepSpaceBlack,
+    scrim = BackgroundDeep,
 )
 
 @Composable

@@ -1,5 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -66,9 +67,6 @@ import pe.net.libre.mixtapehaven.ui.playlist.PlaylistDetailScreen
 import pe.net.libre.mixtapehaven.ui.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
-import pe.net.libre.mixtapehaven.ui.theme.CyberNeonBlue
-import pe.net.libre.mixtapehaven.ui.theme.DeepSpaceBlack
-import pe.net.libre.mixtapehaven.ui.theme.LunarWhite
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
 
 sealed class Screen(val route: String) {
@@ -139,7 +137,7 @@ fun NavGraph(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = DeepSpaceBlack,
+            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 if (shouldShowBottomBar) {
                     BottomNavigationBar(
@@ -372,61 +370,76 @@ private fun BottomNavigationBar(
     modifier: Modifier = Modifier
 ) {
     NavigationBar(
-        containerColor = DeepSpaceBlack,
+        containerColor = MaterialTheme.colorScheme.background,
         tonalElevation = 0.dp,
         modifier = modifier
     ) {
         bottomNavItems.forEach { item ->
             val isSelected = currentRoute == item.route
             if (item.isCenter) {
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onNavigate(item) },
-                    icon = {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                .background(Color(0xFF5C6BC0), CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = item.selectedIcon,
-                                contentDescription = item.label,
-                                tint = DeepSpaceBlack,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    },
-                    label = null,
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color.Transparent
-                    )
-                )
+                CenterNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
             } else {
-                NavigationBarItem(
-                    selected = isSelected,
-                    onClick = { onNavigate(item) },
-                    icon = {
-                        Icon(
-                            imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.label,
-                            tint = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = item.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (isSelected) CyberNeonBlue else LunarWhite.copy(alpha = 0.5f)
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        indicatorColor = Color.Transparent
-                    )
-                )
+                RegularNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
             }
         }
     }
+}
+
+@Composable
+private fun RowScope.CenterNavItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    onNavigate: (BottomNavItem) -> Unit,
+) {
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = { onNavigate(item) },
+        icon = {
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .background(MaterialTheme.colorScheme.primary, CircleShape),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = item.selectedIcon,
+                    contentDescription = item.label,
+                    tint = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        },
+        label = null,
+        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+    )
+}
+
+@Composable
+private fun RowScope.RegularNavItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    onNavigate: (BottomNavItem) -> Unit,
+) {
+    val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = { onNavigate(item) },
+        icon = {
+            Icon(
+                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                contentDescription = item.label,
+                tint = tint
+            )
+        },
+        label = {
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = tint
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+    )
 }
 
 @Composable

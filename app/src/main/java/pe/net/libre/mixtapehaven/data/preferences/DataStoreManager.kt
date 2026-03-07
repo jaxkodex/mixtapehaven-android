@@ -30,6 +30,9 @@ class DataStoreManager(private val context: Context) {
         private val DOWNLOAD_QUALITY_KEY = stringPreferencesKey("download_quality")
         private val MAX_CACHE_SIZE_KEY = longPreferencesKey("max_cache_size")
         private val WIFI_ONLY_DOWNLOAD_KEY = booleanPreferencesKey("wifi_only_download")
+
+        // Playback preferences
+        private val VISUALIZER_ENABLED_KEY = booleanPreferencesKey("visualizer_enabled")
     }
 
     val serverUrl: Flow<String?> = context.dataStore.data
@@ -138,5 +141,12 @@ class DataStoreManager(private val context: Context) {
         context.dataStore.edit { preferences ->
             preferences[WIFI_ONLY_DOWNLOAD_KEY] = wifiOnly
         }
+    }
+
+    val visualizerEnabled: Flow<Boolean> = context.dataStore.data
+        .map { it[VISUALIZER_ENABLED_KEY] ?: false }
+
+    suspend fun saveVisualizerEnabled(enabled: Boolean) {
+        context.dataStore.edit { it[VISUALIZER_ENABLED_KEY] = enabled }
     }
 }

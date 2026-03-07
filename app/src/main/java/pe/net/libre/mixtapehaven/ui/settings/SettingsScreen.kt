@@ -58,6 +58,7 @@ fun SettingsScreen(
     val downloadQuality by viewModel.downloadQuality.collectAsState()
     val maxCacheSize by viewModel.maxCacheSize.collectAsState()
     val wifiOnlyDownload by viewModel.wifiOnlyDownload.collectAsState()
+    val visualizerEnabled by viewModel.visualizerEnabled.collectAsState()
     val isClearing by viewModel.isClearing.collectAsState()
 
     var showClearDialog by remember { mutableStateOf(false) }
@@ -114,6 +115,15 @@ fun SettingsScreen(
             WifiOnlySetting(
                 enabled = wifiOnlyDownload,
                 onToggle = { viewModel.setWifiOnlyDownload(it) }
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Playback Section
+            SettingsSectionTitle("Playback")
+            VisualizerSetting(
+                enabled = visualizerEnabled,
+                onToggle = { viewModel.setVisualizerEnabled(it) }
             )
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -266,6 +276,38 @@ private fun CacheSizeSlider(
             Text("0.5 GB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
             Text("10 GB", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.outline)
         }
+    }
+}
+
+@Composable
+private fun VisualizerSetting(
+    enabled: Boolean,
+    onToggle: (Boolean) -> Unit
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Spectrum Analyzer",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground
+            )
+            Text(
+                text = "Show animated audio visualizer on Now Playing",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp)
+            )
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = onToggle
+        )
     }
 }
 

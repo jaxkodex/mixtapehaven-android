@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,133 +74,107 @@ fun NowPlayingScreen(
             onNavigateBack = onNavigateBack
         )
     }
+    Scaffold(
+        topBar = { NowPlayingTopBar(onNavigateBack = onNavigateBack) },
+        containerColor = BackgroundDeep
+    ) { paddingValues ->
+        NowPlayingBody(
+            viewModel = viewModel,
+            paddingValues = paddingValues,
+            audioSessionId = playbackManager.getAudioSessionId()
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NowPlayingTopBar(onNavigateBack: () -> Unit) {
+    TopAppBar(
+        title = {
+            Text(
+                text = "NOW PLAYING",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center
+            )
+        },
+        navigationIcon = {
+            IconButton(onClick = onNavigateBack) {
+                Icon(
+                    imageVector = Icons.Default.KeyboardArrowDown,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(32.dp)
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(containerColor = BackgroundDeep)
+    )
+}
+
+@Composable
+private fun NowPlayingBody(
+    viewModel: NowPlayingViewModel,
+    paddingValues: PaddingValues,
+    audioSessionId: Int
+) {
     val playbackState by viewModel.playbackState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
     val isVisualizerEnabled by viewModel.isVisualizerEnabled.collectAsState()
     val song = playbackState.currentSong
-
-    // Local state for seeking to prevent UI jitter during drag
     var isSeeking by remember { mutableStateOf(false) }
     var seekPosition by remember { mutableFloatStateOf(0f) }
     val displayProgress = if (isSeeking) seekPosition else playbackState.progress
-
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "NOW PLAYING",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.fillMaxWidth(),
-                        textAlign = TextAlign.Center
-                    )
-                },
-                navigationIcon = {
-                    IconButton(onClick = onNavigateBack) {
-                        Icon(
-                            imageVector = Icons.Default.KeyboardArrowDown,
-                            contentDescription = "Back",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(32.dp)
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = BackgroundDeep
-                )
-            )
-        },
-        containerColor = BackgroundDeep
-    ) { paddingValues ->
-        if (song != null) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-                    .padding(horizontal = 32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.SpaceBetween
-            ) {
-                Spacer(modifier = Modifier.height(32.dp))
-
-                NowPlayingAlbumArt(
-                    albumCoverUrl = song.albumCoverUrl,
-                    albumCoverPlaceholder = song.albumCoverPlaceholder,
-                    songTitle = song.title,
-                    isBuffering = playbackState.isBuffering
-                )
-
-                if (isVisualizerEnabled) {
-                    SpectrumVisualizer(
-                        audioSessionId = playbackManager.getAudioSessionId(),
-                        isPlaying = playbackState.isPlaying
-                    )
-                } else {
-                    Spacer(modifier = Modifier.height(64.dp))
-                }
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                NowPlayingSongInfo(
-                    title = song.title,
-                    artist = song.artist
-                )
-
-                Spacer(modifier = Modifier.height(48.dp))
-
-                NowPlayingProgressBar(
-                    playbackState = playbackState,
-                    isSeeking = isSeeking,
-                    displayProgress = displayProgress,
-                    onSeekStart = { newValue ->
-                        isSeeking = true
-                        seekPosition = newValue
-                    },
-                    onSeekFinished = {
-                        if (playbackState.duration > 0) {
-                            val targetPositionMs = (seekPosition * playbackState.duration)
-                                .toLong()
-                                .coerceIn(0L, playbackState.duration)
-                            viewModel.onSeek(targetPositionMs)
-                        }
-                        isSeeking = false
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                NowPlayingControls(
-                    playbackState = playbackState,
-                    onPreviousClick = { viewModel.onPreviousClick() },
-                    onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                    onNextClick = { viewModel.onNextClick() }
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-
-                NowPlayingInstantMix(
-                    isLoadingMix = uiState.isLoadingMix,
-                    onInstantMix = { viewModel.startInstantMix() }
-                )
-
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-        } else {
-            // No song playing
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "No song playing",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+    val onSeekStart: (Float) -> Unit = { v -> isSeeking = true; seekPosition = v }
+    val onSeekFinished: () -> Unit = {
+        if (playbackState.duration > 0) viewModel.onSeek(
+            (seekPosition * playbackState.duration).toLong().coerceIn(0L, playbackState.duration)
+        )
+        isSeeking = false
+    }
+    if (song != null) {
+        Column(
+            modifier = Modifier.fillMaxSize().padding(paddingValues).padding(horizontal = 32.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Spacer(modifier = Modifier.height(32.dp))
+            NowPlayingAlbumArt(song.albumCoverUrl, song.albumCoverPlaceholder, song.title, playbackState.isBuffering)
+            VisualizerSection(isEnabled = isVisualizerEnabled, audioSessionId = audioSessionId,
+                isPlaying = playbackState.isPlaying)
+            Spacer(modifier = Modifier.height(48.dp))
+            NowPlayingSongInfo(title = song.title, artist = song.artist)
+            Spacer(modifier = Modifier.height(48.dp))
+            NowPlayingProgressBar(playbackState, isSeeking, displayProgress, onSeekStart, onSeekFinished)
+            Spacer(modifier = Modifier.height(32.dp))
+            NowPlayingControls(playbackState,
+                { viewModel.onPreviousClick() }, { viewModel.onPlayPauseClick() }, { viewModel.onNextClick() })
+            Spacer(modifier = Modifier.height(32.dp))
+            NowPlayingInstantMix(isLoadingMix = uiState.isLoadingMix, onInstantMix = { viewModel.startInstantMix() })
+            Spacer(modifier = Modifier.height(32.dp))
         }
+    } else {
+        Box(modifier = Modifier.fillMaxSize().padding(paddingValues), contentAlignment = Alignment.Center) {
+            Text(
+                text = "No song playing",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+@Composable
+private fun VisualizerSection(
+    isEnabled: Boolean,
+    audioSessionId: Int,
+    isPlaying: Boolean
+) {
+    if (isEnabled) {
+        SpectrumVisualizer(audioSessionId = audioSessionId, isPlaying = isPlaying)
+    } else {
+        Spacer(modifier = Modifier.height(64.dp))
     }
 }
 

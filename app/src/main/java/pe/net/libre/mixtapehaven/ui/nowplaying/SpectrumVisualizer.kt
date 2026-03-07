@@ -2,6 +2,7 @@ package pe.net.libre.mixtapehaven.ui.nowplaying
 
 import android.media.audiofx.Visualizer
 import android.provider.Settings
+import android.util.Log
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -21,6 +22,7 @@ import pe.net.libre.mixtapehaven.ui.theme.AccentGlow
 import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
 import kotlin.math.sqrt
 
+private const val TAG = "SpectrumVisualizer"
 private const val BAR_COUNT = 32
 private const val CAPTURE_SIZE = 1024
 
@@ -45,48 +47,9 @@ fun SpectrumVisualizer(
     var barValues by remember { mutableStateOf(FloatArray(BAR_COUNT)) }
 
     DisposableEffect(audioSessionId) {
-        val visualizer = if (audioSessionId != 0) {
-            try {
-                Visualizer(audioSessionId).apply {
-                    captureSize = CAPTURE_SIZE
-                    setDataCaptureListener(
-                        object : Visualizer.OnDataCaptureListener {
-                            override fun onWaveFormDataCapture(
-                                v: Visualizer, waveform: ByteArray, samplingRate: Int
-                            ) { /* waveform disabled */ }
-
-                            override fun onFftDataCapture(
-                                v: Visualizer, fft: ByteArray, samplingRate: Int
-                            ) {
-                                val magnitudes = FloatArray(BAR_COUNT)
-                                val binsPerBar = (fft.size / 2) / BAR_COUNT
-                                for (bar in 0 until BAR_COUNT) {
-                                    var sum = 0f
-                                    val startBin = bar * binsPerBar + 1 // skip DC (bin 0)
-                                    val endBin = startBin + binsPerBar
-                                    for (k in startBin until endBin) {
-                                        if (k * 2 + 1 < fft.size) {
-                                            val re = fft[k * 2].toFloat()
-                                            val im = fft[k * 2 + 1].toFloat()
-                                            sum += sqrt(re * re + im * im)
-                                        }
-                                    }
-                                    magnitudes[bar] = (sum / binsPerBar / 128f).coerceIn(0f, 1f)
-                                }
-                                barValues = magnitudes
-                            }
-                        },
-                        Visualizer.getMaxCaptureRate() / 2,
-                        /* waveform = */ false,
-                        /* fft = */ true
-                    )
-                    enabled = true
-                }
-            } catch (e: Exception) {
-                null
-            }
-        } else null
-
+        val visualizer = createVisualizer(audioSessionId) { fft ->
+            barValues = processFft(fft)
+        }
         onDispose {
             visualizer?.enabled = false
             visualizer?.release()
@@ -95,7 +58,7 @@ fun SpectrumVisualizer(
 
     val targetValues = if (isPlaying) barValues else FloatArray(BAR_COUNT)
 
-    val animatedBars = (0 until BAR_COUNT).map { i ->
+    val animatedBars = FloatArray(BAR_COUNT) { i ->
         animateFloatAsState(
             targetValue = targetValues.getOrElse(i) { 0f },
             animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
@@ -103,6 +66,68 @@ fun SpectrumVisualizer(
         ).value
     }
 
+    VisualizerCanvas(animatedBars = animatedBars, modifier = modifier)
+}
+
+private fun createVisualizer(
+    audioSessionId: Int,
+    onFftData: (ByteArray) -> Unit
+): Visualizer? {
+    if (audioSessionId == 0) return null
+    return try {
+        Visualizer(audioSessionId).apply {
+            captureSize = CAPTURE_SIZE
+            setDataCaptureListener(
+                object : Visualizer.OnDataCaptureListener {
+                    override fun onWaveFormDataCapture(
+                        v: Visualizer, waveform: ByteArray, samplingRate: Int
+                    ) { /* waveform disabled */ }
+
+                    override fun onFftDataCapture(
+                        v: Visualizer, fft: ByteArray, samplingRate: Int
+                    ) {
+                        onFftData(fft)
+                    }
+                },
+                Visualizer.getMaxCaptureRate() / 2,
+                /* waveform = */ false,
+                /* fft = */ true
+            )
+            enabled = true
+        }
+    } catch (e: IllegalStateException) {
+        Log.w(TAG, "Visualizer unavailable for session $audioSessionId", e)
+        null
+    } catch (e: IllegalArgumentException) {
+        Log.w(TAG, "Invalid audio session $audioSessionId", e)
+        null
+    }
+}
+
+private fun processFft(fft: ByteArray): FloatArray {
+    val magnitudes = FloatArray(BAR_COUNT)
+    val binsPerBar = (fft.size / 2) / BAR_COUNT
+    for (bar in 0 until BAR_COUNT) {
+        var sum = 0f
+        val startBin = bar * binsPerBar + 1 // skip DC (bin 0)
+        val endBin = startBin + binsPerBar
+        for (k in startBin until endBin) {
+            if (k * 2 + 1 < fft.size) {
+                val re = fft[k * 2].toFloat()
+                val im = fft[k * 2 + 1].toFloat()
+                sum += sqrt(re * re + im * im)
+            }
+        }
+        magnitudes[bar] = (sum / binsPerBar / 128f).coerceIn(0f, 1f)
+    }
+    return magnitudes
+}
+
+@Composable
+private fun VisualizerCanvas(
+    animatedBars: FloatArray,
+    modifier: Modifier = Modifier
+) {
     Canvas(
         modifier = modifier
             .fillMaxWidth()

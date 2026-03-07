@@ -67,7 +67,8 @@ fun FuturisticTextField(
             label = {
                 Text(
                     text = label,
-                    color = if (isFocused) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isFocused) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             },
             placeholder = {

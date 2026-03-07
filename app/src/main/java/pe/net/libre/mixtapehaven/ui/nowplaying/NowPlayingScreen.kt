@@ -309,7 +309,8 @@ private fun NowPlayingProgressBar(
                     .height(8.dp),
                 enabled = playbackState.duration > 0 && playbackState.currentSong != null && !playbackState.isBuffering,
                 colors = SliderDefaults.colors(
-                    thumbColor = if (isSeeking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primary.copy(alpha = 0f),
+                    thumbColor = if (isSeeking) MaterialTheme.colorScheme.primary
+                    else MaterialTheme.colorScheme.primary.copy(alpha = 0f),
                     activeTrackColor = MaterialTheme.colorScheme.primary,
                     inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant,
                     disabledThumbColor = MaterialTheme.colorScheme.primary.copy(alpha = 0f),
@@ -394,7 +395,8 @@ private fun NowPlayingControls(
             modifier = Modifier
                 .size(80.dp)
                 .background(
-                    if (playbackState.isBuffering) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary,
+                    if (playbackState.isBuffering) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                    else MaterialTheme.colorScheme.primary,
                     CircleShape
                 ),
             enabled = !playbackState.isBuffering

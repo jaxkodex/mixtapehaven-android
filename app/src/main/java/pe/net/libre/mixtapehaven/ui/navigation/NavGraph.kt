@@ -294,6 +294,7 @@ fun NavGraph(
                 NowPlayingScreen(
                     playbackManager = playbackManager,
                     mediaRepository = mediaRepository,
+                    dataStoreManager = dataStoreManager,
                     onNavigateBack = {
                         navController.popBackStack()
                     }

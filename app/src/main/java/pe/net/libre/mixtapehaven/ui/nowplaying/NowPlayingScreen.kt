@@ -51,6 +51,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.unit.sp
@@ -61,17 +62,20 @@ import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
 fun NowPlayingScreen(
     playbackManager: PlaybackManager,
     mediaRepository: MediaRepository,
+    dataStoreManager: DataStoreManager,
     onNavigateBack: () -> Unit
 ) {
     val viewModel: NowPlayingViewModel = viewModel {
         NowPlayingViewModel(
             playbackManager = playbackManager,
             mediaRepository = mediaRepository,
+            dataStoreManager = dataStoreManager,
             onNavigateBack = onNavigateBack
         )
     }
     val playbackState by viewModel.playbackState.collectAsState()
     val uiState by viewModel.uiState.collectAsState()
+    val isVisualizerEnabled by viewModel.isVisualizerEnabled.collectAsState()
     val song = playbackState.currentSong
 
     // Local state for seeking to prevent UI jitter during drag
@@ -125,6 +129,15 @@ fun NowPlayingScreen(
                     songTitle = song.title,
                     isBuffering = playbackState.isBuffering
                 )
+
+                if (isVisualizerEnabled) {
+                    SpectrumVisualizer(
+                        audioSessionId = playbackManager.getAudioSessionId(),
+                        isPlaying = playbackState.isPlaying
+                    )
+                } else {
+                    Spacer(modifier = Modifier.height(64.dp))
+                }
 
                 Spacer(modifier = Modifier.height(48.dp))
 

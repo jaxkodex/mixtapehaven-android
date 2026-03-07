@@ -168,6 +168,8 @@ class PlaybackManager private constructor(
     // Expose player for MediaPlaybackService
     internal val player: ExoPlayer get() = _player
 
+    fun getAudioSessionId(): Int = _player.audioSessionId
+
     /**
      * Play a song
      */

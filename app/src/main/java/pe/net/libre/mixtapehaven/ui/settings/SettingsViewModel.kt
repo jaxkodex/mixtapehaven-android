@@ -28,6 +28,9 @@ class SettingsViewModel(
     private val _wifiOnlyDownload = MutableStateFlow(true)
     val wifiOnlyDownload: StateFlow<Boolean> = _wifiOnlyDownload.asStateFlow()
 
+    private val _visualizerEnabled = MutableStateFlow(false)
+    val visualizerEnabled: StateFlow<Boolean> = _visualizerEnabled.asStateFlow()
+
     private val _isClearing = MutableStateFlow(false)
     val isClearing: StateFlow<Boolean> = _isClearing.asStateFlow()
 
@@ -52,6 +55,12 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.wifiOnlyDownload.collect { wifiOnly ->
                 _wifiOnlyDownload.value = wifiOnly
+            }
+        }
+
+        viewModelScope.launch {
+            dataStoreManager.visualizerEnabled.collect { enabled ->
+                _visualizerEnabled.value = enabled
             }
         }
     }
@@ -86,6 +95,13 @@ class SettingsViewModel(
         viewModelScope.launch {
             dataStoreManager.saveWifiOnlyDownload(wifiOnly)
             _wifiOnlyDownload.value = wifiOnly
+        }
+    }
+
+    fun setVisualizerEnabled(enabled: Boolean) {
+        viewModelScope.launch {
+            dataStoreManager.saveVisualizerEnabled(enabled)
+            _visualizerEnabled.value = enabled
         }
     }
 

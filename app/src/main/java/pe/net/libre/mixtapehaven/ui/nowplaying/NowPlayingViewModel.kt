@@ -3,12 +3,15 @@ package pe.net.libre.mixtapehaven.ui.nowplaying
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.playback.PlaybackState
+import pe.net.libre.mixtapehaven.data.preferences.DataStoreManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
 
 data class NowPlayingUiState(
@@ -23,10 +26,14 @@ data class NowPlayingUiState(
 class NowPlayingViewModel(
     private val playbackManager: PlaybackManager,
     private val mediaRepository: MediaRepository,
+    private val dataStoreManager: DataStoreManager,
     private val onNavigateBack: () -> Unit
 ) : ViewModel() {
 
     val playbackState: StateFlow<PlaybackState> = playbackManager.playbackState
+
+    val isVisualizerEnabled: StateFlow<Boolean> = dataStoreManager.visualizerEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     private val _uiState = MutableStateFlow(NowPlayingUiState())
     val uiState: StateFlow<NowPlayingUiState> = _uiState.asStateFlow()

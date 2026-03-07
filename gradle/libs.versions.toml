@@ -19,8 +19,8 @@ coil = "2.7.0"
 media3 = "1.9.2"
 media = "1.7.1"
 room = "2.8.4"
-detekt = "2.0.0-alpha.2"
-detektCompose = "0.5.6"
+detekt = "1.23.8"
+detektCompose = "0.4.28"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

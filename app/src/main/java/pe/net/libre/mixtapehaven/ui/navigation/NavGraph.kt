@@ -1,11 +1,7 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -23,8 +19,10 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -139,7 +137,6 @@ fun NavGraph(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 if (shouldShowBottomBar) {
                     BottomNavigationBar(
@@ -152,7 +149,7 @@ fun NavGraph(
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+                modifier = Modifier.padding(top = paddingValues.calculateTopPadding(), bottom = paddingValues.calculateBottomPadding())
             ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
@@ -371,79 +368,49 @@ private fun BottomNavigationBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = 21.dp, vertical = 12.dp)
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth().height(62.dp),
-            shape = RoundedCornerShape(31.dp),
-            color = SurfaceElevated,
-            shadowElevation = 8.dp
+//    Box(
+//        modifier = modifier
+//            .fillMaxWidth()
+//            .padding(horizontal = 21.dp, vertical = 12.dp)
+//    ) {
+        NavigationBar(
+            modifier = Modifier
+                .fillMaxWidth(),
+//                .height(62.dp)
+//                .clip(RoundedCornerShape(31.dp)),
+            containerColor = SurfaceElevated,
+            tonalElevation = 8.dp
         ) {
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                bottomNavItems.forEach { item ->
-                    if (currentRoute == item.route) {
-                        ActivePillNavItem(item = item)
-                    } else {
-                        InactivePillNavItem(item = item, onNavigate = onNavigate)
-                    }
-                }
+            bottomNavItems.forEach { item ->
+                val selected = currentRoute == item.route
+                NavigationBarItem(
+                    selected = selected,
+                    onClick = { if (!selected) onNavigate(item) },
+                    icon = {
+                        Icon(
+                            imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
+                            contentDescription = item.label,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    },
+                    label = {
+                        Text(
+                            text = item.label,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                        )
+                    },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = Color.White,
+                        selectedTextColor = Color.White,
+                        indicatorColor = MaterialTheme.colorScheme.primary,
+                        unselectedIconColor = TextSecondary,
+                        unselectedTextColor = TextSecondary
+                    )
+                )
             }
         }
-    }
-}
-
-@Composable
-private fun ActivePillNavItem(item: BottomNavItem) {
-    Box(
-        modifier = Modifier
-            .clip(RoundedCornerShape(24.dp))
-            .background(MaterialTheme.colorScheme.primary)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-    ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                imageVector = item.selectedIcon,
-                contentDescription = item.label,
-                tint = Color.White,
-                modifier = Modifier.size(22.dp)
-            )
-            Text(
-                text = item.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = Color.White,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-}
-
-@Composable
-private fun InactivePillNavItem(item: BottomNavItem, onNavigate: (BottomNavItem) -> Unit) {
-    Column(
-        modifier = Modifier
-            .clickable { onNavigate(item) }
-            .padding(8.dp),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        Icon(
-            imageVector = item.unselectedIcon,
-            contentDescription = item.label,
-            tint = TextSecondary,
-            modifier = Modifier.size(22.dp)
-        )
-        Text(
-            text = item.label,
-            style = MaterialTheme.typography.labelSmall,
-            color = TextSecondary
-        )
-    }
+//    }
 }
 
 @Composable

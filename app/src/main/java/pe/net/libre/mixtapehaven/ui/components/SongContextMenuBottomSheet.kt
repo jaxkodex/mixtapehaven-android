@@ -33,6 +33,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Song
 import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
+import pe.net.libre.mixtapehaven.ui.theme.StatusPositive
 import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
@@ -177,14 +178,14 @@ private fun SongContextDownloadItem(
             Text(
                 text = if (song.isDownloaded) "Downloaded" else "Download",
                 style = MaterialTheme.typography.bodyMedium,
-                color = if (song.isDownloaded) AccentPrimary else TextPrimary
+                color = if (song.isDownloaded) StatusPositive else TextPrimary
             )
         },
         leadingContent = {
             Icon(
                 imageVector = if (song.isDownloaded) Icons.Default.CheckCircle else Icons.Default.CloudDownload,
                 contentDescription = if (song.isDownloaded) "Downloaded" else "Download",
-                tint = if (song.isDownloaded) AccentPrimary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                tint = if (song.isDownloaded) StatusPositive else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
             )
         },
         modifier = modifier.clickable(enabled = !song.isDownloaded) {

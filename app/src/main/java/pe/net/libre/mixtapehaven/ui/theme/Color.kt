@@ -19,12 +19,13 @@ val TextSecondary   = Color(0xFF8A8A8A)   // --text-secondary: Artist names, cap
 val TextDisabled    = Color(0xFF525252)   // --text-muted:     Inactive elements
 
 // Accent palette
-val AccentPrimary   = Color(0xFF32D74B)   // --status-positive: Primary actions, CTA buttons
+val AccentPrimary   = Color(0xFFFF3B30)   // --accent-red:      Primary brand accent (section bars, nav active, CTA)
 val AccentSecondary = Color(0xFFFFB74D)   // Warm amber — timestamps, secondary highlights
 val AccentGlow      = Color(0xFF00FF00)   // Decorative only — use at 15–30% opacity
 val AccentNeonCyan  = Color(0xFF00E5FF)   // Tertiary accent, links
+val StatusPositive  = Color(0xFF32D74B)   // --status-positive: Downloaded/complete indicator
 
 // Semantic
-val AccentRed       = Color(0xFFFF3B30)   // --accent-red:      Destructive actions
+val AccentRed       = Color(0xFFFF3B30)   // --accent-red:      Same as AccentPrimary (destructive alias)
 val AccentRedSoft   = Color(0x20FF3B30)   // --accent-red-soft: Destructive bg tint (~12% opacity)
 val ErrorRed        = Color(0xFFFF453A)   // --status-negative: Error states

@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.tooling.preview.Preview
+import pe.net.libre.mixtapehaven.ui.theme.MixtapeHavenTheme
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
@@ -137,8 +139,6 @@ fun HomeScreen(
                     LazyColumn(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(paddingValues),
-                        contentPadding = PaddingValues(bottom = 16.dp)
                     ) {
                         if (uiState.isOfflineMode) {
                             item {
@@ -377,16 +377,18 @@ private fun HomeOfflineSongsList(
         if (songs.isEmpty()) {
             HomeOfflineEmptyContent(onRetry = onRetry)
         } else {
-            songs.forEachIndexed { index, song ->
-                SongListItem(
-                    song = song,
-                    trackNumber = index + 1,
-                    onClick = { onSongClick(song) },
-                    isCurrentSong = currentSongId == song.id,
-                    isPlaying = isPlaying,
-                    onPlayPauseClick = onPlayPauseClick,
-                    onMoreClick = null
-                )
+            Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+                songs.forEachIndexed { index, song ->
+                    SongListItem(
+                        song = song,
+                        trackNumber = index + 1,
+                        onClick = { onSongClick(song) },
+                        isCurrentSong = currentSongId == song.id,
+                        isPlaying = isPlaying,
+                        onPlayPauseClick = onPlayPauseClick,
+                        onMoreClick = null
+                    )
+                }
             }
         }
     }
@@ -429,6 +431,63 @@ private fun HomePopularSongsSection(
                     showTrackNumber = false
                 )
             }
+        }
+    }
+}
+
+@Preview(showBackground = true, name = "Home – Greeting Header")
+@Composable
+private fun PreviewHomeGreetingHeader() {
+    MixtapeHavenTheme {
+        HomeGreetingHeader()
+    }
+}
+
+@Preview(showBackground = true, name = "Home – Search Bar")
+@Composable
+private fun PreviewHomeSearchBar() {
+    MixtapeHavenTheme {
+        HomeSearchBar(onNavigateToSearch = {})
+    }
+}
+
+@Preview(showBackground = true, name = "Home – Recently Played Section")
+@Composable
+private fun PreviewHomePopularSongsSection() {
+    MixtapeHavenTheme {
+        HomePopularSongsSection(
+            songs = mockPopularSongs,
+            currentSongId = mockPopularSongs.first().id,
+            isPlaying = true,
+            onSeeMoreClick = {},
+            onSongClick = {},
+            onPlayPauseClick = {},
+            onSongMoreClick = {}
+        )
+    }
+}
+
+@Preview(showBackground = true, name = "Home – Full Content")
+@Composable
+private fun PreviewHomeFullContent() {
+    MixtapeHavenTheme {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            HomeGreetingHeader()
+            HomeSearchBar(onNavigateToSearch = {})
+            HomeRecentlyAddedSection(
+                albums = mockRecentlyAddedAlbums,
+                onSeeMoreClick = {},
+                onAlbumClick = {}
+            )
+            HomePopularSongsSection(
+                songs = mockPopularSongs,
+                currentSongId = mockPopularSongs[1].id,
+                isPlaying = false,
+                onSeeMoreClick = {},
+                onSongClick = {},
+                onPlayPauseClick = {},
+                onSongMoreClick = {}
+            )
         }
     }
 }

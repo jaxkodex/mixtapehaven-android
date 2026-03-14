@@ -42,11 +42,10 @@ fun AllAlbumsScreen(
             )
         },
         containerColor = BackgroundDeep
-    ) { paddingValues ->
+    ) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
         ) {
             when {
                 uiState.isLoading -> LoadingScreen(modifier = Modifier.fillMaxSize())

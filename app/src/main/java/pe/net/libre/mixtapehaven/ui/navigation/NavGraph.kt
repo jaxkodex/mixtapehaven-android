@@ -1,28 +1,24 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
-import androidx.compose.foundation.layout.RowScope
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -36,6 +32,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -67,6 +64,8 @@ import pe.net.libre.mixtapehaven.ui.playlist.PlaylistDetailScreen
 import pe.net.libre.mixtapehaven.ui.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
 
 sealed class Screen(val route: String) {
@@ -93,16 +92,14 @@ data class BottomNavItem(
     val label: String,
     val route: String,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
-    val isCenter: Boolean = false
+    val unselectedIcon: ImageVector
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem("Home", Screen.Home.route, Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem("Browse", Screen.AllAlbums.route, Icons.Filled.LibraryMusic, Icons.Outlined.LibraryMusic),
-    BottomNavItem("Search", Screen.Search.route, Icons.Filled.Search, Icons.Outlined.Search, isCenter = true),
+    BottomNavItem("Home",    Screen.Home.route,         Icons.Filled.Home,    Icons.Outlined.Home),
+    BottomNavItem("Search",  Screen.Search.route,       Icons.Filled.Search,  Icons.Outlined.Search),
     BottomNavItem("Library", Screen.AllPlaylists.route, Icons.Filled.GridView, Icons.Outlined.GridView),
-    BottomNavItem("Settings", Screen.Settings.route, Icons.Filled.Settings, Icons.Outlined.Settings)
+    BottomNavItem("Profile", Screen.Settings.route,     Icons.Filled.Person,  Icons.Outlined.Person)
 )
 
 @Composable
@@ -137,7 +134,6 @@ fun NavGraph(
 
     Box(modifier = Modifier.fillMaxSize()) {
         Scaffold(
-            containerColor = MaterialTheme.colorScheme.background,
             bottomBar = {
                 if (shouldShowBottomBar) {
                     BottomNavigationBar(
@@ -150,7 +146,10 @@ fun NavGraph(
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier.padding(bottom = paddingValues.calculateBottomPadding())
+                modifier = Modifier.padding(
+                    top = paddingValues.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding()
+                )
             ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
@@ -202,9 +201,6 @@ fun NavGraph(
             composable(Screen.AllAlbums.route) {
                 AllAlbumsScreen(
                     mediaRepository = mediaRepository,
-                    onNavigateBack = {
-                        navController.popBackStack()
-                    }
                 )
             }
 
@@ -369,76 +365,60 @@ private fun BottomNavigationBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.background,
-        tonalElevation = 0.dp,
-        modifier = modifier
-    ) {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentRoute == item.route
-            if (item.isCenter) {
-                CenterNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
-            } else {
-                RegularNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
-            }
-        }
-    }
-}
-
-@Composable
-private fun RowScope.CenterNavItem(
-    item: BottomNavItem,
-    isSelected: Boolean,
-    onNavigate: (BottomNavItem) -> Unit,
-) {
-    NavigationBarItem(
-        selected = isSelected,
-        onClick = { onNavigate(item) },
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = item.selectedIcon,
-                    contentDescription = item.label,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp)
+//    Box(
+//        modifier = modifier
+//            .fillMaxWidth()
+//            .padding(horizontal = 21.dp, vertical = 12.dp)
+//    ) {
+        NavigationBar(
+            modifier = modifier
+                .fillMaxWidth(),
+//                .height(62.dp)
+//                .clip(RoundedCornerShape(31.dp)),
+            containerColor = SurfaceElevated,
+            tonalElevation = 8.dp
+        ) {
+            bottomNavItems.forEach { item ->
+                BottomNavBarItem(
+                    item = item,
+                    isSelected = currentRoute == item.route,
+                    onNavigate = onNavigate
                 )
             }
-        },
-        label = null,
-        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
-    )
+        }
+//    }
 }
 
 @Composable
-private fun RowScope.RegularNavItem(
+private fun RowScope.BottomNavBarItem(
     item: BottomNavItem,
     isSelected: Boolean,
-    onNavigate: (BottomNavItem) -> Unit,
+    onNavigate: (BottomNavItem) -> Unit
 ) {
-    val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
     NavigationBarItem(
         selected = isSelected,
-        onClick = { onNavigate(item) },
+        onClick = { if (!isSelected) onNavigate(item) },
         icon = {
             Icon(
                 imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                 contentDescription = item.label,
-                tint = tint
+                modifier = Modifier.size(22.dp)
             )
         },
         label = {
             Text(
                 text = item.label,
                 style = MaterialTheme.typography.labelSmall,
-                color = tint
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
             )
         },
-        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = Color.White,
+            selectedTextColor = Color.White,
+            indicatorColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = TextSecondary,
+            unselectedTextColor = TextSecondary
+        )
     )
 }
 

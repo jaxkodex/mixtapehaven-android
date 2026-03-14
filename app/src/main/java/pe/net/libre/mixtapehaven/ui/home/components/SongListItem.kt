@@ -1,7 +1,9 @@
 package pe.net.libre.mixtapehaven.ui.home.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CloudDone
-import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.FileDownload
 import androidx.compose.material.icons.filled.Pause
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
@@ -27,14 +29,20 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import pe.net.libre.mixtapehaven.ui.home.Song
 import pe.net.libre.mixtapehaven.ui.theme.AccentPrimary
 import pe.net.libre.mixtapehaven.ui.theme.BackgroundDeep
+import pe.net.libre.mixtapehaven.ui.theme.SoraFontFamily
+import pe.net.libre.mixtapehaven.ui.theme.StatusPositive
 import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextDisabled
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
+import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
 @Composable
 fun SongListItem(
@@ -46,7 +54,8 @@ fun SongListItem(
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
     onMoreClick: (() -> Unit)? = null,
-    showCardStyle: Boolean = false
+    showCardStyle: Boolean = false,
+    showTrackNumber: Boolean = true
 ) {
     if (showCardStyle) {
         CardStyleSongItem(
@@ -66,7 +75,8 @@ fun SongListItem(
             isCurrentSong = isCurrentSong,
             isPlaying = isPlaying,
             onPlayPauseClick = onPlayPauseClick,
-            onMoreClick = onMoreClick
+            onMoreClick = onMoreClick,
+            showTrackNumber = showTrackNumber
         )
     }
 }
@@ -154,6 +164,7 @@ private fun CardStyleSongItem(
     }
 }
 
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun ClassicSongItem(
     song: Song,
@@ -163,29 +174,35 @@ private fun ClassicSongItem(
     isCurrentSong: Boolean = false,
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
-    onMoreClick: (() -> Unit)? = null
+    onMoreClick: (() -> Unit)? = null,
+    showTrackNumber: Boolean = true
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onMoreClick
+            )
+            .padding(vertical = 12.dp),
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Track number (highlight if current song)
-        Text(
-            text = trackNumber.toString().padStart(2, '0'),
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isCurrentSong) AccentPrimary else AccentPrimary.copy(alpha = 0.6f),
-            modifier = Modifier.padding(end = 4.dp)
-        )
+        if (showTrackNumber) {
+            Text(
+                text = trackNumber.toString().padStart(2, '0'),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isCurrentSong) AccentPrimary else AccentPrimary.copy(alpha = 0.6f),
+                modifier = Modifier.padding(end = 4.dp)
+            )
+        }
 
         // Album art thumbnail
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .clip(RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(4.dp))
                 .background(SurfaceElevated),
             contentAlignment = Alignment.Center
         ) {
@@ -207,58 +224,53 @@ private fun ClassicSongItem(
         // Song info (title and artist)
         Column(
             modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.spacedBy(4.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                Text(
-                    text = song.title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false)
-                )
-                if (song.isDownloaded) {
-                    Icon(
-                        imageVector = Icons.Default.CloudDone,
-                        contentDescription = "Downloaded",
-                        tint = AccentPrimary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                }
-            }
+            Text(
+                text = song.title,
+                fontFamily = SoraFontFamily,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             Text(
                 text = song.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f),
+                color = TextSecondary,
                 maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.padding(top = 2.dp)
+                overflow = TextOverflow.Ellipsis
             )
         }
 
-        // Duration
-        Text(
-            text = song.duration,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-        )
-
-        // More button (three dots)
-        if (onMoreClick != null) {
-            IconButton(
-                onClick = onMoreClick,
-                modifier = Modifier.size(40.dp)
-            ) {
+        // Right side: download status icon + duration
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            if (song.isDownloaded) {
                 Icon(
-                    imageVector = Icons.Default.MoreVert,
-                    contentDescription = "More options",
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                    imageVector = Icons.Default.CheckCircle,
+                    contentDescription = "Downloaded",
+                    tint = StatusPositive,
+                    modifier = Modifier.size(16.dp)
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.Default.FileDownload,
+                    contentDescription = "Download",
+                    tint = TextDisabled,
+                    modifier = Modifier.size(16.dp)
                 )
             }
+            Text(
+                text = song.duration,
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = TextDisabled
+            )
         }
 
         // Play/Pause button (only show for current song)

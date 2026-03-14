@@ -22,12 +22,20 @@ private val fontProvider = GoogleFont.Provider(
 
 private val interFont = GoogleFont("Inter")
 private val jetbrainsMonoFont = GoogleFont("JetBrains Mono")
+private val soraFont = GoogleFont("Sora")
 
 val InterFontFamily = FontFamily(
     Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.Normal),
     Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.Medium),
     Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
     Font(googleFont = interFont, fontProvider = fontProvider, weight = FontWeight.Bold),
+)
+
+val SoraFontFamily = FontFamily(
+    Font(googleFont = soraFont, fontProvider = fontProvider, weight = FontWeight.Normal),
+    Font(googleFont = soraFont, fontProvider = fontProvider, weight = FontWeight.Medium),
+    Font(googleFont = soraFont, fontProvider = fontProvider, weight = FontWeight.SemiBold),
+    Font(googleFont = soraFont, fontProvider = fontProvider, weight = FontWeight.Bold),
 )
 
 val JetbrainsMonoFontFamily = FontFamily(

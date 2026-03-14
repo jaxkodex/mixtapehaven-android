@@ -18,6 +18,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -375,35 +376,47 @@ private fun BottomNavigationBar(
             tonalElevation = 8.dp
         ) {
             bottomNavItems.forEach { item ->
-                val selected = currentRoute == item.route
-                NavigationBarItem(
-                    selected = selected,
-                    onClick = { if (!selected) onNavigate(item) },
-                    icon = {
-                        Icon(
-                            imageVector = if (selected) item.selectedIcon else item.unselectedIcon,
-                            contentDescription = item.label,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    },
-                    label = {
-                        Text(
-                            text = item.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-                        )
-                    },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = Color.White,
-                        selectedTextColor = Color.White,
-                        indicatorColor = MaterialTheme.colorScheme.primary,
-                        unselectedIconColor = TextSecondary,
-                        unselectedTextColor = TextSecondary
-                    )
+                BottomNavBarItem(
+                    item = item,
+                    isSelected = currentRoute == item.route,
+                    onNavigate = onNavigate
                 )
             }
         }
 //    }
+}
+
+@Composable
+private fun RowScope.BottomNavBarItem(
+    item: BottomNavItem,
+    isSelected: Boolean,
+    onNavigate: (BottomNavItem) -> Unit
+) {
+    NavigationBarItem(
+        selected = isSelected,
+        onClick = { if (!isSelected) onNavigate(item) },
+        icon = {
+            Icon(
+                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
+                contentDescription = item.label,
+                modifier = Modifier.size(22.dp)
+            )
+        },
+        label = {
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+            )
+        },
+        colors = NavigationBarItemDefaults.colors(
+            selectedIconColor = Color.White,
+            selectedTextColor = Color.White,
+            indicatorColor = MaterialTheme.colorScheme.primary,
+            unselectedIconColor = TextSecondary,
+            unselectedTextColor = TextSecondary
+        )
+    )
 }
 
 @Composable

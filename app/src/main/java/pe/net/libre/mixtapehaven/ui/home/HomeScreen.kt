@@ -30,6 +30,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -216,14 +217,15 @@ private fun HomeGreetingHeader(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val greeting = remember { greetingText() }
         Text(
-            text = greetingText(),
+            text = greeting,
             style = MaterialTheme.typography.headlineLarge,
             fontWeight = FontWeight.Bold,
             color = TextPrimary
         )
         IconButton(
-            onClick = {},
+            onClick = { /* TODO: Navigate to notifications screen */ },
             modifier = Modifier.size(40.dp)
         ) {
             Icon(

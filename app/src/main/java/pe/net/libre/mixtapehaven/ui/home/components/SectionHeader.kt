@@ -51,7 +51,11 @@ fun SectionHeader(
             }
             if (onSeeMoreClick != null) {
                 TextButton(onClick = onSeeMoreClick) {
-                    Text("See All", color = AccentPrimary)
+                    Text(
+                        text = actionText,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = AccentPrimary
+                    )
                 }
             }
         }

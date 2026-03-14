@@ -46,7 +46,8 @@ fun SongListItem(
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
     onMoreClick: (() -> Unit)? = null,
-    showCardStyle: Boolean = false
+    showCardStyle: Boolean = false,
+    showTrackNumber: Boolean = true
 ) {
     if (showCardStyle) {
         CardStyleSongItem(
@@ -66,7 +67,8 @@ fun SongListItem(
             isCurrentSong = isCurrentSong,
             isPlaying = isPlaying,
             onPlayPauseClick = onPlayPauseClick,
-            onMoreClick = onMoreClick
+            onMoreClick = onMoreClick,
+            showTrackNumber = showTrackNumber
         )
     }
 }
@@ -163,23 +165,26 @@ private fun ClassicSongItem(
     isCurrentSong: Boolean = false,
     isPlaying: Boolean = false,
     onPlayPauseClick: (() -> Unit)? = null,
-    onMoreClick: (() -> Unit)? = null
+    onMoreClick: (() -> Unit)? = null,
+    showTrackNumber: Boolean = true
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 12.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Track number (highlight if current song)
-        Text(
-            text = trackNumber.toString().padStart(2, '0'),
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isCurrentSong) AccentPrimary else AccentPrimary.copy(alpha = 0.6f),
-            modifier = Modifier.padding(end = 4.dp)
-        )
+        if (showTrackNumber) {
+            Text(
+                text = trackNumber.toString().padStart(2, '0'),
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isCurrentSong) AccentPrimary else AccentPrimary.copy(alpha = 0.6f),
+                modifier = Modifier.padding(end = 4.dp)
+            )
+        }
 
         // Album art thumbnail
         Box(

@@ -1,7 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.home
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -16,19 +15,20 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CloudOff
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,15 +41,27 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import pe.net.libre.mixtapehaven.data.playback.PlaybackManager
 import pe.net.libre.mixtapehaven.data.repository.MediaRepository
+import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
 import pe.net.libre.mixtapehaven.ui.components.PlaylistActionHandler
 import pe.net.libre.mixtapehaven.ui.home.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.home.components.ArtistCircle
 import pe.net.libre.mixtapehaven.ui.home.components.PlaylistCard
 import pe.net.libre.mixtapehaven.ui.home.components.SectionHeader
 import pe.net.libre.mixtapehaven.ui.home.components.SongListItem
-import pe.net.libre.mixtapehaven.ui.components.OfflineBanner
+import pe.net.libre.mixtapehaven.ui.theme.Border
+import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
+import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
+import java.util.Calendar
 
-@OptIn(ExperimentalMaterial3Api::class)
+private fun greetingText(): String {
+    val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+    return when (hour) {
+        in 5..11 -> "Good Morning"
+        in 12..17 -> "Good Afternoon"
+        else -> "Good Evening"
+    }
+}
+
 @Composable
 fun HomeScreen(
     mediaRepository: MediaRepository,
@@ -87,55 +99,6 @@ fun HomeScreen(
     val playbackState by playbackManager.playbackState.collectAsState()
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Column {
-                        Text(
-                            text = if (uiState.isOfflineMode) "Mixtape Haven (Offline)" else "Mixtape Haven",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold,
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                        if (uiState.serverName.isNotEmpty()) {
-                            Text(
-                                text = "JELLYFIN SERVER: ${uiState.serverName.uppercase()}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                },
-                actions = {
-                    Box(modifier = Modifier.padding(end = 16.dp)) {
-                        Box(
-                            modifier = Modifier
-                                .size(40.dp)
-                                .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Person,
-                                contentDescription = "Profile",
-                                tint = MaterialTheme.colorScheme.onBackground
-                            )
-                        }
-                        if (!uiState.isOfflineMode) {
-                            Box(
-                                modifier = Modifier
-                                    .size(12.dp)
-                                    .background(MaterialTheme.colorScheme.primary, CircleShape)
-                                    .border(2.dp, MaterialTheme.colorScheme.background, CircleShape)
-                                    .align(Alignment.BottomEnd)
-                            )
-                        }
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.background
-                )
-            )
-        },
         containerColor = MaterialTheme.colorScheme.background
     ) { paddingValues ->
         PlaylistActionHandler(
@@ -189,12 +152,31 @@ fun HomeScreen(
                                 )
                             }
                         } else {
+                            item {
+                                HomeGreetingHeader()
+                            }
+                            item {
+                                HomeSearchBar(onNavigateToSearch = onNavigateToSearch)
+                            }
                             if (uiState.recentlyAddedAlbums.isNotEmpty()) {
                                 item {
                                     HomeRecentlyAddedSection(
                                         albums = uiState.recentlyAddedAlbums,
                                         onSeeMoreClick = { viewModel.onSeeMoreClick("recently_added") },
                                         onAlbumClick = { viewModel.onAlbumClick(it) }
+                                    )
+                                }
+                            }
+                            if (uiState.popularSongs.isNotEmpty()) {
+                                item {
+                                    HomePopularSongsSection(
+                                        songs = uiState.popularSongs,
+                                        currentSongId = playbackState.currentSong?.id,
+                                        isPlaying = playbackState.isPlaying,
+                                        onSeeMoreClick = null,
+                                        onSongClick = { viewModel.onSongClick(it) },
+                                        onPlayPauseClick = { viewModel.onPlayPauseClick() },
+                                        onSongMoreClick = { onSongMoreClick(it) }
                                     )
                                 }
                             }
@@ -216,23 +198,74 @@ fun HomeScreen(
                                     )
                                 }
                             }
-                            if (uiState.popularSongs.isNotEmpty()) {
-                                item {
-                                    HomePopularSongsSection(
-                                        songs = uiState.popularSongs,
-                                        currentSongId = playbackState.currentSong?.id,
-                                        isPlaying = playbackState.isPlaying,
-                                        onSeeMoreClick = { viewModel.onSeeMoreClick("popular_songs") },
-                                        onSongClick = { viewModel.onSongClick(it) },
-                                        onPlayPauseClick = { viewModel.onPlayPauseClick() },
-                                        onSongMoreClick = { onSongMoreClick(it) }
-                                    )
-                                }
-                            }
                         }
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+private fun HomeGreetingHeader(modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp, vertical = 0.dp)
+            .padding(top = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(
+            text = greetingText(),
+            style = MaterialTheme.typography.headlineLarge,
+            fontWeight = FontWeight.Bold,
+            color = TextPrimary
+        )
+        IconButton(
+            onClick = {},
+            modifier = Modifier.size(40.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Notifications,
+                contentDescription = "Notifications",
+                tint = TextPrimary
+            )
+        }
+    }
+}
+
+@Composable
+private fun HomeSearchBar(
+    onNavigateToSearch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 24.dp)
+            .padding(top = 24.dp)
+            .height(48.dp)
+            .clickable { onNavigateToSearch() },
+        shape = RoundedCornerShape(12.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant
+    ) {
+        Row(
+            modifier = Modifier.padding(start = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.Search,
+                contentDescription = null,
+                tint = TextSecondary,
+                modifier = Modifier.size(18.dp)
+            )
+            Text(
+                text = "Search songs, artists...",
+                style = MaterialTheme.typography.bodyMedium,
+                color = TextSecondary
+            )
         }
     }
 }
@@ -281,16 +314,20 @@ private fun HomeRecentlyAddedSection(
     onAlbumClick: (Album) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
-        Spacer(modifier = Modifier.height(16.dp))
+    Column(
+        modifier = modifier.padding(horizontal = 24.dp)
+    ) {
+        Spacer(modifier = Modifier.height(24.dp))
         SectionHeader(
-            title = "Recently Added",
+            title = "FEATURED",
             onSeeMoreClick = onSeeMoreClick,
-            actionText = "View All"
+            actionText = "See All",
+            accentBar = true
         )
+        Spacer(modifier = Modifier.height(12.dp))
         LazyRow(
-            contentPadding = PaddingValues(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            contentPadding = PaddingValues(0.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(albums) { album ->
                 AlbumCard(album = album, onClick = { onAlbumClick(album) })
@@ -360,25 +397,38 @@ private fun HomePopularSongsSection(
     songs: List<Song>,
     currentSongId: String?,
     isPlaying: Boolean,
-    onSeeMoreClick: () -> Unit,
+    onSeeMoreClick: (() -> Unit)?,
     onSongClick: (Song) -> Unit,
     onPlayPauseClick: () -> Unit,
     onSongMoreClick: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Column(modifier = modifier) {
+    Column(
+        modifier = modifier.padding(horizontal = 24.dp)
+    ) {
         Spacer(modifier = Modifier.height(24.dp))
-        SectionHeader(title = "Popular Songs", onSeeMoreClick = onSeeMoreClick)
-        songs.forEachIndexed { index, song ->
-            SongListItem(
-                song = song,
-                trackNumber = index + 1,
-                onClick = { onSongClick(song) },
-                isCurrentSong = currentSongId == song.id,
-                isPlaying = isPlaying,
-                onPlayPauseClick = onPlayPauseClick,
-                onMoreClick = { onSongMoreClick(song) }
-            )
+        SectionHeader(
+            title = "RECENTLY PLAYED",
+            onSeeMoreClick = onSeeMoreClick,
+            accentBar = true
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Column {
+            songs.forEachIndexed { index, song ->
+                if (index > 0) {
+                    HorizontalDivider(thickness = 1.dp, color = Border)
+                }
+                SongListItem(
+                    song = song,
+                    trackNumber = index + 1,
+                    onClick = { onSongClick(song) },
+                    isCurrentSong = currentSongId == song.id,
+                    isPlaying = isPlaying,
+                    onPlayPauseClick = onPlayPauseClick,
+                    onMoreClick = { onSongMoreClick(song) },
+                    showTrackNumber = false
+                )
+            }
         }
     }
 }

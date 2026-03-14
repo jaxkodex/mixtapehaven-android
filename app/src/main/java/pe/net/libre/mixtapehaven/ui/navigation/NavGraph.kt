@@ -1,30 +1,30 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.LibraryMusic
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.Home
-import androidx.compose.material.icons.outlined.LibraryMusic
+import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Search
-import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -33,9 +33,11 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -68,6 +70,8 @@ import pe.net.libre.mixtapehaven.ui.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsScreen
 import pe.net.libre.mixtapehaven.ui.settings.SettingsViewModel
 import pe.net.libre.mixtapehaven.ui.troubleshoot.TroubleshootScreen
+import pe.net.libre.mixtapehaven.ui.theme.SurfaceElevated
+import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
 sealed class Screen(val route: String) {
     data object Onboarding : Screen("onboarding")
@@ -93,16 +97,14 @@ data class BottomNavItem(
     val label: String,
     val route: String,
     val selectedIcon: ImageVector,
-    val unselectedIcon: ImageVector,
-    val isCenter: Boolean = false
+    val unselectedIcon: ImageVector
 )
 
 val bottomNavItems = listOf(
-    BottomNavItem("Home", Screen.Home.route, Icons.Filled.Home, Icons.Outlined.Home),
-    BottomNavItem("Browse", Screen.AllAlbums.route, Icons.Filled.LibraryMusic, Icons.Outlined.LibraryMusic),
-    BottomNavItem("Search", Screen.Search.route, Icons.Filled.Search, Icons.Outlined.Search, isCenter = true),
+    BottomNavItem("Home",    Screen.Home.route,         Icons.Filled.Home,    Icons.Outlined.Home),
+    BottomNavItem("Search",  Screen.Search.route,       Icons.Filled.Search,  Icons.Outlined.Search),
     BottomNavItem("Library", Screen.AllPlaylists.route, Icons.Filled.GridView, Icons.Outlined.GridView),
-    BottomNavItem("Settings", Screen.Settings.route, Icons.Filled.Settings, Icons.Outlined.Settings)
+    BottomNavItem("Profile", Screen.Settings.route,     Icons.Filled.Person,  Icons.Outlined.Person)
 )
 
 @Composable
@@ -369,77 +371,76 @@ private fun BottomNavigationBar(
     onNavigate: (BottomNavItem) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    NavigationBar(
-        containerColor = MaterialTheme.colorScheme.background,
-        tonalElevation = 0.dp,
+    Box(
         modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 21.dp, vertical = 12.dp)
     ) {
-        bottomNavItems.forEach { item ->
-            val isSelected = currentRoute == item.route
-            if (item.isCenter) {
-                CenterNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
-            } else {
-                RegularNavItem(item = item, isSelected = isSelected, onNavigate = onNavigate)
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(62.dp),
+            shape = RoundedCornerShape(31.dp),
+            color = SurfaceElevated,
+            shadowElevation = 8.dp
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                bottomNavItems.forEach { item ->
+                    val isSelected = currentRoute == item.route
+                    if (isSelected) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(24.dp))
+                                .background(MaterialTheme.colorScheme.primary)
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(
+                                    imageVector = item.selectedIcon,
+                                    contentDescription = item.label,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Text(
+                                    text = item.label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = Color.White,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                        }
+                    } else {
+                        Column(
+                            modifier = Modifier
+                                .clickable { onNavigate(item) }
+                                .padding(8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = item.unselectedIcon,
+                                contentDescription = item.label,
+                                tint = TextSecondary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Text(
+                                text = item.label,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = TextSecondary
+                            )
+                        }
+                    }
+                }
             }
         }
     }
-}
-
-@Composable
-private fun RowScope.CenterNavItem(
-    item: BottomNavItem,
-    isSelected: Boolean,
-    onNavigate: (BottomNavItem) -> Unit,
-) {
-    NavigationBarItem(
-        selected = isSelected,
-        onClick = { onNavigate(item) },
-        icon = {
-            Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .background(MaterialTheme.colorScheme.primary, CircleShape),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = item.selectedIcon,
-                    contentDescription = item.label,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(24.dp)
-                )
-            }
-        },
-        label = null,
-        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
-    )
-}
-
-@Composable
-private fun RowScope.RegularNavItem(
-    item: BottomNavItem,
-    isSelected: Boolean,
-    onNavigate: (BottomNavItem) -> Unit,
-) {
-    val tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-    NavigationBarItem(
-        selected = isSelected,
-        onClick = { onNavigate(item) },
-        icon = {
-            Icon(
-                imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
-                contentDescription = item.label,
-                tint = tint
-            )
-        },
-        label = {
-            Text(
-                text = item.label,
-                style = MaterialTheme.typography.labelSmall,
-                color = tint
-            )
-        },
-        colors = NavigationBarItemDefaults.colors(indicatorColor = Color.Transparent)
-    )
 }
 
 @Composable

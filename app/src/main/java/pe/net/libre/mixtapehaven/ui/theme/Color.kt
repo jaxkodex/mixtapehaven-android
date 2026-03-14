@@ -2,24 +2,29 @@ package pe.net.libre.mixtapehaven.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// Retro-Modern Design Palette
+// Retro-Modern Design Palette — aligned with Pencil design variables
 // Grayscale base so album art colors can pop without competing with interface tints
 
-// Base grayscale
-val BackgroundDeep  = Color(0xFF0D0D0D)   // App background
-val Surface         = Color(0xFF1A1A1A)   // Cards, sheets
-val SurfaceElevated = Color(0xFF242424)   // Elevated cards, modals
-val Border          = Color(0xFF2E2E2E)   // Dividers, outlines
-val SurfaceActive   = Color(0xFF3E3E42)   // Hover/active states
-val TextPrimary     = Color(0xFFF5F5F5)   // Primary text (off-white)
-val TextSecondary   = Color(0xFFA0A0A0)   // Artist names, captions
-val TextDisabled    = Color(0xFF666666)   // Inactive elements
+// Base grayscale (--bg-page, --bg-card, --bg-elevated, --border-*, surface-active)
+val BackgroundDeep  = Color(0xFF0C0C0C)   // --bg-page:      App background
+val Surface         = Color(0xFF1A1A1A)   // --bg-card:      Cards, sheets
+val SurfaceElevated = Color(0xFF242424)   // --bg-elevated:  Elevated cards, modals
+val Border          = Color(0xFF2A2A2A)   // --border-default: Dividers, outlines
+val BorderStrong    = Color(0xFF3A3A3A)   // --border-strong:  Stronger separators, strokes
+val SurfaceActive   = Color(0xFF3A3A3A)   // Hover/active states (closest: --border-strong)
+
+// Text (--text-primary, --text-secondary, --text-muted)
+val TextPrimary     = Color(0xFFFFFFFF)   // --text-primary:   Primary text
+val TextSecondary   = Color(0xFF8A8A8A)   // --text-secondary: Artist names, captions
+val TextDisabled    = Color(0xFF525252)   // --text-muted:     Inactive elements
 
 // Accent palette
-val AccentPrimary   = Color(0xFF1ED760)   // Primary actions, progress bar, CTA buttons
-val AccentSecondary = Color(0xFFFFB74D)   // Timestamps, secondary highlights
+val AccentPrimary   = Color(0xFF32D74B)   // --status-positive: Primary actions, CTA buttons
+val AccentSecondary = Color(0xFFFFB74D)   // Warm amber — timestamps, secondary highlights
 val AccentGlow      = Color(0xFF00FF00)   // Decorative only — use at 15–30% opacity
 val AccentNeonCyan  = Color(0xFF00E5FF)   // Tertiary accent, links
 
 // Semantic
-val ErrorRed        = Color(0xFFCF6679)   // Error states (WCAG-compliant on dark)
+val AccentRed       = Color(0xFFFF3B30)   // --accent-red:      Destructive actions
+val AccentRedSoft   = Color(0x20FF3B30)   // --accent-red-soft: Destructive bg tint (~12% opacity)
+val ErrorRed        = Color(0xFFFF453A)   // --status-negative: Error states

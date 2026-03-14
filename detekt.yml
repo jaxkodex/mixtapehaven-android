@@ -53,9 +53,11 @@ Compose:
     active: true
   MultipleEmitters:
     active: true
+  MutableParams:
+    active: true
   MutableStateAutoboxing:
     active: true
-  MutableStateParameter:
+  MutableStateParam:
     active: true
   ComposableNaming:
     active: true
@@ -64,6 +66,16 @@ Compose:
   PreviewNaming:
     active: true
   PreviewPublic:
+    active: true
+  LambdaParameterInRestartableEffect:
+    active: true
+  Material2:
+    active: true
+  ModifierComposed:
+    active: true
+  ModifierNotUsedAtRoot:
+    active: true
+  RememberContentMissing:
     active: true
   RememberMissing:
     active: true

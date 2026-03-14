@@ -146,7 +146,10 @@ fun NavGraph(
             NavHost(
                 navController = navController,
                 startDestination = startDestination,
-                modifier = Modifier.padding(top = paddingValues.calculateTopPadding(), bottom = paddingValues.calculateBottomPadding())
+                modifier = Modifier.padding(
+                    top = paddingValues.calculateTopPadding(),
+                    bottom = paddingValues.calculateBottomPadding()
+                )
             ) {
             composable(Screen.Onboarding.route) {
                 OnboardingScreen(
@@ -368,7 +371,7 @@ private fun BottomNavigationBar(
 //            .padding(horizontal = 21.dp, vertical = 12.dp)
 //    ) {
         NavigationBar(
-            modifier = Modifier
+            modifier = modifier
                 .fillMaxWidth(),
 //                .height(62.dp)
 //                .clip(RoundedCornerShape(31.dp)),

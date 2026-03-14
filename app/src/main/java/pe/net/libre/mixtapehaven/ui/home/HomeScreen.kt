@@ -225,7 +225,7 @@ private fun HomeGreetingHeader(modifier: Modifier = Modifier) {
             color = TextPrimary
         )
         IconButton(
-            onClick = { /* TODO: Navigate to notifications screen */ },
+            onClick = { /* Navigate to notifications screen (not yet implemented) */ },
             modifier = Modifier.size(40.dp)
         ) {
             Icon(
@@ -439,7 +439,7 @@ private fun HomePopularSongsSection(
 
 @Preview(showBackground = true, name = "Home – Greeting Header")
 @Composable
-private fun PreviewHomeGreetingHeader() {
+internal fun HomeGreetingHeaderPreview() {
     MixtapeHavenTheme {
         HomeGreetingHeader()
     }
@@ -447,7 +447,7 @@ private fun PreviewHomeGreetingHeader() {
 
 @Preview(showBackground = true, name = "Home – Search Bar")
 @Composable
-private fun PreviewHomeSearchBar() {
+internal fun HomeSearchBarPreview() {
     MixtapeHavenTheme {
         HomeSearchBar(onNavigateToSearch = {})
     }
@@ -455,7 +455,7 @@ private fun PreviewHomeSearchBar() {
 
 @Preview(showBackground = true, name = "Home – Recently Played Section")
 @Composable
-private fun PreviewHomePopularSongsSection() {
+internal fun HomePopularSongsSectionPreview() {
     MixtapeHavenTheme {
         HomePopularSongsSection(
             songs = mockPopularSongs,
@@ -471,7 +471,7 @@ private fun PreviewHomePopularSongsSection() {
 
 @Preview(showBackground = true, name = "Home – Full Content")
 @Composable
-private fun PreviewHomeFullContent() {
+internal fun HomeFullContentPreview() {
     MixtapeHavenTheme {
         Column(modifier = Modifier.fillMaxWidth()) {
             HomeGreetingHeader()

@@ -103,7 +103,7 @@ fun AllSongsScreen(
             )
         },
         containerColor = BackgroundDeep
-    ) {
+    ) { paddingValues ->
         PlaylistActionHandler(
             mediaRepository = mediaRepository,
             playbackManager = playbackManager,
@@ -112,6 +112,7 @@ fun AllSongsScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
         ) {
             when {
                 uiState.isLoading -> {

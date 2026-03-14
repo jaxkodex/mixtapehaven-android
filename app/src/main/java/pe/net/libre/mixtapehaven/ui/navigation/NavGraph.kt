@@ -377,69 +377,72 @@ private fun BottomNavigationBar(
             .padding(horizontal = 21.dp, vertical = 12.dp)
     ) {
         Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(62.dp),
+            modifier = Modifier.fillMaxWidth().height(62.dp),
             shape = RoundedCornerShape(31.dp),
             color = SurfaceElevated,
             shadowElevation = 8.dp
         ) {
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 bottomNavItems.forEach { item ->
-                    val isSelected = currentRoute == item.route
-                    if (isSelected) {
-                        Box(
-                            modifier = Modifier
-                                .clip(RoundedCornerShape(24.dp))
-                                .background(MaterialTheme.colorScheme.primary)
-                                .padding(horizontal = 16.dp, vertical = 8.dp)
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Icon(
-                                    imageVector = item.selectedIcon,
-                                    contentDescription = item.label,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(22.dp)
-                                )
-                                Text(
-                                    text = item.label,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
+                    if (currentRoute == item.route) {
+                        ActivePillNavItem(item = item)
                     } else {
-                        Column(
-                            modifier = Modifier
-                                .clickable { onNavigate(item) }
-                                .padding(8.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Icon(
-                                imageVector = item.unselectedIcon,
-                                contentDescription = item.label,
-                                tint = TextSecondary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Text(
-                                text = item.label,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = TextSecondary
-                            )
-                        }
+                        InactivePillNavItem(item = item, onNavigate = onNavigate)
                     }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun ActivePillNavItem(item: BottomNavItem) {
+    Box(
+        modifier = Modifier
+            .clip(RoundedCornerShape(24.dp))
+            .background(MaterialTheme.colorScheme.primary)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+            Icon(
+                imageVector = item.selectedIcon,
+                contentDescription = item.label,
+                tint = Color.White,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = item.label,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+        }
+    }
+}
+
+@Composable
+private fun InactivePillNavItem(item: BottomNavItem, onNavigate: (BottomNavItem) -> Unit) {
+    Column(
+        modifier = Modifier
+            .clickable { onNavigate(item) }
+            .padding(8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Icon(
+            imageVector = item.unselectedIcon,
+            contentDescription = item.label,
+            tint = TextSecondary,
+            modifier = Modifier.size(22.dp)
+        )
+        Text(
+            text = item.label,
+            style = MaterialTheme.typography.labelSmall,
+            color = TextSecondary
+        )
     }
 }
 

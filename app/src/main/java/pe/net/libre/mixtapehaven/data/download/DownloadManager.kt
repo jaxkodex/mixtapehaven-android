@@ -134,13 +134,18 @@ class DownloadManager(
         val target = File(downloadsDir, id)
         val part = File(downloadsDir, "$id.part")
         val saved = runCatching { streamToFile(url, part, track) }
-            .onFailure { part.delete() }
+            .onFailure { deleteQuietly(part) }
             .getOrThrow()
         if (saved && part.renameTo(target)) {
             dao.upsert(track.toDownloadedTrack(id, target.path, target.length()))
         } else {
-            part.delete()
+            deleteQuietly(part)
         }
+    }
+
+    /** Best-effort delete that consumes [File.delete]'s result, logging when a file can't be removed. */
+    private fun deleteQuietly(file: File) {
+        if (file.exists() && !file.delete()) Log.w(TAG, "Could not delete ${file.name}")
     }
 
     /** The stream URL to download for [id], or null if it is already saved or storage is low. */

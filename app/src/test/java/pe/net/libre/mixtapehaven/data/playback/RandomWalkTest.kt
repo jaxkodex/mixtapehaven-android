@@ -38,4 +38,30 @@ class RandomWalkTest {
 
         assertEquals(listOf(null), fresh.map { it.id })
     }
+
+    @Test
+    fun `selectFreshBatch returns unseen tracks capped at the batch size`() {
+        val fetched = listOf(track("1"), track("2"), track("3"))
+
+        val fresh = selectFreshBatch(fetched, recentIds = setOf("1"), batchSize = 1)
+
+        assertEquals(listOf("2"), fresh.map { it.id })
+    }
+
+    @Test
+    fun `selectFreshBatch falls back to the fetched batch when the window covers everything`() {
+        // Small library: every fetched id is in the recent window, so dedupe alone would stall.
+        val fetched = listOf(track("1"), track("2"))
+
+        val fresh = selectFreshBatch(fetched, recentIds = setOf("1", "2"), batchSize = 50)
+
+        assertEquals(listOf("1", "2"), fresh.map { it.id })
+    }
+
+    @Test
+    fun `selectFreshBatch returns empty when nothing was fetched`() {
+        val fresh = selectFreshBatch(emptyList(), recentIds = setOf("1"), batchSize = 50)
+
+        assertEquals(emptyList<String>(), fresh.map { it.id })
+    }
 }

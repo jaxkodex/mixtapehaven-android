@@ -107,6 +107,10 @@ class PlayerController(
     /** Set the origin label for the next queue; call before [play] when starting a new source. */
     fun setSource(source: PlaybackSource) {
         _source.value = source
+        // Leaving Random Walk: stop the endless refill so its tracks aren't appended to other queues.
+        if (source != PlaybackSource.RANDOM_WALK) {
+            onQueueRunningLow = null
+        }
     }
 
     /** Replace the queue with [queue] and start playback at [startIndex]. */

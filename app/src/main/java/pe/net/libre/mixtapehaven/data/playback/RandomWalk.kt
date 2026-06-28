@@ -31,7 +31,11 @@ class RandomWalk(
      */
     private suspend fun nextBatch(): List<Track> {
         val fetched = repository.randomTracks(batchSize + recentIds.size)
-        val fresh = filterRecent(fetched, recentIds.toSet()).take(batchSize)
+        val recent = recentIds.toSet()
+        // Small library: the recent window can cover everything, so the dedupe falls back to the raw
+        // batch. Reset the stale history in that case rather than letting it stall the queue.
+        if (fetched.isNotEmpty() && filterRecent(fetched, recent).isEmpty()) recentIds.clear()
+        val fresh = selectFreshBatch(fetched, recent, batchSize)
         rememberPlayed(fresh)
         return fresh
     }
@@ -46,7 +50,9 @@ class RandomWalk(
 
     private companion object {
         const val DEFAULT_BATCH_SIZE = 50
-        const val RECENT_WINDOW = 50
+        // A multiple of the batch size so a fresh batch never evicts the whole previous one, keeping
+        // just-played tracks out of the next refill.
+        const val RECENT_WINDOW = 150
     }
 }
 
@@ -57,3 +63,14 @@ class RandomWalk(
  */
 internal fun filterRecent(tracks: List<Track>, recentIds: Set<String>): List<Track> =
     tracks.filter { it.id !in recentIds }
+
+/**
+ * Pick up to [batchSize] tracks from [fetched] that aren't in [recentIds]. If every fetched track is
+ * in the recent window (a small library whose history covers it all), fall back to the raw [fetched]
+ * batch so the endless queue never stalls. Pure for unit coverage.
+ */
+internal fun selectFreshBatch(
+    fetched: List<Track>,
+    recentIds: Set<String>,
+    batchSize: Int,
+): List<Track> = filterRecent(fetched, recentIds).ifEmpty { fetched }.take(batchSize)

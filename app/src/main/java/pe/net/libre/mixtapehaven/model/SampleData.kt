@@ -2,7 +2,10 @@ package pe.net.libre.mixtapehaven.model
 
 import androidx.compose.ui.graphics.Color
 
-/** A single track. [artColor] drives the vinyl artwork tint since there are no real images yet. */
+/**
+ * A single track. [imageUrl] is the real album art when available; [artColor] is the vinyl-tint
+ * fallback used for previews and when no artwork exists. [id] is the Jellyfin item id.
+ */
 data class Track(
     val title: String,
     val artist: String,
@@ -10,6 +13,8 @@ data class Track(
     val artColor: Color,
     val downloaded: Boolean = false,
     val sizeLabel: String = "",
+    val id: String? = null,
+    val imageUrl: String? = null,
 )
 
 /** An album/mixtape tile on the Home grid. */
@@ -18,6 +23,8 @@ data class Album(
     val artist: String,
     val artColor: Color,
     val downloaded: Boolean = true,
+    val id: String? = null,
+    val imageUrl: String? = null,
 )
 
 private val Coral = Color(0xFFC65B4E)

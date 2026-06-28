@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.filled.SkipPrevious
 import androidx.compose.material.icons.outlined.KeyboardArrowDown
@@ -29,21 +30,15 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.SliderDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.model.SampleData
-import pe.net.libre.mixtapehaven.ui.components.SectionHeader
-import pe.net.libre.mixtapehaven.ui.components.SurfaceCard
-import pe.net.libre.mixtapehaven.ui.components.TrackRow
-import pe.net.libre.mixtapehaven.ui.components.VinylArt
+import pe.net.libre.mixtapehaven.di.appViewModel
+import pe.net.libre.mixtapehaven.ui.components.Artwork
 import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.AccentInk
 import pe.net.libre.mixtapehaven.ui.theme.Bg
@@ -54,7 +49,13 @@ import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
 @Composable
 fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    var progress by remember { mutableFloatStateOf(0.4f) }
+    val viewModel = appViewModel { NowPlayingViewModel(it.playerController) }
+    val track by viewModel.nowPlaying.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
+    val positionMs by viewModel.positionMs.collectAsState()
+    val durationMs by viewModel.durationMs.collectAsState()
+
+    val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     Column(
         modifier = modifier
@@ -86,7 +87,7 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    "Random Walk",
+                    "Your library",
                     style = MaterialTheme.typography.labelMedium,
                     color = Accent,
                     textAlign = TextAlign.Center,
@@ -101,28 +102,24 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
 
         // Hero album art
-        VinylArt(
-            SampleData.nowPlaying.artColor,
-            Modifier.fillMaxWidth().aspectRatio(1f).padding(vertical = 8.dp),
+        Artwork(
+            color = track?.artColor ?: Surface2,
+            imageUrl = track?.imageUrl,
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f).padding(vertical = 8.dp),
             corner = 20.dp,
         )
 
         // Track info
         Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
-                SampleData.nowPlaying.title,
+                track?.title ?: "Nothing playing",
                 style = MaterialTheme.typography.headlineMedium,
                 color = TextPrimary,
             )
             Text(
-                SampleData.nowPlaying.artist,
+                track?.artist.orEmpty(),
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
-            )
-            Text(
-                "SAVING OFFLINE · 60%",
-                style = MaterialTheme.typography.labelSmall,
-                color = Accent,
             )
         }
 
@@ -130,7 +127,7 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         Column {
             Slider(
                 value = progress,
-                onValueChange = { progress = it },
+                onValueChange = viewModel::seekToFraction,
                 colors = SliderDefaults.colors(
                     thumbColor = Accent,
                     activeTrackColor = Accent,
@@ -141,8 +138,8 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
-                Text("2:11", style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                Text("5:40", style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                Text(formatTime(positionMs), style = MaterialTheme.typography.bodySmall, color = TextMuted)
+                Text(formatTime(durationMs), style = MaterialTheme.typography.bodySmall, color = TextMuted)
             }
         }
 
@@ -162,19 +159,19 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Icons.Filled.SkipPrevious,
                 contentDescription = "Previous",
                 tint = TextPrimary,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(32.dp).clickable(onClick = viewModel::previous),
             )
             Box(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
                     .background(Accent)
-                    .clickable {},
+                    .clickable(onClick = viewModel::playPause),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
-                    Icons.Filled.Pause,
-                    contentDescription = "Pause",
+                    if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                    contentDescription = if (isPlaying) "Pause" else "Play",
                     tint = AccentInk,
                     modifier = Modifier.size(36.dp),
                 )
@@ -183,7 +180,7 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Icons.Filled.SkipNext,
                 contentDescription = "Next",
                 tint = TextPrimary,
-                modifier = Modifier.size(32.dp),
+                modifier = Modifier.size(32.dp).clickable(onClick = viewModel::next),
             )
             Icon(
                 Icons.Outlined.Repeat,
@@ -192,23 +189,13 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(24.dp),
             )
         }
-
-        // Up next
-        SurfaceCard(Modifier.fillMaxWidth()) {
-            Column(
-                Modifier.padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SectionHeader(
-                    "Up next on your walk",
-                    actionLabel = "Queue",
-                    onAction = {},
-                )
-                TrackRow(SampleData.upNext, onClick = {})
-            }
-        }
     }
 }
 
-@Suppress("unused")
-private val unused: Color = Color.Unspecified
+private fun formatTime(ms: Long): String {
+    if (ms <= 0) return "0:00"
+    val totalSeconds = ms / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%d:%02d".format(minutes, seconds)
+}

@@ -26,11 +26,13 @@ import androidx.compose.material.icons.outlined.Lock
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -40,10 +42,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.model.SampleData
+import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.AccentInk
 import pe.net.libre.mixtapehaven.ui.theme.Stroke
@@ -54,9 +55,8 @@ import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
 @Composable
 fun LoginScreen(onConnect: () -> Unit, modifier: Modifier = Modifier) {
-    var server by remember { mutableStateOf(TextFieldValue("https://${SampleData.SERVER_HOST}")) }
-    var username by remember { mutableStateOf(TextFieldValue(SampleData.USER_NAME.lowercase())) }
-    var password by remember { mutableStateOf(TextFieldValue("password")) }
+    val viewModel = appViewModel { LoginViewModel(it.repository) }
+    val state by viewModel.state.collectAsState()
     var passwordVisible by remember { mutableStateOf(false) }
 
     Column(
@@ -101,22 +101,22 @@ fun LoginScreen(onConnect: () -> Unit, modifier: Modifier = Modifier) {
         LoginField(
             label = "SERVER ADDRESS",
             leadingIcon = Icons.Outlined.Link,
-            value = server,
-            onValueChange = { server = it },
+            value = state.server,
+            onValueChange = viewModel::onServerChange,
         )
 
         LoginField(
             label = "USERNAME",
             leadingIcon = Icons.Outlined.Person,
-            value = username,
-            onValueChange = { username = it },
+            value = state.username,
+            onValueChange = viewModel::onUsernameChange,
         )
 
         LoginField(
             label = "PASSWORD",
             leadingIcon = Icons.Outlined.Lock,
-            value = password,
-            onValueChange = { password = it },
+            value = state.password,
+            onValueChange = viewModel::onPasswordChange,
             visualTransformation = if (passwordVisible) {
                 VisualTransformation.None
             } else {
@@ -126,6 +126,14 @@ fun LoginScreen(onConnect: () -> Unit, modifier: Modifier = Modifier) {
             onTrailingClick = { passwordVisible = !passwordVisible },
         )
 
+        if (state.error != null) {
+            Text(
+                state.error.orEmpty(),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+            )
+        }
+
         Spacer(Modifier.height(8.dp))
 
         // Primary Connect button.
@@ -134,19 +142,27 @@ fun LoginScreen(onConnect: () -> Unit, modifier: Modifier = Modifier) {
                 .fillMaxWidth()
                 .clip(RoundedCornerShape(14.dp))
                 .background(Accent)
-                .clickable(onClick = onConnect)
+                .clickable(enabled = !state.loading) { viewModel.connect(onConnect) }
                 .padding(vertical = 16.dp),
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text("Connect", style = MaterialTheme.typography.titleMedium, color = AccentInk)
-            Spacer(Modifier.size(8.dp))
-            Icon(
-                Icons.Filled.ArrowForward,
-                contentDescription = null,
-                tint = AccentInk,
-                modifier = Modifier.size(18.dp),
-            )
+            if (state.loading) {
+                CircularProgressIndicator(
+                    color = AccentInk,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(18.dp),
+                )
+            } else {
+                Text("Connect", style = MaterialTheme.typography.titleMedium, color = AccentInk)
+                Spacer(Modifier.size(8.dp))
+                Icon(
+                    Icons.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = AccentInk,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
         }
 
         Text(
@@ -163,15 +179,14 @@ fun LoginScreen(onConnect: () -> Unit, modifier: Modifier = Modifier) {
 private fun LoginField(
     label: String,
     leadingIcon: ImageVector,
-    value: TextFieldValue,
-    onValueChange: (TextFieldValue) -> Unit,
-    modifier: Modifier = Modifier,
+    value: String,
+    onValueChange: (String) -> Unit,
     visualTransformation: VisualTransformation = VisualTransformation.None,
     trailingIcon: ImageVector? = null,
     onTrailingClick: (() -> Unit)? = null,
 ) {
     Column(
-        modifier = modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Text(label, style = MaterialTheme.typography.labelMedium, color = TextMuted)

@@ -6,6 +6,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
@@ -38,7 +39,7 @@ class SearchViewModel(
                 .map { it.trim() }
                 .debounce(DEBOUNCE_MS)
                 .distinctUntilChanged()
-                .collect { query -> runSearch(query) }
+                .collectLatest { query -> runSearch(query) }
         }
     }
 

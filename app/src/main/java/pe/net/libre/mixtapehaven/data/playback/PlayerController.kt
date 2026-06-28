@@ -56,28 +56,25 @@ class PlayerController(
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             updateNowPlaying(mediaItem)
         }
+
+        override fun onPositionDiscontinuity(
+            oldPosition: Player.PositionInfo,
+            newPosition: Player.PositionInfo,
+            reason: Int,
+        ) {
+            // Reflect seeks/transitions immediately, even while paused.
+            _positionMs.value = newPosition.positionMs.coerceAtLeast(0)
+        }
     }
 
     init {
-        val token = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
-        val future = MediaController.Builder(appContext, token).buildAsync()
-        future.addListener(
-            {
-                val c = future.get()
-                controller = c
-                c.addListener(listener)
-                _isPlaying.value = c.isPlaying
-                updateNowPlaying(c.currentMediaItem)
-                pendingAction?.invoke()
-                pendingAction = null
-            },
-            ContextCompat.getMainExecutor(appContext),
-        )
+        connect()
         scope.launch {
             while (isActive) {
-                controller?.let {
-                    _positionMs.value = it.currentPosition.coerceAtLeast(0)
-                    _durationMs.value = it.duration.coerceAtLeast(0)
+                activeController()?.let { c ->
+                    _durationMs.value = c.duration.coerceAtLeast(0)
+                    // Position only advances while playing; seeks are handled by the listener.
+                    if (c.isPlaying) _positionMs.value = c.currentPosition.coerceAtLeast(0)
                 }
                 delay(PROGRESS_INTERVAL_MS)
             }
@@ -99,26 +96,33 @@ class PlayerController(
             c.prepare()
             c.play()
         }
-        if (controller != null) action() else pendingAction = action
+        val c = controller
+        if (c != null && c.isConnected) {
+            action()
+        } else {
+            // The service may have been destroyed, leaving a dead controller; rebuild it.
+            pendingAction = action
+            if (c != null) reconnect()
+        }
     }
 
     fun playPause() {
-        val c = controller ?: return
+        val c = activeController() ?: return
         if (c.isPlaying) c.pause() else c.play()
     }
 
-    fun next() = controller?.seekToNextMediaItem() ?: Unit
+    fun next() = activeController()?.seekToNextMediaItem() ?: Unit
 
-    fun previous() = controller?.seekToPreviousMediaItem() ?: Unit
+    fun previous() = activeController()?.seekToPreviousMediaItem() ?: Unit
 
     fun seekToFraction(fraction: Float) {
-        val c = controller ?: return
+        val c = activeController() ?: return
         val duration = c.duration
         if (duration > 0) c.seekTo((duration * fraction).toLong())
     }
 
     fun stop() {
-        controller?.run {
+        activeController()?.run {
             stop()
             clearMediaItems()
         }
@@ -127,6 +131,33 @@ class PlayerController(
         _isPlaying.value = false
         _positionMs.value = 0
         _durationMs.value = 0
+    }
+
+    /** The controller only if it is still connected to a live service, else null. */
+    private fun activeController(): MediaController? = controller?.takeIf { it.isConnected }
+
+    private fun connect() {
+        val token = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
+        val future = MediaController.Builder(appContext, token).buildAsync()
+        future.addListener(
+            {
+                val c = future.get()
+                controller = c
+                c.addListener(listener)
+                _isPlaying.value = c.isPlaying
+                updateNowPlaying(c.currentMediaItem)
+                pendingAction?.invoke()
+                pendingAction = null
+            },
+            ContextCompat.getMainExecutor(appContext),
+        )
+    }
+
+    private fun reconnect() {
+        controller?.removeListener(listener)
+        controller?.release()
+        controller = null
+        connect()
     }
 
     private fun updateNowPlaying(mediaItem: MediaItem?) {

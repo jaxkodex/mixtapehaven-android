@@ -45,7 +45,9 @@ class JellyfinRepository(
     /** Authenticate against [serverUrl] and persist the session on success. */
     suspend fun authenticate(serverUrl: String, username: String, password: String): Result<Unit> =
         runCatching {
-            val baseUrl = serverUrl.trim().trimEnd('/')
+            val baseUrl = serverUrl.trim().trimEnd('/').let {
+                if (it.startsWith("http://") || it.startsWith("https://")) it else "https://$it"
+            }
             val client = jellyfin.createApi(baseUrl = baseUrl)
             val result by client.userApi.authenticateUserByName(username = username, password = password)
             val token = requireNotNull(result.accessToken) { "Server returned no access token" }

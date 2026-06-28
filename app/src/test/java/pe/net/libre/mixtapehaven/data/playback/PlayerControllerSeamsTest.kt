@@ -53,4 +53,10 @@ class PlayerControllerSeamsTest {
         assertTrue(shouldRefillQueue(currentIndex = 2, itemCount = 5, threshold = 3))
         assertTrue(shouldRefillQueue(currentIndex = 4, itemCount = 5, threshold = 3))
     }
+
+    @Test
+    fun `shouldRefillQueue never refills an empty queue`() {
+        // A stopped/cleared player reports itemCount 0; it must stay stopped, not refill.
+        assertFalse(shouldRefillQueue(currentIndex = 0, itemCount = 0, threshold = 3))
+    }
 }

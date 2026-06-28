@@ -3,14 +3,17 @@ package pe.net.libre.mixtapehaven.data.playback
 import android.content.ComponentName
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
 import androidx.media3.common.Player
 import androidx.media3.session.MediaController
 import androidx.media3.session.SessionToken
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -47,6 +50,7 @@ class PlayerController(
     private var controller: MediaController? = null
     private var pendingAction: (() -> Unit)? = null
     private var refilling = false
+    private var refillJob: Job? = null
     private val tracksById = mutableMapOf<String, Track>()
 
     private val _nowPlaying = MutableStateFlow<Track?>(null)
@@ -99,6 +103,9 @@ class PlayerController(
     fun play(queue: List<Track>, startIndex: Int = 0) {
         val action = action@{
             val c = controller ?: return@action
+            // Drop any in-flight refill so its tracks aren't appended to this new queue.
+            refillJob?.cancel()
+            refilling = false
             val items = buildItems(queue)
             if (items.isEmpty()) return@action
             c.setMediaItems(items, startIndex.coerceIn(0, items.lastIndex), 0L)
@@ -163,9 +170,16 @@ class PlayerController(
         if (refill == null || c == null || refilling) return
         if (!shouldRefillQueue(c.currentMediaItemIndex, c.mediaItemCount, REFILL_THRESHOLD)) return
         refilling = true
-        scope.launch {
+        refillJob = scope.launch {
             try {
-                val items = buildItems(refill())
+                // The refill hook may do network/IO; a failure must not crash playback, but
+                // cancellation (e.g. a new play()) must still propagate to end the coroutine.
+                val items = runCatching { buildItems(refill()) }
+                    .onFailure {
+                        if (it is CancellationException) throw it
+                        Log.w(TAG, "Queue refill failed", it)
+                    }
+                    .getOrDefault(emptyList())
                 if (items.isNotEmpty()) activeController()?.addMediaItems(items)
             } finally {
                 refilling = false
@@ -215,6 +229,7 @@ class PlayerController(
     }
 
     private companion object {
+        const val TAG = "PlayerController"
         const val PROGRESS_INTERVAL_MS = 500L
         const val REFILL_THRESHOLD = 3
     }
@@ -239,7 +254,10 @@ internal fun resolvePlayables(
 
 /**
  * True when fewer than [threshold] items remain after [currentIndex] in a queue of [itemCount],
- * signalling that the refill hook should be invoked.
+ * signalling that the refill hook should be invoked. An empty queue ([itemCount] == 0) never
+ * refills: a stopped/cleared player reports an empty queue and must stay stopped.
  */
-internal fun shouldRefillQueue(currentIndex: Int, itemCount: Int, threshold: Int): Boolean =
-    itemCount - currentIndex - 1 < threshold
+internal fun shouldRefillQueue(currentIndex: Int, itemCount: Int, threshold: Int): Boolean {
+    if (itemCount == 0) return false
+    return itemCount - currentIndex - 1 < threshold
+}

@@ -54,6 +54,7 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val isPlaying by viewModel.isPlaying.collectAsState()
     val positionMs by viewModel.positionMs.collectAsState()
     val durationMs by viewModel.durationMs.collectAsState()
+    val source by viewModel.source.collectAsState()
 
     val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
@@ -87,7 +88,7 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                     textAlign = TextAlign.Center,
                 )
                 Text(
-                    "Your library",
+                    source.label,
                     style = MaterialTheme.typography.labelMedium,
                     color = Accent,
                     textAlign = TextAlign.Center,

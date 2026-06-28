@@ -47,6 +47,11 @@ class PlayerController(
      */
     var onQueueRunningLow: (suspend () -> List<Track>)? = null
 
+    private val _source = MutableStateFlow(PlaybackSource.LIBRARY)
+
+    /** The origin of the current queue, surfaced as the "PLAYING FROM" label on Now Playing. */
+    val source: StateFlow<PlaybackSource> = _source.asStateFlow()
+
     private var controller: MediaController? = null
     private var pendingAction: (() -> Unit)? = null
     private var refilling = false
@@ -97,6 +102,11 @@ class PlayerController(
                 delay(PROGRESS_INTERVAL_MS)
             }
         }
+    }
+
+    /** Set the origin label for the next queue; call before [play] when starting a new source. */
+    fun setSource(source: PlaybackSource) {
+        _source.value = source
     }
 
     /** Replace the queue with [queue] and start playback at [startIndex]. */
@@ -233,6 +243,12 @@ class PlayerController(
         const val PROGRESS_INTERVAL_MS = 500L
         const val REFILL_THRESHOLD = 3
     }
+}
+
+/** Where the current queue came from; [label] is shown as the "PLAYING FROM" value. */
+enum class PlaybackSource(val label: String) {
+    LIBRARY("Your library"),
+    RANDOM_WALK("Random Walk"),
 }
 
 /** A [Track] paired with the stream URL used to build its media item. */

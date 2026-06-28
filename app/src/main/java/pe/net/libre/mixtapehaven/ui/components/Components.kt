@@ -33,6 +33,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import coil.compose.AsyncImage
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextOverflow
@@ -48,6 +50,29 @@ import pe.net.libre.mixtapehaven.ui.theme.Surface2
 import pe.net.libre.mixtapehaven.ui.theme.TextMuted
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
+
+/**
+ * Album artwork. Renders the real [imageUrl] when present; otherwise falls back to the
+ * concentric-circle "vinyl record" drawing tinted by [color].
+ */
+@Composable
+fun Artwork(
+    color: Color,
+    imageUrl: String?,
+    modifier: Modifier = Modifier,
+    corner: Dp = 12.dp,
+) {
+    if (imageUrl != null) {
+        AsyncImage(
+            model = imageUrl,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = modifier.clip(RoundedCornerShape(corner)).background(color),
+        )
+    } else {
+        VinylArt(color, modifier, corner)
+    }
+}
 
 /** Concentric-circle "vinyl record" artwork, tinted by [color]. */
 @Composable
@@ -186,7 +211,7 @@ fun TrackRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        VinylArt(track.artColor, Modifier.size(48.dp), corner = 8.dp)
+        Artwork(track.artColor, track.imageUrl, Modifier.size(48.dp), corner = 8.dp)
         Column(Modifier.weight(1f)) {
             Text(track.title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(track.artist, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
@@ -211,7 +236,7 @@ fun AlbumCard(album: Album, modifier: Modifier = Modifier, onClick: () -> Unit =
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Box {
-            VinylArt(album.artColor, Modifier.fillMaxWidth().aspectRatio(1f), corner = 14.dp)
+            Artwork(album.artColor, album.imageUrl, Modifier.fillMaxWidth().aspectRatio(1f), corner = 14.dp)
             if (album.downloaded) {
                 Box(
                     Modifier.padding(8.dp).clip(CircleShape).background(AccentInk.copy(alpha = 0.7f)).padding(4.dp),

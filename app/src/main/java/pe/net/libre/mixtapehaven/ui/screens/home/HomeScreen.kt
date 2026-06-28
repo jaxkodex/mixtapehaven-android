@@ -24,14 +24,16 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.Album
-import pe.net.libre.mixtapehaven.model.SampleData
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
@@ -53,6 +55,8 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val viewModel = appViewModel { HomeViewModel(it.repository, it.playerController) }
+    val state by viewModel.state.collectAsState()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -73,12 +77,12 @@ fun HomeScreen(
         ) {
             Column {
                 Text(
-                    SampleData.GREETING,
+                    "Good evening",
                     style = MaterialTheme.typography.bodySmall,
                     color = TextSecondary,
                 )
                 Text(
-                    SampleData.USER_NAME,
+                    state.userName.ifBlank { "Mixtape" },
                     style = MaterialTheme.typography.displayMedium,
                     color = TextPrimary,
                 )
@@ -87,11 +91,7 @@ fun HomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                if (SampleData.FIRST_RUN) {
-                    StatusPill(text = "Online only", dotColor = TextMuted)
-                } else {
-                    StatusPill(text = "Offline ready", dotColor = Color(0xFF7BB661))
-                }
+                StatusPill(text = "Online", dotColor = Color(0xFF7BB661))
                 Icon(
                     Icons.Outlined.Settings,
                     contentDescription = "Settings",
@@ -111,15 +111,21 @@ fun HomeScreen(
         )
 
         SectionHeader(
-            title = "On your device",
+            title = "Recently added",
             actionLabel = "See all",
             onAction = onOpenDownloads,
         )
 
-        if (SampleData.FIRST_RUN) {
+        if (state.albums.isEmpty()) {
             FirstRunEmptyState(onOpenSettings = onOpenSettings)
         } else {
-            AlbumGrid(albums = SampleData.onDevice, onAlbumClick = onOpenNowPlaying)
+            AlbumGrid(
+                albums = state.albums,
+                onAlbumClick = { album ->
+                    viewModel.playAlbum(album)
+                    onOpenNowPlaying()
+                },
+            )
         }
     }
 }
@@ -127,7 +133,7 @@ fun HomeScreen(
 @Composable
 private fun AlbumGrid(
     albums: List<Album>,
-    onAlbumClick: () -> Unit,
+    onAlbumClick: (Album) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -143,7 +149,7 @@ private fun AlbumGrid(
                     AlbumCard(
                         album = album,
                         modifier = Modifier.weight(1f),
-                        onClick = onAlbumClick,
+                        onClick = { onAlbumClick(album) },
                     )
                 }
                 if (rowAlbums.size == 1) {

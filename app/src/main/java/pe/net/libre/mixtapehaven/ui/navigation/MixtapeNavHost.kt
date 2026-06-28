@@ -1,10 +1,13 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.di.appContainer
 import pe.net.libre.mixtapehaven.ui.screens.downloads.DownloadsScreen
 import pe.net.libre.mixtapehaven.ui.screens.home.HomeScreen
 import pe.net.libre.mixtapehaven.ui.screens.login.LoginScreen
@@ -13,11 +16,14 @@ import pe.net.libre.mixtapehaven.ui.screens.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.screens.settings.SettingsScreen
 
 @Composable
-fun MixtapeNavHost(modifier: Modifier = Modifier) {
+fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
     val navController = rememberNavController()
+    val container = appContainer()
+    val scope = rememberCoroutineScope()
+
     NavHost(
         navController = navController,
-        startDestination = Routes.LOGIN,
+        startDestination = startDestination,
         modifier = modifier,
     ) {
         composable(Routes.LOGIN) {
@@ -51,6 +57,8 @@ fun MixtapeNavHost(modifier: Modifier = Modifier) {
                 onBack = { navController.popBackStack() },
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
                 onSignOut = {
+                    container.playerController.stop()
+                    scope.launch { container.repository.signOut() }
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }

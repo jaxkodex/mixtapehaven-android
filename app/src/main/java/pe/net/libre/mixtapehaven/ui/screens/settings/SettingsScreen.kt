@@ -22,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -32,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.SampleData
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
 import pe.net.libre.mixtapehaven.ui.components.SectionLabel
@@ -53,7 +55,9 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var automaticDownloads by remember { mutableStateOf(true) }
+    val viewModel = appViewModel { SettingsViewModel(it.downloadSettingsStore, it.downloadManager) }
+    val automaticDownloads by viewModel.autoDownloadEnabled.collectAsState()
+    val storageUsed by viewModel.storageUsedLabel.collectAsState()
     var wifiOnly by remember { mutableStateOf(true) }
 
     Column(
@@ -104,7 +108,7 @@ fun SettingsScreen(
                     title = "Automatic downloads",
                     subtitle = "Keep songs for offline as you play them",
                     checked = automaticDownloads,
-                    onCheckedChange = { automaticDownloads = it },
+                    onCheckedChange = viewModel::setAutoDownloadEnabled,
                 )
                 HorizontalDivider(color = Stroke)
                 SettingToggleRow(
@@ -116,7 +120,7 @@ fun SettingsScreen(
                 HorizontalDivider(color = Stroke)
                 SettingLinkRow(title = "Audio quality", value = "Lossless", onClick = {})
                 HorizontalDivider(color = Stroke)
-                SettingLinkRow(title = "Storage used", value = "1.2 GB", onClick = onOpenDownloads)
+                SettingLinkRow(title = "Storage used", value = storageUsed, onClick = onOpenDownloads)
             }
         }
 

@@ -103,7 +103,12 @@ fun HomeScreen(
             }
         }
 
-        RandomWalkCard(onPlay = onOpenNowPlaying)
+        RandomWalkCard(
+            onPlay = {
+                viewModel.startRandomWalk()
+                onOpenNowPlaying()
+            },
+        )
 
         SearchField(
             placeholder = "Search songs, albums, artists",

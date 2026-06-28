@@ -101,6 +101,21 @@ class JellyfinRepository(
         return result.items.orEmpty().map { it.toTrack(client) }
     }
 
+    /** A randomly ordered batch of tracks from the whole library, for the endless Random Walk queue. */
+    suspend fun randomTracks(limit: Int = 50): List<Track> {
+        val client = requireApi()
+        val result by client.itemsApi.getItems(
+            GetItemsRequest(
+                userId = userId,
+                includeItemTypes = listOf(BaseItemKind.AUDIO),
+                recursive = true,
+                sortBy = listOf(ItemSortBy.RANDOM),
+                limit = limit,
+            ),
+        )
+        return result.items.orEmpty().map { it.toTrack(client) }
+    }
+
     suspend fun albumTracks(albumId: String): List<Track> {
         val client = requireApi()
         val parent = runCatching { UUID.fromString(albumId) }.getOrNull() ?: return emptyList()

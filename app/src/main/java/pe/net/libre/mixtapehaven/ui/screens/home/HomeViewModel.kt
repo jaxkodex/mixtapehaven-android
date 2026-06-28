@@ -9,7 +9,9 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
+import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
+import pe.net.libre.mixtapehaven.data.playback.RandomWalk
 import pe.net.libre.mixtapehaven.model.Album
 
 class HomeViewModel(
@@ -57,7 +59,17 @@ class HomeViewModel(
         val albumId = album.id ?: return
         viewModelScope.launch {
             val tracks = runCatching { repository.albumTracks(albumId) }.getOrDefault(emptyList())
-            if (tracks.isNotEmpty()) playerController.play(tracks, startIndex = 0)
+            if (tracks.isNotEmpty()) {
+                playerController.setSource(PlaybackSource.LIBRARY)
+                playerController.play(tracks, startIndex = 0)
+            }
+        }
+    }
+
+    /** Start an endless shuffled queue across the whole library. */
+    fun startRandomWalk() {
+        viewModelScope.launch {
+            runCatching { RandomWalk(repository, playerController).start() }
         }
     }
 }

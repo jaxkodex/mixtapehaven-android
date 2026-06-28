@@ -1,6 +1,7 @@
 package pe.net.libre.mixtapehaven.ui.screens.nowplaying
 
 import androidx.lifecycle.ViewModel
+import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.model.Track
 import kotlinx.coroutines.flow.StateFlow
@@ -13,6 +14,7 @@ class NowPlayingViewModel(
     val isPlaying: StateFlow<Boolean> = playerController.isPlaying
     val positionMs: StateFlow<Long> = playerController.positionMs
     val durationMs: StateFlow<Long> = playerController.durationMs
+    val source: StateFlow<PlaybackSource> = playerController.source
 
     fun playPause() = playerController.playPause()
     fun next() = playerController.next()

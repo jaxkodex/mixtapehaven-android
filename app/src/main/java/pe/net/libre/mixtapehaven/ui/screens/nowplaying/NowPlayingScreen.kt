@@ -49,12 +49,14 @@ import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
 @Composable
 fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val viewModel = appViewModel { NowPlayingViewModel(it.playerController) }
+    val viewModel = appViewModel { NowPlayingViewModel(it.playerController, it.downloadManager) }
     val track by viewModel.nowPlaying.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val positionMs by viewModel.positionMs.collectAsState()
     val durationMs by viewModel.durationMs.collectAsState()
     val source by viewModel.source.collectAsState()
+    val savingPercent by viewModel.savingPercent.collectAsState()
+    val offlineReady by viewModel.offlineReady.collectAsState()
 
     val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
@@ -122,6 +124,7 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodyLarge,
                 color = TextSecondary,
             )
+            OfflineStatus(savingPercent = savingPercent, offlineReady = offlineReady)
         }
 
         // Progress
@@ -192,6 +195,28 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
         }
     }
 }
+
+/** "SAVING OFFLINE · N%" while the current track downloads; "OFFLINE READY" once saved. */
+@Composable
+private fun OfflineStatus(savingPercent: Int?, offlineReady: Boolean, modifier: Modifier = Modifier) {
+    when {
+        savingPercent != null -> Text(
+            "SAVING OFFLINE · $savingPercent%",
+            modifier = modifier,
+            style = MaterialTheme.typography.labelMedium,
+            color = Accent,
+        )
+
+        offlineReady -> Text(
+            "OFFLINE READY",
+            modifier = modifier,
+            style = MaterialTheme.typography.labelMedium,
+            color = OfflineReadyGreen,
+        )
+    }
+}
+
+private val OfflineReadyGreen = androidx.compose.ui.graphics.Color(0xFF7BB661)
 
 private fun formatTime(ms: Long): String {
     if (ms <= 0) return "0:00"

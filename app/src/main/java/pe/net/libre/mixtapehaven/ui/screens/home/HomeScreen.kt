@@ -34,12 +34,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.Album
+import pe.net.libre.mixtapehaven.model.Track
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
 import pe.net.libre.mixtapehaven.ui.components.SectionHeader
 import pe.net.libre.mixtapehaven.ui.components.StatusPill
 import pe.net.libre.mixtapehaven.ui.components.SurfaceCard
+import pe.net.libre.mixtapehaven.ui.components.TrackRow
 import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.Stroke
 import pe.net.libre.mixtapehaven.ui.theme.Surface2
@@ -55,8 +57,9 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { HomeViewModel(it.repository, it.playerController) }
+    val viewModel = appViewModel { HomeViewModel(it.repository, it.playerController, it.downloadManager) }
     val state by viewModel.state.collectAsState()
+    val hasDownloads = state.onDevice.isNotEmpty()
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -69,39 +72,11 @@ fun HomeScreen(
     ) {
         Spacer(Modifier.size(0.dp))
 
-        // Header row
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top,
-        ) {
-            Column {
-                Text(
-                    "Good evening",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                )
-                Text(
-                    state.userName.ifBlank { "Mixtape" },
-                    style = MaterialTheme.typography.displayMedium,
-                    color = TextPrimary,
-                )
-            }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                StatusPill(text = "Online", dotColor = Color(0xFF7BB661))
-                Icon(
-                    Icons.Outlined.Settings,
-                    contentDescription = "Settings",
-                    tint = TextSecondary,
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clickable(onClick = onOpenSettings),
-                )
-            }
-        }
+        HomeHeader(
+            userName = state.userName,
+            hasDownloads = hasDownloads,
+            onOpenSettings = onOpenSettings,
+        )
 
         RandomWalkCard(
             onPlay = {
@@ -114,6 +89,17 @@ fun HomeScreen(
             placeholder = "Search songs, albums, artists",
             onClick = onOpenSearch,
         )
+
+        if (hasDownloads) {
+            OnDeviceSection(
+                tracks = state.onDevice,
+                onManage = onOpenDownloads,
+                onPlay = { track ->
+                    viewModel.playOnDevice(track)
+                    onOpenNowPlaying()
+                },
+            )
+        }
 
         SectionHeader(
             title = "Recently added",
@@ -131,6 +117,70 @@ fun HomeScreen(
                     onOpenNowPlaying()
                 },
             )
+        }
+    }
+}
+
+/** Max number of saved tracks previewed in the Home "On your device" section. */
+private const val ON_DEVICE_PREVIEW = 4
+
+@Composable
+private fun HomeHeader(
+    userName: String,
+    hasDownloads: Boolean,
+    onOpenSettings: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Top,
+    ) {
+        Column {
+            Text(
+                "Good evening",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+            )
+            Text(
+                userName.ifBlank { "Mixtape" },
+                style = MaterialTheme.typography.displayMedium,
+                color = TextPrimary,
+            )
+        }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatusPill(
+                text = if (hasDownloads) "Offline ready" else "Online",
+                dotColor = if (hasDownloads) Accent else Color(0xFF7BB661),
+            )
+            Icon(
+                Icons.Outlined.Settings,
+                contentDescription = "Settings",
+                tint = TextSecondary,
+                modifier = Modifier
+                    .size(24.dp)
+                    .clickable(onClick = onOpenSettings),
+            )
+        }
+    }
+}
+
+@Composable
+private fun OnDeviceSection(
+    tracks: List<Track>,
+    onManage: () -> Unit,
+    onPlay: (Track) -> Unit,
+) {
+    SectionHeader(
+        title = "On your device",
+        actionLabel = "Manage",
+        onAction = onManage,
+    )
+    Column {
+        tracks.take(ON_DEVICE_PREVIEW).forEach { track ->
+            TrackRow(track = track, onClick = { onPlay(track) })
         }
     }
 }

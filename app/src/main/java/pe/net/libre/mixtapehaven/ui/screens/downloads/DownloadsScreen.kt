@@ -17,20 +17,21 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.DeleteOutline
-import androidx.compose.material.icons.outlined.MoreVert
-import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.model.SampleData
+import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
 import pe.net.libre.mixtapehaven.ui.components.SectionLabel
 import pe.net.libre.mixtapehaven.ui.components.StorageBar
@@ -44,6 +45,9 @@ import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
 @Composable
 fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    val viewModel = appViewModel { DownloadsViewModel(it.downloadManager) }
+    val state by viewModel.state.collectAsState()
+
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -64,92 +68,100 @@ fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text("Mixtape downloads", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                Text("1.8 GB", style = MaterialTheme.typography.titleMedium, color = TextSecondary)
+                Text(state.totalLabel, style = MaterialTheme.typography.titleMedium, color = TextSecondary)
             }
-            StorageBar(segments = listOf(0.5f to Accent, 0.35f to Coral))
-            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
-                LegendItem(Accent, "Auto-saved 1.0 GB")
-                LegendItem(Coral, "Pinned 0.8 GB")
-            }
+            StorageBar(segments = listOf(state.usedFraction to Accent))
+            LegendItem(Accent, "Saved as you listen · ${state.totalLabel}")
         }
 
-        SectionLabel("DOWNLOADING")
-
-        TrackRow(
-            track = SampleData.downloading,
-            trailing = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Text("68%", style = MaterialTheme.typography.bodySmall, color = Accent)
-                    CircularProgressIndicator(
-                        progress = { 0.68f },
-                        color = Accent,
-                        trackColor = Surface2,
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                    )
-                }
-            },
-        )
+        val downloading = state.downloading
+        if (downloading != null) {
+            SectionLabel("DOWNLOADING")
+            TrackRow(
+                track = downloading.track,
+                trailing = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Text(
+                            "${downloading.percent}%",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = Accent,
+                        )
+                        CircularProgressIndicator(
+                            progress = { downloading.percent / 100f },
+                            color = Accent,
+                            trackColor = Surface2,
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    }
+                },
+            )
+        }
 
         SectionLabel("SAVED ON DEVICE")
 
-        Column {
-            SampleData.downloads.forEachIndexed { index, track ->
-                TrackRow(
-                    track = track,
-                    trailing = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Text(track.sizeLabel, style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                            if (index == 0) {
+        if (state.saved.isEmpty()) {
+            Text(
+                "Nothing saved yet. Play anything and it's kept for offline automatically.",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextMuted,
+            )
+        } else {
+            Column {
+                state.saved.forEach { track ->
+                    TrackRow(
+                        track = track,
+                        trailing = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                Text(
+                                    track.sizeLabel,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = TextMuted,
+                                )
                                 Icon(
-                                    Icons.Outlined.PushPin,
-                                    contentDescription = "Pinned",
+                                    Icons.Outlined.ArrowDownward,
+                                    contentDescription = "Saved offline",
                                     tint = Accent,
                                     modifier = Modifier.size(18.dp),
                                 )
-                            } else {
-                                Icon(
-                                    Icons.Outlined.MoreVert,
-                                    contentDescription = "More",
-                                    tint = TextMuted,
-                                    modifier = Modifier.size(18.dp),
-                                )
                             }
-                        }
-                    },
-                )
+                        },
+                    )
+                }
             }
         }
 
         // Destructive: remove all downloads
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(14.dp))
-                .border(1.dp, Coral, RoundedCornerShape(14.dp))
-                .clickable { /* no-op */ }
-                .padding(vertical = 14.dp),
-            horizontalArrangement = Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                Icons.Outlined.DeleteOutline,
-                contentDescription = null,
-                tint = Coral,
-                modifier = Modifier.size(20.dp),
-            )
-            Text(
-                "Remove all downloads",
-                style = MaterialTheme.typography.titleMedium,
-                color = Coral,
-                modifier = Modifier.padding(start = 8.dp),
-            )
+        if (state.saved.isNotEmpty() || state.downloading != null) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(14.dp))
+                    .border(1.dp, Coral, RoundedCornerShape(14.dp))
+                    .clickable(onClick = viewModel::removeAll)
+                    .padding(vertical = 14.dp),
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Icon(
+                    Icons.Outlined.DeleteOutline,
+                    contentDescription = null,
+                    tint = Coral,
+                    modifier = Modifier.size(20.dp),
+                )
+                Text(
+                    "Remove all downloads",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Coral,
+                    modifier = Modifier.padding(start = 8.dp),
+                )
+            }
         }
     }
 }

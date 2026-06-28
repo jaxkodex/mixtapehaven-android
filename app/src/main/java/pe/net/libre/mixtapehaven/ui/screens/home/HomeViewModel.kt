@@ -2,12 +2,14 @@ package pe.net.libre.mixtapehaven.ui.screens.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.toTrack
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
@@ -64,7 +66,10 @@ class HomeViewModel(
     private fun observeDownloads() {
         viewModelScope.launch {
             downloadManager.downloads.collect { rows ->
-                val tracks = rows.filter { it.complete }.map { it.toTrack() }
+                // Mapping rows -> Track is cheap but kept off Main to stay consistent with the DAO.
+                val tracks = withContext(Dispatchers.IO) {
+                    rows.filter { it.complete }.map { it.toTrack() }
+                }
                 _state.update { it.copy(onDevice = tracks) }
             }
         }

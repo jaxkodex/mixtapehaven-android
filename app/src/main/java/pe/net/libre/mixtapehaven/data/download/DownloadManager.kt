@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.compose.ui.graphics.toArgb
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -19,7 +20,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.ResponseBody
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
-import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.model.Track
 import java.io.File
 import java.io.InputStream
@@ -31,16 +31,16 @@ data class DownloadProgress(val track: Track, val percent: Int)
 
 /**
  * App-scoped service that saves the original file bytes of tracks as they play, so the library
- * becomes available offline. Observes [PlayerController.nowPlaying]; when auto-download is enabled
- * it streams the static original file from [repository] to internal storage and records a
- * [DownloadedTrack] row. Failures never crash playback and already-saved tracks are skipped.
+ * becomes available offline. Driven by a now-playing [Flow] (passed to [start] to avoid a
+ * dependency cycle with the player); when auto-download is enabled it streams the static original
+ * file from [repository] to internal storage and records a [DownloadedTrack] row. Failures never
+ * crash playback and already-saved tracks are skipped.
  */
 class DownloadManager(
     context: Context,
     private val repository: JellyfinRepository,
     private val dao: DownloadDao,
     private val settingsStore: DownloadSettingsStore,
-    private val playerController: PlayerController,
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     private val client: OkHttpClient = OkHttpClient(),
 ) {
@@ -63,10 +63,14 @@ class DownloadManager(
     @Volatile
     private var completedPaths: Map<String, String> = emptyMap()
 
-    private val inProgress: MutableSet<String> = Collections.synchronizedSet(mutableSetOf())
+    /** Active download coroutines keyed by track id, so they can be cancelled (e.g. on removeAll). */
+    private val activeJobs: MutableMap<String, Job> = Collections.synchronizedMap(mutableMapOf())
 
-    /** Begin observing settings, the saved library, and playback. Idempotent per instance. */
-    fun start() {
+    /**
+     * Begin observing settings, the saved library, and the [nowPlaying] stream (supplied by the
+     * caller to avoid a cycle with the player). Idempotent per instance.
+     */
+    fun start(nowPlaying: Flow<Track?>) {
         scope.launch { settingsStore.autoDownloadEnabled.collect { autoDownloadEnabled = it } }
         scope.launch {
             dao.observeAll().collect { rows ->
@@ -74,13 +78,13 @@ class DownloadManager(
             }
         }
         scope.launch {
-            playerController.nowPlaying.collect { track -> track?.let(::onTrackPlaying) }
+            nowPlaying.collect { track -> track?.let(::onTrackPlaying) }
         }
     }
 
     /**
      * Local playback URI for [track] if its bytes are saved, else null. Synchronous (in-memory
-     * lookup) so it can back [PlayerController.streamUrlResolver] when media items are built.
+     * lookup) so it can back the player's stream-URL resolver when media items are built.
      */
     fun localUriFor(track: Track): String? {
         val path = track.id?.let { completedPaths[it] } ?: return null
@@ -91,28 +95,36 @@ class DownloadManager(
     /** Usable bytes remaining on the volume backing the download directory. */
     fun usableSpaceBytes(): Long = downloadsDir.usableSpace
 
-    /** Delete every saved file and clear the download library. */
+    /** Cancel in-flight downloads, delete every saved file, and clear the download library. */
     suspend fun removeAll() {
-        val rows = dao.getAll()
+        // Stop active downloads first so nothing writes a file or row after the cleanup below.
+        val jobs = synchronized(activeJobs) {
+            activeJobs.values.toList().also { activeJobs.clear() }
+        }
+        jobs.forEach { it.cancel() }
+        jobs.forEach { runCatching { it.join() } }
+        _progress.value = null
         dao.clear()
         withContext(Dispatchers.IO) {
-            rows.forEach { runCatching { File(it.filePath).delete() } }
+            // Wipe the directory wholesale to also catch any orphaned/partial (.part) files.
+            downloadsDir.listFiles()?.forEach { runCatching { it.delete() } }
         }
         completedPaths = emptyMap()
-        _progress.value = null
     }
 
     private fun onTrackPlaying(track: Track) {
         val id = track.id
-        if (!autoDownloadEnabled || id == null) return
-        if (completedPaths.containsKey(id) || !inProgress.add(id)) return
-        scope.launch {
-            try {
-                runCatching { download(track, id) }
-                    .onFailure { Log.w(TAG, "Download failed for $id", it) }
-            } finally {
-                inProgress.remove(id)
-                if (_progress.value?.track?.id == id) _progress.value = null
+        if (!autoDownloadEnabled || id == null || completedPaths.containsKey(id)) return
+        synchronized(activeJobs) {
+            if (activeJobs.containsKey(id)) return
+            activeJobs[id] = scope.launch {
+                try {
+                    runCatching { download(track, id) }
+                        .onFailure { Log.w(TAG, "Download failed for $id", it) }
+                } finally {
+                    activeJobs.remove(id)
+                    if (_progress.value?.track?.id == id) _progress.value = null
+                }
             }
         }
     }
@@ -143,8 +155,7 @@ class DownloadManager(
     private suspend fun streamToFile(url: String, part: File, track: Track): Boolean {
         val request = Request.Builder().url(url).build()
         return client.newCall(request).execute().use { response ->
-            val body = response.body
-            if (!response.isSuccessful || body == null) false else copyToFile(body, part, track)
+            if (!response.isSuccessful) false else copyToFile(response.body, part, track)
         }
     }
 

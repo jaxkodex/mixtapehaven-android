@@ -30,14 +30,7 @@ class AppContainer(context: Context) {
 
     private val downloadDatabase: DownloadDatabase by lazy { DownloadDatabase.build(appContext) }
 
-    val playerController: PlayerController by lazy {
-        PlayerController(appContext, repository).also { controller ->
-            // Local-first: serve saved bytes when present, else fall back to the remote stream.
-            controller.streamUrlResolver = { track ->
-                resolveLocalFirst(track, downloadManager::localUriFor, repository::audioStreamUrl)
-            }
-        }
-    }
+    val playerController: PlayerController by lazy { PlayerController(appContext, repository) }
 
     val downloadManager: DownloadManager by lazy {
         DownloadManager(
@@ -45,12 +38,18 @@ class AppContainer(context: Context) {
             repository = repository,
             dao = downloadDatabase.downloadDao(),
             settingsStore = downloadSettingsStore,
-            playerController = playerController,
-        ).also { it.start() }
+        )
     }
 
     init {
-        // Eagerly start auto-download so playback is captured even before any download UI is opened.
-        downloadManager
+        // Wire the two app-scoped singletons after both are built, so neither depends on the other
+        // at construction time. Eager so auto-download runs before any download UI is opened.
+        val manager = downloadManager
+        val controller = playerController
+        // Local-first: serve saved bytes when present, else fall back to the remote stream.
+        controller.streamUrlResolver = { track ->
+            resolveLocalFirst(track, manager::localUriFor, repository::audioStreamUrl)
+        }
+        manager.start(controller.nowPlaying)
     }
 }

@@ -2,11 +2,13 @@ package pe.net.libre.mixtapehaven.ui.screens.downloads
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.DownloadProgress
 import pe.net.libre.mixtapehaven.data.download.formatBytes
@@ -27,14 +29,17 @@ class DownloadsViewModel(
 
     val state: StateFlow<UiState> =
         combine(downloadManager.downloads, downloadManager.progress) { rows, progress ->
-            val completed = rows.filter { it.complete }
-            val totalBytes = completed.sumOf { it.sizeBytes }
-            UiState(
-                downloading = progress,
-                saved = completed.map { it.toTrack() },
-                totalLabel = formatBytes(totalBytes),
-                usedFraction = usedFractionOf(totalBytes, downloadManager.usableSpaceBytes()),
-            )
+            // Mapping + File.usableSpace touch disk; keep them off the Main thread.
+            withContext(Dispatchers.IO) {
+                val completed = rows.filter { it.complete }
+                val totalBytes = completed.sumOf { it.sizeBytes }
+                UiState(
+                    downloading = progress,
+                    saved = completed.map { it.toTrack() },
+                    totalLabel = formatBytes(totalBytes),
+                    usedFraction = usedFractionOf(totalBytes, downloadManager.usableSpaceBytes()),
+                )
+            }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), UiState())
 
     fun removeAll() {

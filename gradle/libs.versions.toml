@@ -22,7 +22,7 @@ room = "2.8.4"
 detekt = "1.23.8"
 detektCompose = "0.6.2"
 jellyfin = "1.8.11"
-slf4j = "2.0.17"
+slf4j = "2.0.18"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }

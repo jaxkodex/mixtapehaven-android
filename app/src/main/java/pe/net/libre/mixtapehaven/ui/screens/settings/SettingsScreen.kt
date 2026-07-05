@@ -1,6 +1,9 @@
 package pe.net.libre.mixtapehaven.ui.screens.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
 import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,7 +38,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import pe.net.libre.mixtapehaven.di.appContainer
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.SampleData
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
@@ -58,13 +60,14 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { SettingsViewModel(it.downloadSettingsStore, it.downloadManager) }
+    val viewModel = appViewModel {
+        SettingsViewModel(it.downloadSettingsStore, it.downloadManager, it.diagnosticsLog)
+    }
     val automaticDownloads by viewModel.autoDownloadEnabled.collectAsState()
     val storageUsed by viewModel.storageUsedLabel.collectAsState()
     var wifiOnly by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
-    val diagnosticsLog = appContainer().diagnosticsLog
 
     Column(
         modifier = modifier
@@ -166,7 +169,7 @@ fun SettingsScreen(
                 SettingLinkRow(
                     title = "Share diagnostics",
                     value = "Export",
-                    onClick = { shareDiagnostics(context, diagnosticsLog.snapshot()) },
+                    onClick = { shareDiagnostics(context, viewModel.diagnosticsSnapshot()) },
                 )
             }
         }
@@ -182,13 +185,18 @@ fun SettingsScreen(
 }
 
 /** Fire a share sheet with the recent diagnostic [log] as plain text, for bug reports. */
-private fun shareDiagnostics(context: android.content.Context, log: String) {
+private fun shareDiagnostics(context: Context, log: String) {
     val intent = Intent(Intent.ACTION_SEND).apply {
         type = "text/plain"
         putExtra(Intent.EXTRA_SUBJECT, "Mixtape Haven diagnostics")
         putExtra(Intent.EXTRA_TEXT, log)
     }
-    context.startActivity(Intent.createChooser(intent, "Share diagnostics"))
+    // No share target exists on some devices/restricted profiles; fall back to a toast, don't crash.
+    try {
+        context.startActivity(Intent.createChooser(intent, "Share diagnostics"))
+    } catch (_: ActivityNotFoundException) {
+        Toast.makeText(context, "No app available to share diagnostics", Toast.LENGTH_SHORT).show()
+    }
 }
 
 @Composable

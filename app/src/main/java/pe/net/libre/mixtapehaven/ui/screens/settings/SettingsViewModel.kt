@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.DownloadSettingsStore
 import pe.net.libre.mixtapehaven.data.download.formatBytes
@@ -15,6 +16,7 @@ import pe.net.libre.mixtapehaven.data.download.formatBytes
 class SettingsViewModel(
     private val settingsStore: DownloadSettingsStore,
     downloadManager: DownloadManager,
+    private val diagnostics: DiagnosticsLog,
 ) : ViewModel() {
 
     val autoDownloadEnabled: StateFlow<Boolean> =
@@ -29,6 +31,9 @@ class SettingsViewModel(
     fun setAutoDownloadEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsStore.setAutoDownloadEnabled(enabled) }
     }
+
+    /** A plain-text snapshot of the recent diagnostic events, for the Share diagnostics export. */
+    fun diagnosticsSnapshot(): String = diagnostics.snapshot()
 
     private companion object {
         const val STOP_TIMEOUT_MS = 5_000L

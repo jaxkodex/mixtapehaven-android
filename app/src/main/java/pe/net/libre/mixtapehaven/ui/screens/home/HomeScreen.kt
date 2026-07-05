@@ -62,7 +62,9 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { HomeViewModel(it.repository, it.playerController, it.downloadManager, it.diagnosticsLog) }
+    val viewModel = appViewModel {
+        HomeViewModel(it.repository, it.playerController, it.downloadManager, it.diagnosticsLog)
+    }
     val state by viewModel.state.collectAsState()
     val hasDownloads = state.onDevice.isNotEmpty()
     val snackbarHostState = remember { SnackbarHostState() }

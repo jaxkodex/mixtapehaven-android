@@ -3,6 +3,7 @@ package pe.net.libre.mixtapehaven.ui.screens.home
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -112,6 +113,9 @@ class HomeViewModel(
                     }
                 }
                 .onFailure { error ->
+                    // Cancellation (scope cleared / navigated away) is not a failure: let it propagate
+                    // so we don't log it or surface a spurious snackbar.
+                    if (error is CancellationException) throw error
                     Log.w(TAG, "Random Walk failed to start", error)
                     diagnostics.log(TAG, "Random Walk failed: ${error.javaClass.simpleName}: ${error.message}")
                     _snackbarMessages.send("Couldn't start Random Walk: ${error.message ?: "unknown error"}")

@@ -8,6 +8,7 @@ import pe.net.libre.mixtapehaven.data.download.DownloadDatabase
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.DownloadSettingsStore
 import pe.net.libre.mixtapehaven.data.download.resolveLocalFirst
+import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.session.SessionStore
@@ -24,13 +25,16 @@ class AppContainer(context: Context) {
 
     val sessionStore: SessionStore = SessionStore(appContext)
 
+    /** Ring buffer of recent diagnostic events, exportable from Settings > Share diagnostics. */
+    val diagnosticsLog: DiagnosticsLog = DiagnosticsLog()
+
     val repository: JellyfinRepository = JellyfinRepository(jellyfin, sessionStore)
 
     val downloadSettingsStore: DownloadSettingsStore = DownloadSettingsStore(appContext)
 
     private val downloadDatabase: DownloadDatabase by lazy { DownloadDatabase.build(appContext) }
 
-    val playerController: PlayerController by lazy { PlayerController(appContext, repository) }
+    val playerController: PlayerController by lazy { PlayerController(appContext, repository, diagnosticsLog) }
 
     val downloadManager: DownloadManager by lazy {
         DownloadManager(

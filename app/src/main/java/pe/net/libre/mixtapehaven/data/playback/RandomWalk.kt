@@ -16,13 +16,14 @@ class RandomWalk(
     // Ids handed out recently, oldest first; capped at RECENT_WINDOW to avoid starving small libraries.
     private val recentIds = ArrayDeque<String>()
 
-    /** Seed the queue and arm the refill hook. No-op if the library has no tracks. */
-    suspend fun start() {
+    /** Seed the queue and arm the refill hook. Returns false without side effects if the library has no tracks. */
+    suspend fun start(): Boolean {
         val initial = nextBatch()
-        if (initial.isEmpty()) return
+        if (initial.isEmpty()) return false
         playerController.setSource(PlaybackSource.RANDOM_WALK)
         playerController.play(initial, startIndex = 0)
         playerController.onQueueRunningLow = { nextBatch() }
+        return true
     }
 
     /**

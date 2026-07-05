@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.model.Track
 
@@ -31,6 +32,7 @@ import pe.net.libre.mixtapehaven.model.Track
 class PlayerController(
     context: Context,
     private val repository: JellyfinRepository,
+    private val diagnostics: DiagnosticsLog,
 ) {
     private val appContext = context.applicationContext
     private val scope = CoroutineScope(Dispatchers.Main.immediate + SupervisorJob())
@@ -121,7 +123,12 @@ class PlayerController(
             refillJob?.cancel()
             refilling = false
             val items = buildItems(queue)
-            if (items.isEmpty()) return@action
+            if (items.isEmpty()) {
+                // Every track lacked an id or a resolvable stream URL (e.g. expired auth token):
+                // playback would silently do nothing, so leave a breadcrumb for Share diagnostics.
+                diagnostics.log(TAG, "play() aborted: 0 of ${queue.size} tracks resolved to a playable stream URL")
+                return@action
+            }
             c.setMediaItems(items, startIndex.coerceIn(0, items.lastIndex), 0L)
             c.prepare()
             c.play()
@@ -192,6 +199,7 @@ class PlayerController(
                     .onFailure {
                         if (it is CancellationException) throw it
                         Log.w(TAG, "Queue refill failed", it)
+                        diagnostics.log(TAG, "Queue refill failed: ${it.javaClass.simpleName}: ${it.message}")
                     }
                     .getOrDefault(emptyList())
                 if (items.isNotEmpty()) activeController()?.addMediaItems(items)

@@ -8,7 +8,10 @@ ANDROID_HOME="${ANDROID_HOME:-$HOME/android-sdk}"
 CMDLINE_TOOLS_VERSION="11076708"  # "latest" as of 2024-01; pinned for reproducibility
 SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
 
-sudo apt-get update && sudo apt-get install -y tmux
+if ! command -v tmux &> /dev/null; then
+  sudo apt-get update && sudo apt-get install -y tmux
+fi
+mkdir -p "$HOME/.claude"
 sudo chown -R "$(id -u):$(id -g)" "$HOME/.claude"
 
 mkdir -p "$ANDROID_HOME"

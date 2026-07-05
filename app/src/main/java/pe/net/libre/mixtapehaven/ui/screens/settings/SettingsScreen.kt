@@ -1,5 +1,9 @@
 package pe.net.libre.mixtapehaven.ui.screens.settings
 
+import android.content.ActivityNotFoundException
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -31,6 +35,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.di.appViewModel
@@ -55,10 +60,14 @@ fun SettingsScreen(
     onSignOut: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { SettingsViewModel(it.downloadSettingsStore, it.downloadManager) }
+    val viewModel = appViewModel {
+        SettingsViewModel(it.downloadSettingsStore, it.downloadManager, it.diagnosticsLog)
+    }
     val automaticDownloads by viewModel.autoDownloadEnabled.collectAsState()
     val storageUsed by viewModel.storageUsedLabel.collectAsState()
     var wifiOnly by remember { mutableStateOf(true) }
+
+    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -153,6 +162,18 @@ fun SettingsScreen(
             }
         }
 
+        // Diagnostics section
+        SectionLabel("DIAGNOSTICS")
+        SurfaceCard {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                SettingLinkRow(
+                    title = "Share diagnostics",
+                    value = "Export",
+                    onClick = { shareDiagnostics(context, viewModel.diagnosticsSnapshot()) },
+                )
+            }
+        }
+
         Text(
             "Mixtape 1.0",
             modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
@@ -160,6 +181,21 @@ fun SettingsScreen(
             color = TextMuted,
             textAlign = TextAlign.Center,
         )
+    }
+}
+
+/** Fire a share sheet with the recent diagnostic [log] as plain text, for bug reports. */
+private fun shareDiagnostics(context: Context, log: String) {
+    val intent = Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_SUBJECT, "Mixtape Haven diagnostics")
+        putExtra(Intent.EXTRA_TEXT, log)
+    }
+    // No share target exists on some devices/restricted profiles; fall back to a toast, don't crash.
+    try {
+        context.startActivity(Intent.createChooser(intent, "Share diagnostics"))
+    } catch (_: ActivityNotFoundException) {
+        Toast.makeText(context, "No app available to share diagnostics", Toast.LENGTH_SHORT).show()
     }
 }
 

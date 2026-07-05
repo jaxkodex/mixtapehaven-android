@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -22,10 +23,14 @@ import androidx.compose.material.icons.outlined.CloudQueue
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -57,67 +62,83 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { HomeViewModel(it.repository, it.playerController, it.downloadManager) }
+    val viewModel = appViewModel {
+        HomeViewModel(it.repository, it.playerController, it.downloadManager, it.diagnosticsLog)
+    }
     val state by viewModel.state.collectAsState()
     val hasDownloads = state.onDevice.isNotEmpty()
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .statusBarsPadding()
-            .navigationBarsPadding()
-            .padding(horizontal = 20.dp)
-            .padding(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(20.dp),
-    ) {
-        Spacer(Modifier.size(0.dp))
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(viewModel) {
+        viewModel.snackbarMessages.collect { message -> snackbarHostState.showSnackbar(message) }
+    }
+    Box(modifier = modifier.fillMaxSize()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
+                .statusBarsPadding()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp),
+        ) {
+            Spacer(Modifier.size(0.dp))
 
-        HomeHeader(
-            userName = state.userName,
-            hasDownloads = hasDownloads,
-            onOpenSettings = onOpenSettings,
-        )
+            HomeHeader(
+                userName = state.userName,
+                hasDownloads = hasDownloads,
+                onOpenSettings = onOpenSettings,
+            )
 
-        RandomWalkCard(
-            onPlay = {
-                viewModel.startRandomWalk()
-                onOpenNowPlaying()
-            },
-        )
-
-        SearchField(
-            placeholder = "Search songs, albums, artists",
-            onClick = onOpenSearch,
-        )
-
-        if (hasDownloads) {
-            OnDeviceSection(
-                tracks = state.onDevice,
-                onManage = onOpenDownloads,
-                onPlay = { track ->
-                    viewModel.playOnDevice(track)
+            RandomWalkCard(
+                onPlay = {
+                    viewModel.startRandomWalk()
                     onOpenNowPlaying()
                 },
             )
-        }
 
-        SectionHeader(
-            title = "Recently added",
-            actionLabel = "See all",
-            onAction = onOpenDownloads,
-        )
-
-        if (state.albums.isEmpty()) {
-            FirstRunEmptyState(onOpenSettings = onOpenSettings)
-        } else {
-            AlbumGrid(
-                albums = state.albums,
-                onAlbumClick = { album ->
-                    viewModel.playAlbum(album)
-                    onOpenNowPlaying()
-                },
+            SearchField(
+                placeholder = "Search songs, albums, artists",
+                onClick = onOpenSearch,
             )
+
+            if (hasDownloads) {
+                OnDeviceSection(
+                    tracks = state.onDevice,
+                    onManage = onOpenDownloads,
+                    onPlay = { track ->
+                        viewModel.playOnDevice(track)
+                        onOpenNowPlaying()
+                    },
+                )
+            }
+
+            SectionHeader(
+                title = "Recently added",
+                actionLabel = "See all",
+                onAction = onOpenDownloads,
+            )
+
+            if (state.albums.isEmpty()) {
+                FirstRunEmptyState(onOpenSettings = onOpenSettings)
+            } else {
+                AlbumGrid(
+                    albums = state.albums,
+                    onAlbumClick = { album ->
+                        viewModel.playAlbum(album)
+                        onOpenNowPlaying()
+                    },
+                )
+            }
         }
+
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(16.dp),
+        )
     }
 }
 

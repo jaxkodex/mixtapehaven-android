@@ -1,15 +1,21 @@
 package pe.net.libre.mixtapehaven.ui.screens.home
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.toTrack
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
@@ -23,6 +29,7 @@ class HomeViewModel(
     private val repository: JellyfinRepository,
     private val playerController: PlayerController,
     private val downloadManager: DownloadManager,
+    private val diagnostics: DiagnosticsLog,
 ) : ViewModel() {
 
     data class UiState(
@@ -35,6 +42,11 @@ class HomeViewModel(
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    private val _snackbarMessages = Channel<String>(Channel.BUFFERED)
+
+    /** One-shot messages for transient UI feedback (e.g. a Snackbar), not persisted in [state]. */
+    val snackbarMessages: Flow<String> = _snackbarMessages.receiveAsFlow()
 
     init {
         load()
@@ -89,8 +101,25 @@ class HomeViewModel(
 
     /** Start an endless shuffled queue across the whole library. */
     fun startRandomWalk() {
+        diagnostics.log(TAG, "Random Walk requested")
         viewModelScope.launch {
             runCatching { RandomWalk(repository, playerController).start() }
+                .onSuccess { started ->
+                    if (started) {
+                        diagnostics.log(TAG, "Random Walk started")
+                    } else {
+                        diagnostics.log(TAG, "Random Walk produced no tracks (empty library or all filtered out)")
+                        _snackbarMessages.send("Your library has no tracks to shuffle")
+                    }
+                }
+                .onFailure { error ->
+                    // Cancellation (scope cleared / navigated away) is not a failure: let it propagate
+                    // so we don't log it or surface a spurious snackbar.
+                    if (error is CancellationException) throw error
+                    Log.w(TAG, "Random Walk failed to start", error)
+                    diagnostics.log(TAG, "Random Walk failed: ${error.javaClass.simpleName}: ${error.message}")
+                    _snackbarMessages.send("Couldn't start Random Walk: ${error.message ?: "unknown error"}")
+                }
         }
     }
 
@@ -99,5 +128,9 @@ class HomeViewModel(
         val tracks = _state.value.onDevice
         val startIndex = tracks.indexOfFirst { it.id == track.id }.coerceAtLeast(0)
         if (tracks.isNotEmpty()) playerController.play(tracks, startIndex)
+    }
+
+    private companion object {
+        const val TAG = "HomeViewModel"
     }
 }

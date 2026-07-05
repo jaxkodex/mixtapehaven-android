@@ -8,10 +8,15 @@
   "remoteEnv": {
     "PATH": "${containerEnv:PATH}:/home/vscode/android-sdk/cmdline-tools/latest/bin:/home/vscode/android-sdk/platform-tools"
   },
+  "features": {
+    "ghcr.io/anthropics/devcontainer-features/claude-code:1.0": {}
+  },
   "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postAttachCommand": ".devcontainer/claude-remote.sh start",
   "mounts": [
     "source=gradle-cache,target=/home/vscode/.gradle,type=volume",
-    "source=android-sdk,target=/home/vscode/android-sdk,type=volume"
+    "source=android-sdk,target=/home/vscode/android-sdk,type=volume",
+    "source=mixtapehaven-claude-config-${devcontainerId},target=/home/vscode/.claude,type=volume"
   ],
   "remoteUser": "vscode",
   "customizations": {

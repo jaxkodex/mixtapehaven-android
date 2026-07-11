@@ -39,7 +39,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.di.appViewModel
-import pe.net.libre.mixtapehaven.model.SampleData
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
 import pe.net.libre.mixtapehaven.ui.components.SectionLabel
 import pe.net.libre.mixtapehaven.ui.components.SettingToggleRow
@@ -61,10 +60,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val viewModel = appViewModel {
-        SettingsViewModel(it.downloadSettingsStore, it.downloadManager, it.diagnosticsLog)
+        SettingsViewModel(it.sessionStore, it.downloadSettingsStore, it.downloadManager, it.diagnosticsLog)
     }
     val automaticDownloads by viewModel.autoDownloadEnabled.collectAsState()
     val storageUsed by viewModel.storageUsedLabel.collectAsState()
+    val userName by viewModel.userName.collectAsState()
+    val serverHost by viewModel.serverHost.collectAsState()
     var wifiOnly by remember { mutableStateOf(true) }
 
     val context = LocalContext.current
@@ -91,16 +92,20 @@ fun SettingsScreen(
                     Modifier.size(44.dp).clip(CircleShape).background(Accent),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Text("A", style = MaterialTheme.typography.titleLarge, color = AccentInk)
+                    Text(
+                        userName.take(1).uppercase().ifEmpty { "?" },
+                        style = MaterialTheme.typography.titleLarge,
+                        color = AccentInk,
+                    )
                 }
                 Column(Modifier.weight(1f)) {
                     Text(
-                        SampleData.USER_NAME,
+                        userName,
                         style = MaterialTheme.typography.titleMedium,
                         color = TextPrimary,
                     )
                     Text(
-                        SampleData.SERVER_HOST,
+                        serverHost,
                         style = MaterialTheme.typography.bodySmall,
                         color = TextSecondary,
                     )
@@ -139,7 +144,7 @@ fun SettingsScreen(
             Column(Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
                 SettingLinkRow(
                     title = "Jellyfin server",
-                    value = SampleData.SERVER_HOST,
+                    value = serverHost,
                     onClick = {},
                 )
                 HorizontalDivider(color = Stroke)

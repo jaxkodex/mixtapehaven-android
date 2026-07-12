@@ -19,7 +19,9 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CloudQueue
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -119,16 +121,18 @@ fun HomeScreen(
                 onAction = onOpenDownloads,
             )
 
-            if (state.albums.isEmpty()) {
-                FirstRunEmptyState(onOpenSettings = onOpenSettings)
-            } else {
-                AlbumGrid(
+            when {
+                state.albums.isNotEmpty() -> AlbumGrid(
                     albums = state.albums,
                     onAlbumClick = { album ->
                         viewModel.playAlbum(album)
                         onOpenNowPlaying()
                     },
                 )
+                // Fetch in flight: render nothing rather than flash an empty state.
+                state.loading -> Unit
+                state.error != null -> OfflineAlbumsState(onRetry = viewModel::load)
+                else -> FirstRunEmptyState(onOpenSettings = onOpenSettings)
             }
         }
 
@@ -231,6 +235,72 @@ private fun AlbumGrid(
                 if (rowAlbums.size == 1) {
                     Spacer(Modifier.weight(1f))
                 }
+            }
+        }
+    }
+}
+
+/** Shown under "Recently added" when the album fetch failed (e.g. offline): the library isn't
+ * empty, we just can't reach the server, so the copy must not claim "nothing's here yet". */
+@Composable
+private fun OfflineAlbumsState(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SurfaceCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Surface2),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.CloudOff,
+                    contentDescription = null,
+                    tint = TextMuted,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            Text(
+                "You're offline",
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+            )
+            Text(
+                "Recently added albums will show up when you're back online.",
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+            )
+            Row(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(Surface2)
+                    .border(1.dp, Stroke, CircleShape)
+                    .clickable(onClick = onRetry)
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Refresh,
+                    contentDescription = null,
+                    tint = TextSecondary,
+                    modifier = Modifier.size(16.dp),
+                )
+                Text(
+                    "Try again",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = TextPrimary,
+                )
             }
         }
     }

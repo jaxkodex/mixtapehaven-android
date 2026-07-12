@@ -3,6 +3,7 @@ package pe.net.libre.mixtapehaven.data.playback
 import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
@@ -19,8 +20,11 @@ class PlaybackService : MediaSessionService() {
     override fun onCreate() {
         super.onCreate()
         val httpFactory = OkHttpDataSource.Factory(OkHttpClient())
+        // Route file:// URIs (downloaded tracks) to a local FileDataSource and only
+        // http(s) through OkHttp; OkHttp alone rejects non-http schemes.
+        val dataSourceFactory = DefaultDataSource.Factory(this, httpFactory)
         val player = ExoPlayer.Builder(this)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(httpFactory))
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setHandleAudioBecomingNoisy(true)
             .build()
         mediaSession = MediaSession.Builder(this, player).build()

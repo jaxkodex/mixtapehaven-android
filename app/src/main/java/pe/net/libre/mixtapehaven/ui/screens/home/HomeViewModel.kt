@@ -43,6 +43,10 @@ class HomeViewModel(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    /** Current track and playback state for the bottom Now Playing bar. */
+    val nowPlaying: StateFlow<Track?> = playerController.nowPlaying
+    val isPlaying: StateFlow<Boolean> = playerController.isPlaying
+
     private val _snackbarMessages = Channel<String>(Channel.BUFFERED)
 
     /** One-shot messages for transient UI feedback (e.g. a Snackbar), not persisted in [state]. */
@@ -122,6 +126,10 @@ class HomeViewModel(
                 }
         }
     }
+
+    fun playPause() = playerController.playPause()
+
+    fun playNext() = playerController.next()
 
     /** Play the offline library starting from [track] (serves from local files first). */
     fun playOnDevice(track: Track) {

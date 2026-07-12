@@ -48,6 +48,7 @@ import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
+import pe.net.libre.mixtapehaven.ui.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
 import pe.net.libre.mixtapehaven.ui.components.SectionHeader
@@ -73,6 +74,8 @@ fun HomeScreen(
         HomeViewModel(it.repository, it.playerController, it.downloadManager, it.diagnosticsLog)
     }
     val state by viewModel.state.collectAsState()
+    val nowPlayingTrack by viewModel.nowPlaying.collectAsState()
+    val isPlaying by viewModel.isPlaying.collectAsState()
     val hasDownloads = state.onDevice.isNotEmpty()
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) {
@@ -86,7 +89,8 @@ fun HomeScreen(
                 .statusBarsPadding()
                 .navigationBarsPadding()
                 .padding(horizontal = 20.dp)
-                .padding(bottom = 24.dp),
+                // Extra bottom padding keeps the last items reachable above the Now Playing bar.
+                .padding(bottom = if (nowPlayingTrack != null) 96.dp else 24.dp),
             verticalArrangement = Arrangement.spacedBy(20.dp),
         ) {
             Spacer(Modifier.size(0.dp))
@@ -146,8 +150,20 @@ fun HomeScreen(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
-                .padding(16.dp),
+                .padding(16.dp)
+                .padding(bottom = if (nowPlayingTrack != null) 68.dp else 0.dp),
         )
+
+        nowPlayingTrack?.let { track ->
+            NowPlayingBar(
+                track = track,
+                isPlaying = isPlaying,
+                onOpen = onOpenNowPlaying,
+                onPlayPause = viewModel::playPause,
+                onNext = viewModel::playNext,
+                modifier = Modifier.align(Alignment.BottomCenter),
+            )
+        }
     }
 }
 

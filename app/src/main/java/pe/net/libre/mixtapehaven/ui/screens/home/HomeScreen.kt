@@ -19,13 +19,16 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.CloudQueue
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -35,8 +38,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import pe.net.libre.mixtapehaven.R
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
@@ -119,16 +126,18 @@ fun HomeScreen(
                 onAction = onOpenDownloads,
             )
 
-            if (state.albums.isEmpty()) {
-                FirstRunEmptyState(onOpenSettings = onOpenSettings)
-            } else {
-                AlbumGrid(
+            when {
+                state.albums.isNotEmpty() -> AlbumGrid(
                     albums = state.albums,
                     onAlbumClick = { album ->
                         viewModel.playAlbum(album)
                         onOpenNowPlaying()
                     },
                 )
+                // Fetch in flight: render nothing rather than flash an empty state.
+                state.loading -> Unit
+                state.error != null -> OfflineAlbumsState(onRetry = viewModel::load)
+                else -> FirstRunEmptyState(onOpenSettings = onOpenSettings)
             }
         }
 
@@ -236,6 +245,91 @@ private fun AlbumGrid(
     }
 }
 
+/** Shown under "Recently added" when the album fetch failed (e.g. offline): the library isn't
+ * empty, we just can't reach the server, so the copy must not claim "nothing's here yet". */
+@Composable
+private fun OfflineAlbumsState(
+    onRetry: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    SurfaceCard(modifier = modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(Surface2),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    Icons.Outlined.CloudOff,
+                    contentDescription = null,
+                    tint = TextMuted,
+                    modifier = Modifier.size(28.dp),
+                )
+            }
+            Text(
+                stringResource(R.string.home_offline_title),
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+            )
+            Text(
+                stringResource(R.string.home_offline_body),
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                textAlign = TextAlign.Center,
+            )
+            PillButton(
+                icon = Icons.Outlined.Refresh,
+                label = stringResource(R.string.home_offline_retry),
+                onClick = onRetry,
+            )
+        }
+    }
+}
+
+/**
+ * Small pill-shaped action button. The outer clip + clickable wrap the 48.dp minimum interactive
+ * area (for touch-target accessibility) while the background/border keep the compact pill visual.
+ */
+@Composable
+private fun PillButton(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Row(
+        modifier = modifier
+            .clip(CircleShape)
+            .clickable(role = Role.Button, onClick = onClick)
+            .minimumInteractiveComponentSize()
+            .background(Surface2, CircleShape)
+            .border(1.dp, Stroke, CircleShape)
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Icon(
+            icon,
+            contentDescription = null,
+            tint = TextSecondary,
+            modifier = Modifier.size(16.dp),
+        )
+        Text(
+            label,
+            style = MaterialTheme.typography.bodySmall,
+            color = TextPrimary,
+        )
+    }
+}
+
 @Composable
 private fun FirstRunEmptyState(
     onOpenSettings: () -> Unit,
@@ -274,28 +368,11 @@ private fun FirstRunEmptyState(
                 color = TextSecondary,
                 textAlign = TextAlign.Center,
             )
-            Row(
-                modifier = Modifier
-                    .clip(CircleShape)
-                    .background(Surface2)
-                    .border(1.dp, Stroke, CircleShape)
-                    .clickable(onClick = onOpenSettings)
-                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                Icon(
-                    Icons.Outlined.Settings,
-                    contentDescription = null,
-                    tint = TextSecondary,
-                    modifier = Modifier.size(16.dp),
-                )
-                Text(
-                    "Auto-download settings",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextPrimary,
-                )
-            }
+            PillButton(
+                icon = Icons.Outlined.Settings,
+                label = "Auto-download settings",
+                onClick = onOpenSettings,
+            )
         }
     }
 }

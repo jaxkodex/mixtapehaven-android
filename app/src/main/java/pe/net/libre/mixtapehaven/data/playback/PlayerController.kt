@@ -102,10 +102,15 @@ class PlayerController(
             _isPlaying.collectLatest { playing ->
                 if (!playing) return@collectLatest
                 while (currentCoroutineContext().isActive) {
-                    activeController()?.let { c ->
-                        _durationMs.value = c.duration.coerceAtLeast(0)
-                        _positionMs.value = c.currentPosition.coerceAtLeast(0)
+                    val c = activeController()
+                    if (c == null) {
+                        // Controller lost mid-playback (service killed): stop polling and reset
+                        // the flag, else its conflated true would keep the loop from restarting.
+                        _isPlaying.value = false
+                        break
                     }
+                    _durationMs.value = c.duration.coerceAtLeast(0)
+                    _positionMs.value = c.currentPosition.coerceAtLeast(0)
                     delay(PROGRESS_INTERVAL_MS)
                 }
             }

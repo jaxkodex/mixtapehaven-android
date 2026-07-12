@@ -29,6 +29,7 @@ import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -257,7 +258,8 @@ fun NowPlayingBar(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                // The 48.dp minimum touch targets in the controls already add vertical bulk.
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
@@ -278,31 +280,50 @@ fun NowPlayingBar(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(Accent)
-                    .clickable(onClick = onPlayPause),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
-                    contentDescription = if (isPlaying) "Pause" else "Play",
-                    tint = AccentInk,
-                    modifier = Modifier.size(20.dp),
-                )
-            }
+            NowPlayingControls(isPlaying = isPlaying, onPlayPause = onPlayPause, onNext = onNext)
+        }
+    }
+}
+
+/** Play/pause and skip-next controls, each wrapped in a 48.dp minimum touch target. */
+@Composable
+private fun NowPlayingControls(
+    isPlaying: Boolean,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .clickable(onClick = onPlayPause)
+            .minimumInteractiveComponentSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Box(
+            modifier = Modifier.size(32.dp).clip(CircleShape).background(Accent),
+            contentAlignment = Alignment.Center,
+        ) {
             Icon(
-                Icons.Filled.SkipNext,
-                contentDescription = "Next track",
-                tint = TextSecondary,
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(CircleShape)
-                    .clickable(onClick = onNext),
+                if (isPlaying) Icons.Filled.Pause else Icons.Filled.PlayArrow,
+                contentDescription = if (isPlaying) "Pause" else "Play",
+                tint = AccentInk,
+                modifier = Modifier.size(20.dp),
             )
         }
+    }
+    Box(
+        modifier = Modifier
+            .clip(CircleShape)
+            .clickable(onClick = onNext)
+            .minimumInteractiveComponentSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Filled.SkipNext,
+            contentDescription = "Next track",
+            tint = TextSecondary,
+            modifier = Modifier.size(24.dp),
+        )
     }
 }
 

@@ -133,6 +133,7 @@ class PlayerController(
             // Drop any in-flight refill so its tracks aren't appended to this new queue.
             refillJob?.cancel()
             refilling = false
+            tracksById.clear()
             val items = buildItems(queue)
             if (items.isEmpty()) {
                 // Every track lacked an id or a resolvable stream URL (e.g. expired auth token):
@@ -257,11 +258,8 @@ class PlayerController(
 
     private fun updateQueue() {
         val c = activeController() ?: return
-        val items = (0 until c.mediaItemCount).mapNotNull { c.getMediaItemAt(it).mediaId.let(tracksById::get) }
-        val index = c.currentMediaItemIndex
-        Log.d(TAG, "updateQueue: ${items.size} items, index=$index, tracksById=${tracksById.size}")
-        _queue.value = items
-        _queueIndex.value = index
+        _queue.value = (0 until c.mediaItemCount).mapNotNull { c.getMediaItemAt(it).mediaId.let(tracksById::get) }
+        _queueIndex.value = c.currentMediaItemIndex
     }
 
     private fun buildMediaItem(track: Track, id: String, url: String): MediaItem {

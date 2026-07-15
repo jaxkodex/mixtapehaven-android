@@ -202,9 +202,10 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             )
         }
 
-        if (upNext != null) {
+        val nextTrack = upNext
+        if (nextTrack != null) {
             UpNextCard(
-                track = upNext!!,
+                track = nextTrack,
                 source = source,
                 offlineReady = upNextOfflineReady,
             )
@@ -241,10 +242,6 @@ private fun UpNextCard(
     offlineReady: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val headerLabel = when (source) {
-        pe.net.libre.mixtapehaven.data.playback.PlaybackSource.RANDOM_WALK -> "NEXT ON YOUR WALK"
-        else -> "UP NEXT"
-    }
     Column(
         modifier = modifier
             .fillMaxWidth()
@@ -253,74 +250,91 @@ private fun UpNextCard(
             .padding(14.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
+        UpNextHeader(source)
+        UpNextTrackRow(track, offlineReady)
+    }
+}
+
+@Composable
+private fun UpNextHeader(source: pe.net.libre.mixtapehaven.data.playback.PlaybackSource) {
+    val headerLabel = when (source) {
+        pe.net.libre.mixtapehaven.data.playback.PlaybackSource.RANDOM_WALK -> "NEXT ON YOUR WALK"
+        else -> "UP NEXT"
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    Icons.Outlined.Shuffle,
-                    contentDescription = null,
-                    tint = TextMuted,
-                    modifier = Modifier.size(15.dp),
-                )
-                Text(
-                    headerLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 1.sp,
-                    ),
-                    color = TextMuted,
-                )
-            }
+            Icon(
+                Icons.Outlined.Shuffle,
+                contentDescription = null,
+                tint = TextMuted,
+                modifier = Modifier.size(15.dp),
+            )
             Text(
-                "Queue",
-                style = MaterialTheme.typography.bodySmall,
-                color = Accent,
+                headerLabel,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                ),
+                color = TextMuted,
             )
         }
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        Text(
+            "Queue",
+            style = MaterialTheme.typography.bodySmall,
+            color = Accent,
+        )
+    }
+}
+
+@Composable
+private fun UpNextTrackRow(
+    track: pe.net.libre.mixtapehaven.model.Track,
+    offlineReady: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Artwork(
+            color = track.artColor,
+            imageUrl = track.imageUrl,
+            modifier = Modifier.size(42.dp),
+            corner = 8.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
         ) {
-            Artwork(
-                color = track.artColor,
-                imageUrl = track.imageUrl,
-                modifier = Modifier.size(42.dp),
-                corner = 8.dp,
+            Text(
+                track.title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
-            ) {
-                Text(
-                    track.title,
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                    color = TextPrimary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    track.artist,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = TextSecondary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            if (offlineReady) {
-                Icon(
-                    Icons.Outlined.ArrowDownward,
-                    contentDescription = "Offline ready",
-                    tint = Accent,
-                    modifier = Modifier.size(18.dp),
-                )
-            }
+            Text(
+                track.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (offlineReady) {
+            Icon(
+                Icons.Outlined.ArrowDownward,
+                contentDescription = "Offline ready",
+                tint = Accent,
+                modifier = Modifier.size(18.dp),
+            )
         }
     }
 }

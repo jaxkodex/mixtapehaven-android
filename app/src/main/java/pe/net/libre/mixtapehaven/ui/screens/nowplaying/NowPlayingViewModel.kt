@@ -5,7 +5,6 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
@@ -28,7 +27,7 @@ class NowPlayingViewModel(
         playerController.queue,
         playerController.queueIndex,
     ) { queue, index ->
-        queue.getOrNull(index + 1)
+        if (index >= 0) queue.getOrNull(index + 1) else null
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
 
     val upNextOfflineReady: StateFlow<Boolean> =

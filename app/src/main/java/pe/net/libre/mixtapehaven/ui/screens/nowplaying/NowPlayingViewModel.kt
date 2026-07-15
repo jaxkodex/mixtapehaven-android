@@ -21,6 +21,19 @@ class NowPlayingViewModel(
     val positionMs: StateFlow<Long> = playerController.positionMs
     val durationMs: StateFlow<Long> = playerController.durationMs
     val source: StateFlow<PlaybackSource> = playerController.source
+    val queue: StateFlow<List<Track>> = playerController.queue
+
+    val upNext: StateFlow<Track?> = combine(
+        playerController.queue,
+        playerController.queueIndex,
+    ) { queue, index ->
+        if (index >= 0) queue.getOrNull(index + 1) else null
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), null)
+
+    val upNextOfflineReady: StateFlow<Boolean> =
+        combine(upNext, downloadManager.downloads) { track, rows ->
+            track?.id != null && rows.any { it.id == track.id && it.complete }
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), false)
 
     /** Save percent (0-100) when the current track is being downloaded, else null. */
     val savingPercent: StateFlow<Int?> =

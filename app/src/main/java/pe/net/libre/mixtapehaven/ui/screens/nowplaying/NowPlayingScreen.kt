@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Pause
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.outlined.KeyboardArrowDown
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material.icons.outlined.Shuffle
+import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Slider
@@ -35,13 +37,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.components.Artwork
 import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.AccentInk
 import pe.net.libre.mixtapehaven.ui.theme.Bg
+import pe.net.libre.mixtapehaven.ui.theme.Surface
 import pe.net.libre.mixtapehaven.ui.theme.Surface2
 import pe.net.libre.mixtapehaven.ui.theme.TextMuted
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
@@ -57,6 +63,8 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val source by viewModel.source.collectAsState()
     val savingPercent by viewModel.savingPercent.collectAsState()
     val offlineReady by viewModel.offlineReady.collectAsState()
+    val upNext by viewModel.upNext.collectAsState()
+    val upNextOfflineReady by viewModel.upNextOfflineReady.collectAsState()
 
     val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
@@ -193,6 +201,15 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.size(24.dp),
             )
         }
+
+        val nextTrack = upNext
+        if (nextTrack != null) {
+            UpNextCard(
+                track = nextTrack,
+                source = source,
+                offlineReady = upNextOfflineReady,
+            )
+        }
     }
 }
 
@@ -217,6 +234,110 @@ private fun OfflineStatus(savingPercent: Int?, offlineReady: Boolean, modifier: 
 }
 
 private val OfflineReadyGreen = androidx.compose.ui.graphics.Color(0xFF7BB661)
+
+@Composable
+private fun UpNextCard(
+    track: pe.net.libre.mixtapehaven.model.Track,
+    source: pe.net.libre.mixtapehaven.data.playback.PlaybackSource,
+    offlineReady: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(16.dp))
+            .background(Surface)
+            .padding(14.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        UpNextHeader(source)
+        UpNextTrackRow(track, offlineReady)
+    }
+}
+
+@Composable
+private fun UpNextHeader(source: pe.net.libre.mixtapehaven.data.playback.PlaybackSource) {
+    val headerLabel = when (source) {
+        pe.net.libre.mixtapehaven.data.playback.PlaybackSource.RANDOM_WALK -> "NEXT ON YOUR WALK"
+        else -> "UP NEXT"
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Outlined.Shuffle,
+                contentDescription = null,
+                tint = TextMuted,
+                modifier = Modifier.size(15.dp),
+            )
+            Text(
+                headerLabel,
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.Bold,
+                    letterSpacing = 1.sp,
+                ),
+                color = TextMuted,
+            )
+        }
+        Text(
+            "Queue",
+            style = MaterialTheme.typography.bodySmall,
+            color = Accent,
+        )
+    }
+}
+
+@Composable
+private fun UpNextTrackRow(
+    track: pe.net.libre.mixtapehaven.model.Track,
+    offlineReady: Boolean,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Artwork(
+            color = track.artColor,
+            imageUrl = track.imageUrl,
+            modifier = Modifier.size(42.dp),
+            corner = 8.dp,
+        )
+        Column(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(2.dp),
+        ) {
+            Text(
+                track.title,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                track.artist,
+                style = MaterialTheme.typography.bodySmall,
+                color = TextSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        if (offlineReady) {
+            Icon(
+                Icons.Outlined.ArrowDownward,
+                contentDescription = "Offline ready",
+                tint = Accent,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+    }
+}
 
 private fun formatTime(ms: Long): String {
     if (ms <= 0) return "0:00"

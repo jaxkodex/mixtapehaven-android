@@ -2,6 +2,7 @@ package pe.net.libre.mixtapehaven.data.playback
 
 import android.content.Intent
 import androidx.annotation.OptIn
+import androidx.media3.common.C
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.datasource.DefaultDataSource
 import androidx.media3.datasource.okhttp.OkHttpDataSource
@@ -26,6 +27,8 @@ class PlaybackService : MediaSessionService() {
         val player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
             .setHandleAudioBecomingNoisy(true)
+            // Hold CPU + WiFi awake only while playing, so streaming survives screen-off/doze.
+            .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
         mediaSession = MediaSession.Builder(this, player).build()
     }

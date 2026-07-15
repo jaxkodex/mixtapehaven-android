@@ -15,10 +15,12 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
@@ -55,6 +57,7 @@ class PlayerController(
     val source: StateFlow<PlaybackSource> = _source.asStateFlow()
 
     private var controller: MediaController? = null
+    private var connecting = false
     private var pendingAction: (() -> Unit)? = null
     private var refilling = false
     private var refillJob: Job? = null
@@ -104,15 +107,23 @@ class PlayerController(
     }
 
     init {
-        connect()
+        // Poll position/duration only while something is actually playing; while paused or idle
+        // the loop is suspended so the app does no periodic work (seeks are handled by the listener).
         scope.launch {
-            while (isActive) {
-                activeController()?.let { c ->
+            _isPlaying.collectLatest { playing ->
+                if (!playing) return@collectLatest
+                while (currentCoroutineContext().isActive) {
+                    val c = activeController()
+                    if (c == null) {
+                        // Controller lost mid-playback (service killed): stop polling and reset
+                        // the flag, else its conflated true would keep the loop from restarting.
+                        _isPlaying.value = false
+                        break
+                    }
                     _durationMs.value = c.duration.coerceAtLeast(0)
-                    // Position only advances while playing; seeks are handled by the listener.
-                    if (c.isPlaying) _positionMs.value = c.currentPosition.coerceAtLeast(0)
+                    _positionMs.value = c.currentPosition.coerceAtLeast(0)
+                    delay(PROGRESS_INTERVAL_MS)
                 }
-                delay(PROGRESS_INTERVAL_MS)
             }
         }
     }
@@ -150,9 +161,10 @@ class PlayerController(
         if (c != null && c.isConnected) {
             action()
         } else {
-            // The service may have been destroyed, leaving a dead controller; rebuild it.
+            // Not yet connected (first play) or the service died, leaving a dead controller.
+            // Either way, (re)build the connection and run the action once it is live.
             pendingAction = action
-            if (c != null) reconnect()
+            if (c != null) reconnect() else connect()
         }
     }
 
@@ -228,10 +240,13 @@ class PlayerController(
     }
 
     private fun connect() {
+        if (connecting) return
+        connecting = true
         val token = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
         val future = MediaController.Builder(appContext, token).buildAsync()
         future.addListener(
             {
+                connecting = false
                 val c = future.get()
                 controller = c
                 c.addListener(listener)

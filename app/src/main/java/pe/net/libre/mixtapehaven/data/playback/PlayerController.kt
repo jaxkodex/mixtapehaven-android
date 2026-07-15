@@ -72,6 +72,12 @@ class PlayerController(
     private val _durationMs = MutableStateFlow(0L)
     val durationMs: StateFlow<Long> = _durationMs.asStateFlow()
 
+    private val _queue = MutableStateFlow<List<Track>>(emptyList())
+    val queue: StateFlow<List<Track>> = _queue.asStateFlow()
+
+    private val _queueIndex = MutableStateFlow(-1)
+    val queueIndex: StateFlow<Int> = _queueIndex.asStateFlow()
+
     private val listener = object : Player.Listener {
         override fun onIsPlayingChanged(isPlaying: Boolean) {
             _isPlaying.value = isPlaying
@@ -79,7 +85,12 @@ class PlayerController(
 
         override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
             updateNowPlaying(mediaItem)
+            updateQueue()
             maybeRefillQueue()
+        }
+
+        override fun onTimelineChanged(timeline: androidx.media3.common.Timeline, reason: Int) {
+            updateQueue()
         }
 
         override fun onPositionDiscontinuity(
@@ -132,6 +143,7 @@ class PlayerController(
             c.setMediaItems(items, startIndex.coerceIn(0, items.lastIndex), 0L)
             c.prepare()
             c.play()
+            updateQueue()
         }
         val c = controller
         if (c != null && c.isConnected) {
@@ -168,6 +180,8 @@ class PlayerController(
         _isPlaying.value = false
         _positionMs.value = 0
         _durationMs.value = 0
+        _queue.value = emptyList()
+        _queueIndex.value = -1
     }
 
     /** The controller only if it is still connected to a live service, else null. */
@@ -202,7 +216,10 @@ class PlayerController(
                         diagnostics.log(TAG, "Queue refill failed: ${it.javaClass.simpleName}: ${it.message}")
                     }
                     .getOrDefault(emptyList())
-                if (items.isNotEmpty()) activeController()?.addMediaItems(items)
+                if (items.isNotEmpty()) {
+                    activeController()?.addMediaItems(items)
+                    updateQueue()
+                }
             } finally {
                 refilling = false
             }
@@ -219,6 +236,7 @@ class PlayerController(
                 c.addListener(listener)
                 _isPlaying.value = c.isPlaying
                 updateNowPlaying(c.currentMediaItem)
+                updateQueue()
                 pendingAction?.invoke()
                 pendingAction = null
             },
@@ -235,6 +253,15 @@ class PlayerController(
 
     private fun updateNowPlaying(mediaItem: MediaItem?) {
         _nowPlaying.value = mediaItem?.mediaId?.let { tracksById[it] }
+    }
+
+    private fun updateQueue() {
+        val c = activeController() ?: return
+        val items = (0 until c.mediaItemCount).mapNotNull { c.getMediaItemAt(it).mediaId.let(tracksById::get) }
+        val index = c.currentMediaItemIndex
+        Log.d(TAG, "updateQueue: ${items.size} items, index=$index, tracksById=${tracksById.size}")
+        _queue.value = items
+        _queueIndex.value = index
     }
 
     private fun buildMediaItem(track: Track, id: String, url: String): MediaItem {

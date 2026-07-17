@@ -3,6 +3,8 @@ package pe.net.libre.mixtapehaven.ui.navigation
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.navigation.NavGraphBuilder
+import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -14,6 +16,8 @@ import pe.net.libre.mixtapehaven.ui.screens.login.LoginScreen
 import pe.net.libre.mixtapehaven.ui.screens.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.screens.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.screens.settings.SettingsScreen
+import pe.net.libre.mixtapehaven.ui.screens.video.VideoDetailScreen
+import pe.net.libre.mixtapehaven.ui.screens.video.VideoPlayerScreen
 
 @Composable
 fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
@@ -41,8 +45,10 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onOpenSearch = { navController.navigate(Routes.SEARCH) },
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
                 onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
+                onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
             )
         }
+        videoDestinations(navController)
         composable(Routes.SEARCH) {
             SearchScreen(
                 onBack = { navController.popBackStack() },
@@ -68,5 +74,22 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
         composable(Routes.DOWNLOADS) {
             DownloadsScreen(onBack = { navController.popBackStack() })
         }
+    }
+}
+
+/** Video detail + full-screen player destinations, both keyed by the Jellyfin item id. */
+private fun NavGraphBuilder.videoDestinations(navController: NavHostController) {
+    composable(Routes.VIDEO_DETAIL) { entry ->
+        VideoDetailScreen(
+            itemId = entry.arguments?.getString("itemId").orEmpty(),
+            onBack = { navController.popBackStack() },
+            onPlay = { playId -> navController.navigate(Routes.videoPlayer(playId)) },
+        )
+    }
+    composable(Routes.VIDEO_PLAYER) { entry ->
+        VideoPlayerScreen(
+            itemId = entry.arguments?.getString("itemId").orEmpty(),
+            onBack = { navController.popBackStack() },
+        )
     }
 }

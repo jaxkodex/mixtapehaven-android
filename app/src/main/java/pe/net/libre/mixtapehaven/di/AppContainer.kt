@@ -36,6 +36,13 @@ class AppContainer(context: Context) {
 
     val playerController: PlayerController by lazy { PlayerController(appContext, repository, diagnosticsLog) }
 
+    /**
+     * Resolves ordered playable source URLs for a video item id. Defaults to remote streaming
+     * (direct play, then HLS transcode); swap to serve local video downloads first, mirroring
+     * [PlayerController.streamUrlResolver] for audio.
+     */
+    var videoSourceResolver: (String) -> List<String> = repository::videoStreamCandidates
+
     val downloadManager: DownloadManager by lazy {
         DownloadManager(
             context = appContext,

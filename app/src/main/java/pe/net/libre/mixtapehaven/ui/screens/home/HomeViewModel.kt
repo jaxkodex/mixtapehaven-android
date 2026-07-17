@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -24,6 +25,7 @@ import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.RandomWalk
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
+import pe.net.libre.mixtapehaven.model.VideoItem
 
 class HomeViewModel(
     private val repository: JellyfinRepository,
@@ -35,6 +37,7 @@ class HomeViewModel(
     data class UiState(
         val userName: String = "",
         val albums: List<Album> = emptyList(),
+        val videos: List<VideoItem> = emptyList(),
         val onDevice: List<Track> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
@@ -61,14 +64,21 @@ class HomeViewModel(
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             val userName = repository.session.first()?.userName.orEmpty()
-            runCatching { repository.recentlyAddedAlbums() }.fold(
+            // A server without video libraries (or a video fetch failure) must not break the
+            // music Home, so videos degrade to an empty (hidden) section independently — and load
+            // in parallel so the new section adds no latency to the album fetch.
+            val videosDeferred = async { runCatching { repository.moviesAndShows() }.getOrDefault(emptyList()) }
+            val albumsResult = runCatching { repository.recentlyAddedAlbums() }
+            val videos = videosDeferred.await()
+            albumsResult.fold(
                 onSuccess = { albums ->
-                    _state.update { it.copy(userName = userName, albums = albums, loading = false) }
+                    _state.update { it.copy(userName = userName, albums = albums, videos = videos, loading = false) }
                 },
                 onFailure = { error ->
                     _state.update {
                         it.copy(
                             userName = userName,
+                            videos = videos,
                             loading = false,
                             error = error.message ?: "Could not load your library",
                         )

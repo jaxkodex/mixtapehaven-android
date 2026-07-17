@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -45,10 +46,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.R
 import pe.net.libre.mixtapehaven.di.appViewModel
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
+import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.components.NowPlayingBar
+import pe.net.libre.mixtapehaven.ui.components.PosterCard
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
 import pe.net.libre.mixtapehaven.ui.components.SectionHeader
@@ -68,6 +73,7 @@ fun HomeScreen(
     onOpenSearch: () -> Unit,
     onOpenDownloads: () -> Unit,
     onOpenNowPlaying: () -> Unit,
+    onOpenVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel = appViewModel {
@@ -101,69 +107,107 @@ fun HomeScreen(
                 onOpenSettings = onOpenSettings,
             )
 
-            RandomWalkCard(
-                onPlay = {
-                    viewModel.startRandomWalk()
-                    onOpenNowPlaying()
-                },
-            )
+            RandomWalkCard(onPlay = { viewModel.startRandomWalk(); onOpenNowPlaying() })
 
             SearchField(
                 placeholder = "Search songs, albums, artists",
                 onClick = onOpenSearch,
             )
 
-            if (hasDownloads) {
-                OnDeviceSection(
-                    tracks = state.onDevice,
-                    onManage = onOpenDownloads,
-                    onPlay = { track ->
-                        viewModel.playOnDevice(track)
-                        onOpenNowPlaying()
-                    },
-                )
-            }
-
-            SectionHeader(
-                title = "Recently added",
-                actionLabel = "See all",
-                onAction = onOpenDownloads,
+            HomeSections(
+                state = state,
+                onOpenDownloads = onOpenDownloads,
+                onOpenSettings = onOpenSettings,
+                onOpenVideo = onOpenVideo,
+                onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
+                onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
+                onRetry = viewModel::load,
             )
-
-            when {
-                state.albums.isNotEmpty() -> AlbumGrid(
-                    albums = state.albums,
-                    onAlbumClick = { album ->
-                        viewModel.playAlbum(album)
-                        onOpenNowPlaying()
-                    },
-                )
-                // Fetch in flight: render nothing rather than flash an empty state.
-                state.loading -> Unit
-                state.error != null -> OfflineAlbumsState(onRetry = viewModel::load)
-                else -> FirstRunEmptyState(onOpenSettings = onOpenSettings)
-            }
         }
 
-        SnackbarHost(
-            hostState = snackbarHostState,
-            modifier = Modifier
-                .align(Alignment.BottomCenter)
-                .navigationBarsPadding()
-                .padding(16.dp)
-                .padding(bottom = if (nowPlayingTrack != null) 68.dp else 0.dp),
+        HomeOverlays(
+            snackbarHostState = snackbarHostState,
+            nowPlaying = nowPlayingTrack,
+            isPlaying = isPlaying,
+            onOpenNowPlaying = onOpenNowPlaying,
+            onPlayPause = viewModel::playPause,
+            onNext = viewModel::playNext,
         )
+    }
+}
 
-        nowPlayingTrack?.let { track ->
-            NowPlayingBar(
-                track = track,
-                isPlaying = isPlaying,
-                onOpen = onOpenNowPlaying,
-                onPlayPause = viewModel::playPause,
-                onNext = viewModel::playNext,
-                modifier = Modifier.align(Alignment.BottomCenter),
-            )
-        }
+/** Bottom-anchored transient UI: the snackbar and, while something plays, the Now Playing bar. */
+@Composable
+private fun BoxScope.HomeOverlays(
+    snackbarHostState: SnackbarHostState,
+    nowPlaying: Track?,
+    isPlaying: Boolean,
+    onOpenNowPlaying: () -> Unit,
+    onPlayPause: () -> Unit,
+    onNext: () -> Unit,
+) {
+    SnackbarHost(
+        hostState = snackbarHostState,
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .navigationBarsPadding()
+            .padding(16.dp)
+            .padding(bottom = if (nowPlaying != null) 68.dp else 0.dp),
+    )
+
+    nowPlaying?.let { track ->
+        NowPlayingBar(
+            track = track,
+            isPlaying = isPlaying,
+            onOpen = onOpenNowPlaying,
+            onPlayPause = onPlayPause,
+            onNext = onNext,
+            modifier = Modifier.align(Alignment.BottomCenter),
+        )
+    }
+}
+
+/** The library sections of Home: saved tracks, Movies & shows, and the Recently added grid. */
+@Composable
+private fun HomeSections(
+    state: HomeViewModel.UiState,
+    onOpenDownloads: () -> Unit,
+    onOpenSettings: () -> Unit,
+    onOpenVideo: (String) -> Unit,
+    onPlayTrack: (Track) -> Unit,
+    onPlayAlbum: (Album) -> Unit,
+    onRetry: () -> Unit,
+) {
+    if (state.onDevice.isNotEmpty()) {
+        OnDeviceSection(
+            tracks = state.onDevice,
+            onManage = onOpenDownloads,
+            onPlay = onPlayTrack,
+        )
+    }
+
+    if (state.videos.isNotEmpty()) {
+        MoviesAndShowsSection(
+            videos = state.videos,
+            onVideoClick = { onOpenVideo(it.id) },
+        )
+    }
+
+    SectionHeader(
+        title = "Recently added",
+        actionLabel = "See all",
+        onAction = onOpenDownloads,
+    )
+
+    when {
+        state.albums.isNotEmpty() -> AlbumGrid(
+            albums = state.albums,
+            onAlbumClick = onPlayAlbum,
+        )
+        // Fetch in flight: render nothing rather than flash an empty state.
+        state.loading -> Unit
+        state.error != null -> OfflineAlbumsState(onRetry = onRetry)
+        else -> FirstRunEmptyState(onOpenSettings = onOpenSettings)
     }
 }
 
@@ -227,6 +271,20 @@ private fun OnDeviceSection(
     Column {
         tracks.take(ON_DEVICE_PREVIEW).forEach { track ->
             TrackRow(track = track, onClick = { onPlay(track) })
+        }
+    }
+}
+
+/** Horizontal poster rail of the user's movies and TV series. */
+@Composable
+private fun MoviesAndShowsSection(
+    videos: List<VideoItem>,
+    onVideoClick: (VideoItem) -> Unit,
+) {
+    SectionHeader(title = "Movies & shows")
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        items(videos, key = { it.id }) { video ->
+            PosterCard(video = video, onClick = { onVideoClick(video) })
         }
     }
 }

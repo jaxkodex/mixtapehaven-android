@@ -1,0 +1,51 @@
+package pe.net.libre.mixtapehaven.ui.screens.video
+
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Test
+import pe.net.libre.mixtapehaven.model.VideoItem
+import pe.net.libre.mixtapehaven.model.VideoKind
+
+/** Unit coverage for the series-resume selection behind the detail screen's Play/Resume button. */
+class SelectPlayTargetTest {
+
+    private fun video(id: String, kind: VideoKind, resumeMs: Long = 0) =
+        VideoItem(id = id, title = id, kind = kind, resumePositionMs = resumeMs)
+
+    @Test
+    fun `null item yields no target`() {
+        assertNull(selectPlayTarget(null, emptyList()))
+    }
+
+    @Test
+    fun `movie plays itself regardless of episodes`() {
+        val movie = video("m", VideoKind.MOVIE)
+
+        assertEquals(movie, selectPlayTarget(movie, listOf(video("e1", VideoKind.EPISODE))))
+    }
+
+    @Test
+    fun `series plays the first in-progress episode`() {
+        val series = video("s", VideoKind.SERIES)
+        val episodes = listOf(
+            video("e1", VideoKind.EPISODE),
+            video("e2", VideoKind.EPISODE, resumeMs = 60_000),
+            video("e3", VideoKind.EPISODE, resumeMs = 5_000),
+        )
+
+        assertEquals("e2", selectPlayTarget(series, episodes)?.id)
+    }
+
+    @Test
+    fun `series with nothing in progress falls back to the first episode`() {
+        val series = video("s", VideoKind.SERIES)
+        val episodes = listOf(video("e1", VideoKind.EPISODE), video("e2", VideoKind.EPISODE))
+
+        assertEquals("e1", selectPlayTarget(series, episodes)?.id)
+    }
+
+    @Test
+    fun `series without episodes yields no target`() {
+        assertNull(selectPlayTarget(video("s", VideoKind.SERIES), emptyList()))
+    }
+}

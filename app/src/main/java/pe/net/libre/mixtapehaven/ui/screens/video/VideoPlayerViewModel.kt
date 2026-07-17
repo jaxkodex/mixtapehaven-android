@@ -3,6 +3,8 @@ package pe.net.libre.mixtapehaven.ui.screens.video
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.media3.common.AudioAttributes
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -10,6 +12,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,7 +39,17 @@ class VideoPlayerViewModel(
     private val resolveSources: (String) -> List<String>,
 ) : ViewModel() {
 
-    val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext).build()
+    val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext)
+        // handleAudioFocus ducks/pauses other apps' audio and pauses us for calls; without it the
+        // raw player would play over Spotify etc. (musicController.pause() only covers our music).
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(C.USAGE_MEDIA)
+                .setContentType(C.AUDIO_CONTENT_TYPE_MOVIE)
+                .build(),
+            /* handleAudioFocus = */ true,
+        )
+        .build()
 
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
@@ -44,7 +57,14 @@ class VideoPlayerViewModel(
     private var candidates: List<String> = emptyList()
     private var candidateIndex = 0
 
+    /** True once any candidate actually played; gates the STOPPED report in [onCleared]. */
+    private var reachedReady = false
+
     private val listener = object : Player.Listener {
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            if (playbackState == Player.STATE_READY) reachedReady = true
+        }
+
         override fun onPlayerError(error: PlaybackException) {
             // Direct play failed (e.g. a codec the device can't decode): fall through to the
             // transcoded candidate, keeping the position already reached.
@@ -73,18 +93,45 @@ class VideoPlayerViewModel(
             }
             prepareCurrentCandidate(startMs = resumeMs)
             repository.reportVideoPlayback(itemId, resumeMs, VideoPlaybackEvent.STARTED)
-            while (isActive) {
-                delay(PROGRESS_REPORT_MS)
-                if (player.playbackState == Player.STATE_READY) {
-                    repository.reportVideoPlayback(
-                        itemId,
-                        player.currentPosition,
-                        VideoPlaybackEvent.PROGRESS,
-                        paused = !player.isPlaying,
-                    )
+            reportProgressLoop()
+        }
+    }
+
+    /** Pause playback when the screen is no longer visible; there is no background video service. */
+    fun onScreenStopped() {
+        player.pause()
+    }
+
+    /**
+     * Report progress every [PROGRESS_REPORT_MS] while playing, plus exactly one paused report per
+     * pause (so the resume point lands) — then stay quiet to avoid indefinite idle network churn.
+     */
+    private suspend fun reportProgressLoop() {
+        var reportedPause = false
+        while (currentCoroutineContext().isActive) {
+            delay(PROGRESS_REPORT_MS)
+            val ready = player.playbackState == Player.STATE_READY
+            when {
+                ready && player.isPlaying -> {
+                    reportedPause = false
+                    reportProgress(paused = false)
+                }
+                ready && !reportedPause -> {
+                    reportedPause = true
+                    reportProgress(paused = true)
                 }
             }
         }
+    }
+
+    private suspend fun reportProgress(paused: Boolean) {
+        repository.reportVideoPlayback(
+            itemId,
+            player.currentPosition,
+            VideoPlaybackEvent.PROGRESS,
+            paused = paused,
+            transcoding = candidateIndex > 0,
+        )
     }
 
     private fun prepareCurrentCandidate(startMs: Long) {
@@ -94,12 +141,22 @@ class VideoPlayerViewModel(
 
     override fun onCleared() {
         val positionMs = player.currentPosition.coerceAtLeast(0)
+        val playedSomething = reachedReady
+        val transcoding = candidateIndex > 0
         player.removeListener(listener)
         player.release()
+        // A session that never played must not report STOPPED: its position 0 would regress the
+        // server-side resume point of a half-watched item.
+        if (!playedSomething) return
         // viewModelScope is already cancelled here, so the final report (which fixes the server's
         // resume point) needs its own short-lived scope.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
-            repository.reportVideoPlayback(itemId, positionMs, VideoPlaybackEvent.STOPPED)
+            repository.reportVideoPlayback(
+                itemId,
+                positionMs,
+                VideoPlaybackEvent.STOPPED,
+                transcoding = transcoding,
+            )
         }
     }
 

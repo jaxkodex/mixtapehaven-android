@@ -48,17 +48,20 @@ class VideoDetailViewModel(
         }
     }
 
-    /**
-     * The item playback should start with: the movie/episode itself, or for a series the first
-     * in-progress episode, falling back to the first episode. Null while loading or on error.
-     */
-    fun playTarget(): VideoItem? {
-        val current = _state.value
-        val item = current.item
-        return when {
-            item == null -> null
-            item.kind != VideoKind.SERIES -> item
-            else -> current.episodes.firstOrNull { it.resumePositionMs > 0 } ?: current.episodes.firstOrNull()
-        }
-    }
+    /** See [selectPlayTarget]. Null while loading or on error. */
+    fun playTarget(): VideoItem? = selectPlayTarget(_state.value.item, _state.value.episodes)
+}
+
+/**
+ * The item playback should start with: the movie/episode itself, or for a series the first
+ * in-progress episode, falling back to the first episode.
+ *
+ * Known limitation: once an episode is watched to completion Jellyfin zeroes its position, so a
+ * user who finished E1 (with nothing in progress) is sent to E1 again instead of E2. Switching to
+ * tvShowsApi.getNextUp would solve exactly this.
+ */
+internal fun selectPlayTarget(item: VideoItem?, episodes: List<VideoItem>): VideoItem? = when {
+    item == null -> null
+    item.kind != VideoKind.SERIES -> item
+    else -> episodes.firstOrNull { it.resumePositionMs > 0 } ?: episodes.firstOrNull()
 }

@@ -222,16 +222,18 @@ class JellyfinRepository(
         positionMs: Long,
         event: VideoPlaybackEvent,
         paused: Boolean = false,
+        transcoding: Boolean = false,
     ) {
         val client = api
         val id = runCatching { UUID.fromString(itemId) }.getOrNull()
         if (client == null || id == null) return
+        val playMethod = if (transcoding) PlayMethod.TRANSCODE else PlayMethod.DIRECT_STREAM
         runCatching {
             when (event) {
                 VideoPlaybackEvent.STARTED -> {
-                    client.playStateApi.onPlaybackStart(itemId = id, playMethod = PlayMethod.DIRECT_STREAM)
+                    client.playStateApi.onPlaybackStart(itemId = id, playMethod = playMethod)
                     if (positionMs > 0) {
-                        reportVideoPlayback(itemId, positionMs, VideoPlaybackEvent.PROGRESS)
+                        reportVideoPlayback(itemId, positionMs, VideoPlaybackEvent.PROGRESS, transcoding = transcoding)
                     }
                 }
 
@@ -239,7 +241,7 @@ class JellyfinRepository(
                     itemId = id,
                     positionTicks = positionMs * TICKS_PER_MS,
                     isPaused = paused,
-                    playMethod = PlayMethod.DIRECT_STREAM,
+                    playMethod = playMethod,
                 )
 
                 VideoPlaybackEvent.STOPPED -> client.playStateApi.onPlaybackStopped(

@@ -6,9 +6,11 @@ import androidx.compose.ui.graphics.Color
 enum class VideoKind { MOVIE, SERIES, EPISODE }
 
 /**
- * A video library item (movie, TV series, or episode). [posterUrl] is the portrait primary image
- * ([backdropUrl] the wide art); [artColor] is the tint fallback when no artwork exists.
- * [resumePositionMs] > 0 means the server has an in-progress watch position for this user.
+ * A video library item (movie, TV series, or episode). [posterUrl] is the PRIMARY image — a
+ * portrait 2:3 poster for movies/series, but a 16:9 still for episodes (that is what Jellyfin
+ * stores as an episode's primary). [backdropUrl] is the wide art; [artColor] is the tint fallback
+ * when no artwork exists. [resumePositionMs] > 0 means the server has an in-progress watch
+ * position for this user.
  */
 data class VideoItem(
     val id: String,

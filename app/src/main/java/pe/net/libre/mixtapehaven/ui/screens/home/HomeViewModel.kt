@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -64,9 +65,12 @@ class HomeViewModel(
         viewModelScope.launch {
             val userName = repository.session.first()?.userName.orEmpty()
             // A server without video libraries (or a video fetch failure) must not break the
-            // music Home, so videos degrade to an empty (hidden) section independently.
-            val videos = runCatching { repository.moviesAndShows() }.getOrDefault(emptyList())
-            runCatching { repository.recentlyAddedAlbums() }.fold(
+            // music Home, so videos degrade to an empty (hidden) section independently — and load
+            // in parallel so the new section adds no latency to the album fetch.
+            val videosDeferred = async { runCatching { repository.moviesAndShows() }.getOrDefault(emptyList()) }
+            val albumsResult = runCatching { repository.recentlyAddedAlbums() }
+            val videos = videosDeferred.await()
+            albumsResult.fold(
                 onSuccess = { albums ->
                     _state.update { it.copy(userName = userName, albums = albums, videos = videos, loading = false) }
                 },

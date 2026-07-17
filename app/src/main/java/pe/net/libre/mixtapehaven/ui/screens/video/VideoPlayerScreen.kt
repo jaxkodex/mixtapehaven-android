@@ -25,11 +25,14 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 /** Full-screen video playback surface using media3's [PlayerView] for transport controls. */
+// PlayerView and its show/hide-button setters are @UnstableApi; media3 requires an explicit opt-in.
+@androidx.annotation.OptIn(UnstableApi::class)
 @Composable
 fun VideoPlayerScreen(
     itemId: String,

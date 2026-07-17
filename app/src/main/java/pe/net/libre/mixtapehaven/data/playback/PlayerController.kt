@@ -168,6 +168,9 @@ class PlayerController(
         }
     }
 
+    /** Pause without clearing the queue; used when another player (e.g. video) takes over audio. */
+    fun pause() = activeController()?.pause() ?: Unit
+
     fun playPause() {
         val c = activeController() ?: return
         if (c.isPlaying) c.pause() else c.play()

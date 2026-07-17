@@ -7,20 +7,31 @@ import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.audioApi
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
+import org.jellyfin.sdk.api.client.extensions.dynamicHlsApi
 import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
+import org.jellyfin.sdk.api.client.extensions.playStateApi
+import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.api.client.extensions.userApi
+import org.jellyfin.sdk.api.client.extensions.userLibraryApi
+import org.jellyfin.sdk.api.client.extensions.videosApi
 import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.ImageType
+import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.ItemSortBy
+import org.jellyfin.sdk.model.api.PlayMethod
 import org.jellyfin.sdk.model.api.SortOrder
 import org.jellyfin.sdk.model.api.request.GetItemsRequest
 import pe.net.libre.mixtapehaven.data.session.Session
 import pe.net.libre.mixtapehaven.data.session.SessionStore
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
+import pe.net.libre.mixtapehaven.model.VideoItem
 import java.util.UUID
+
+/** Lifecycle moment of video playback reported to the server via [JellyfinRepository.reportVideoPlayback]. */
+enum class VideoPlaybackEvent { STARTED, PROGRESS, STOPPED }
 
 /** Wraps the Jellyfin Kotlin SDK: authentication, library browsing, search, and stream/image URLs. */
 class JellyfinRepository(
@@ -141,6 +152,104 @@ class JellyfinRepository(
         }
     }
 
+    /** Movies and TV series for the Home "Movies & shows" row, newest first. Empty if no video libraries. */
+    suspend fun moviesAndShows(limit: Int = 20): List<VideoItem> {
+        val client = requireApi()
+        val result by client.itemsApi.getItems(
+            GetItemsRequest(
+                userId = userId,
+                includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
+                recursive = true,
+                sortBy = listOf(ItemSortBy.DATE_CREATED),
+                sortOrder = listOf(SortOrder.DESCENDING),
+                limit = limit,
+            ),
+        )
+        return result.items.orEmpty().map { it.toVideoItem(client) }
+    }
+
+    /** Full detail (overview + this user's resume position) for one movie/series/episode. */
+    suspend fun videoItem(itemId: String): VideoItem? {
+        val client = requireApi()
+        val id = runCatching { UUID.fromString(itemId) }.getOrNull() ?: return null
+        val item by client.userLibraryApi.getItem(itemId = id, userId = userId)
+        return item.toVideoItem(client)
+    }
+
+    /** All episodes of [seriesId] in season/episode order, with overviews and resume positions. */
+    suspend fun seriesEpisodes(seriesId: String): List<VideoItem> {
+        val client = requireApi()
+        val id = runCatching { UUID.fromString(seriesId) }.getOrNull() ?: return emptyList()
+        val result by client.tvShowsApi.getEpisodes(
+            seriesId = id,
+            userId = userId,
+            fields = listOf(ItemFields.OVERVIEW),
+        )
+        return result.items.orEmpty().map { it.toVideoItem(client) }
+    }
+
+    /**
+     * Ordered stream URL candidates for [itemId]: direct play of the original file first, then an
+     * HLS transcode pinned to h264/aac for anything the device cannot play natively. The player
+     * tries them in order and falls through on error.
+     */
+    fun videoStreamCandidates(itemId: String): List<String> {
+        val client = api
+        val id = runCatching { UUID.fromString(itemId) }.getOrNull()
+        if (client == null || id == null) return emptyList()
+        val direct = client.videosApi
+            .getVideoStreamUrl(itemId = id, static = true)
+            .withApiKey(client)
+        val hls = client.dynamicHlsApi
+            .getMasterHlsVideoPlaylistUrl(
+                itemId = id,
+                // The server requires a media source; the default source id is the item id unhyphenated.
+                mediaSourceId = itemId.replace("-", ""),
+                videoCodec = "h264",
+                audioCodec = "aac",
+            )
+            .withApiKey(client)
+        return listOf(direct, hls)
+    }
+
+    /**
+     * Report a video playback [event] at [positionMs] to the server. Progress feeds the
+     * server-side resume point (and Continue Watching); STOPPED finalizes it. Failures are
+     * swallowed: playstate reporting must never break playback.
+     */
+    suspend fun reportVideoPlayback(
+        itemId: String,
+        positionMs: Long,
+        event: VideoPlaybackEvent,
+        paused: Boolean = false,
+    ) {
+        val client = api
+        val id = runCatching { UUID.fromString(itemId) }.getOrNull()
+        if (client == null || id == null) return
+        runCatching {
+            when (event) {
+                VideoPlaybackEvent.STARTED -> {
+                    client.playStateApi.onPlaybackStart(itemId = id, playMethod = PlayMethod.DIRECT_STREAM)
+                    if (positionMs > 0) {
+                        reportVideoPlayback(itemId, positionMs, VideoPlaybackEvent.PROGRESS)
+                    }
+                }
+
+                VideoPlaybackEvent.PROGRESS -> client.playStateApi.onPlaybackProgress(
+                    itemId = id,
+                    positionTicks = positionMs * TICKS_PER_MS,
+                    isPaused = paused,
+                    playMethod = PlayMethod.DIRECT_STREAM,
+                )
+
+                VideoPlaybackEvent.STOPPED -> client.playStateApi.onPlaybackStopped(
+                    itemId = id,
+                    positionTicks = positionMs * TICKS_PER_MS,
+                )
+            }
+        }
+    }
+
     private fun requireApi(): ApiClient =
         api ?: error("Not authenticated with a Jellyfin server")
 
@@ -181,14 +290,7 @@ class JellyfinRepository(
         }
     }
 
-    private fun String.withApiKey(client: ApiClient): String {
-        val token = client.accessToken ?: return this
-        val separator = if (contains('?')) '&' else '?'
-        return "$this${separator}ApiKey=$token"
-    }
-
     private companion object {
-        const val IMAGE_MAX_WIDTH = 600
         const val TICKS_PER_SECOND = 10_000_000L
 
         val PALETTE = listOf(

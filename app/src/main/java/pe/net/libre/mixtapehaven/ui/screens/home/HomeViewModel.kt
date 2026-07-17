@@ -24,6 +24,7 @@ import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.RandomWalk
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
+import pe.net.libre.mixtapehaven.model.VideoItem
 
 class HomeViewModel(
     private val repository: JellyfinRepository,
@@ -35,6 +36,7 @@ class HomeViewModel(
     data class UiState(
         val userName: String = "",
         val albums: List<Album> = emptyList(),
+        val videos: List<VideoItem> = emptyList(),
         val onDevice: List<Track> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
@@ -61,14 +63,18 @@ class HomeViewModel(
         _state.update { it.copy(loading = true, error = null) }
         viewModelScope.launch {
             val userName = repository.session.first()?.userName.orEmpty()
+            // A server without video libraries (or a video fetch failure) must not break the
+            // music Home, so videos degrade to an empty (hidden) section independently.
+            val videos = runCatching { repository.moviesAndShows() }.getOrDefault(emptyList())
             runCatching { repository.recentlyAddedAlbums() }.fold(
                 onSuccess = { albums ->
-                    _state.update { it.copy(userName = userName, albums = albums, loading = false) }
+                    _state.update { it.copy(userName = userName, albums = albums, videos = videos, loading = false) }
                 },
                 onFailure = { error ->
                     _state.update {
                         it.copy(
                             userName = userName,
+                            videos = videos,
                             loading = false,
                             error = error.message ?: "Could not load your library",
                         )

@@ -251,7 +251,11 @@ class JellyfinRepository(
 
     /**
      * URL of a server-side transcode of [itemId] capped at [maxHeight]/[videoBitRate]/[audioBitRate]
-     * (h264/aac mp4), for saving a phone-sized offline copy instead of the original file.
+     * (h264/aac), for saving a phone-sized offline copy instead of the original file.
+     *
+     * The container is MPEG-TS, not mp4: ffmpeg muxing mp4 over a non-seekable HTTP response can
+     * never backpatch the mdat size, so the moov index at the tail is unreachable and ExoPlayer
+     * rejects the saved file as malformed. TS needs no finalization and stays seekable.
      */
     fun videoDownloadUrl(itemId: String, maxHeight: Int, videoBitRate: Int, audioBitRate: Int): String? {
         val client = api
@@ -260,7 +264,7 @@ class JellyfinRepository(
         return client.videosApi
             .getVideoStreamUrl(
                 itemId = id,
-                container = "mp4",
+                container = "ts",
                 static = false,
                 // The server requires a media source; the default source id is the item id unhyphenated.
                 mediaSourceId = itemId.replace("-", ""),

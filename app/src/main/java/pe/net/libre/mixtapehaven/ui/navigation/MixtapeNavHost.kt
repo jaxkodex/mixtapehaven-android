@@ -72,7 +72,10 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
             )
         }
         composable(Routes.DOWNLOADS) {
-            DownloadsScreen(onBack = { navController.popBackStack() })
+            DownloadsScreen(
+                onBack = { navController.popBackStack() },
+                onPlayVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
+            )
         }
     }
 }

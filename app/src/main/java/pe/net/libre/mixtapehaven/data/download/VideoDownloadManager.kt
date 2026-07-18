@@ -50,7 +50,8 @@ class VideoDownloadManager(
     private val scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
     private val client: OkHttpClient = OkHttpClient(),
 ) {
-    private val downloadsDir: File = File(context.applicationContext.filesDir, DIR).apply { mkdirs() }
+    private val appContext = context.applicationContext
+    private val downloadsDir: File = File(appContext.filesDir, DIR).apply { mkdirs() }
 
     /** Saved + in-flight video downloads, observed by the Downloads/Detail UI. */
     val downloads: Flow<List<DownloadedVideo>> = dao.observeAll()
@@ -96,6 +97,9 @@ class VideoDownloadManager(
         if (completedPaths.containsKey(id)) return
         synchronized(activeJobs) {
             if (activeJobs.containsKey(id)) return
+            // Foreground service for the duration: Android freezes cached processes on screen-off,
+            // which aborts these multi-minute sockets. Started here (user-triggered, app visible).
+            VideoDownloadService.start(appContext)
             activeJobs[id] = scope.launch {
                 try {
                     runCatching { performDownload(item, id) }
@@ -105,6 +109,7 @@ class VideoDownloadManager(
                     withContext(NonCancellable) { cleanupIfIncomplete(id) }
                     activeJobs.remove(id)
                     _progress.update { it - id }
+                    if (activeJobs.isEmpty()) VideoDownloadService.stop(appContext)
                 }
             }
         }
@@ -117,7 +122,7 @@ class VideoDownloadManager(
             runCatching { job.join() }
         }
         dao.findById(id)?.let { deleteQuietly(File(it.filePath)) }
-        deleteQuietly(File(downloadsDir, "$id.mp4"))
+        deleteQuietly(File(downloadsDir, "$id$FILE_EXT"))
         dao.deleteById(id)
     }
 
@@ -128,6 +133,7 @@ class VideoDownloadManager(
         }
         jobs.forEach { it.cancel() }
         jobs.forEach { runCatching { it.join() } }
+        VideoDownloadService.stop(appContext)
         _progress.value = emptyMap()
         dao.clear()
         withContext(Dispatchers.IO) {
@@ -142,8 +148,8 @@ class VideoDownloadManager(
         // Incomplete row first, so the Downloads UI lists the title while bytes stream in.
         dao.upsert(item.toDownloadedVideo(path = "", size = 0, qualityLabel = quality.label, complete = false))
         _progress.update { it + (id to VideoDownloadProgress(percent = 0, bytes = 0)) }
-        val target = File(downloadsDir, "$id.mp4")
-        val part = File(downloadsDir, "$id.mp4.part")
+        val target = File(downloadsDir, "$id$FILE_EXT")
+        val part = File(downloadsDir, "$id$FILE_EXT.part")
         val saved = streamToFile(url, part, id)
         if (saved && part.renameTo(target)) {
             dao.upsert(
@@ -177,7 +183,7 @@ class VideoDownloadManager(
     /** Delete the partial file and the incomplete row of [id]; no-op once the download completed. */
     private suspend fun cleanupIfIncomplete(id: String) {
         if (dao.findById(id)?.complete != true) {
-            deleteQuietly(File(downloadsDir, "$id.mp4.part"))
+            deleteQuietly(File(downloadsDir, "$id$FILE_EXT.part"))
             dao.deleteById(id)
         }
     }
@@ -251,6 +257,9 @@ class VideoDownloadManager(
     private companion object {
         const val TAG = "VideoDownloadManager"
         const val DIR = "video_downloads"
+
+        /** MPEG-TS: the only container the server can finalize over a non-seekable HTTP response. */
+        const val FILE_EXT = ".ts"
         const val BUFFER_BYTES = 64 * 1024
         const val PROGRESS_STEP_BYTES = 512L * 1024
         const val MIN_FREE_BYTES = 500L * 1024 * 1024

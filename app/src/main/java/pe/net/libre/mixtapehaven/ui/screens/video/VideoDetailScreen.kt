@@ -1,6 +1,8 @@
 package pe.net.libre.mixtapehaven.ui.screens.video
 
+import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,14 +25,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.ArrowDownward
+import androidx.compose.material.icons.outlined.Check
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -42,6 +49,7 @@ import pe.net.libre.mixtapehaven.model.VideoKind
 import pe.net.libre.mixtapehaven.ui.components.Artwork
 import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.AccentInk
+import pe.net.libre.mixtapehaven.ui.theme.Stroke
 import pe.net.libre.mixtapehaven.ui.theme.Surface2
 import pe.net.libre.mixtapehaven.ui.theme.TextMuted
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
@@ -54,8 +62,17 @@ fun VideoDetailScreen(
     onPlay: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { VideoDetailViewModel(it.repository, itemId) }
+    val viewModel = appViewModel { VideoDetailViewModel(it.repository, it.videoDownloadManager, itemId) }
     val state by viewModel.state.collectAsState()
+    val downloadUi by viewModel.downloadUi.collectAsState()
+
+    // Downloads fail silently in the manager (logcat only); give the user the reason here.
+    val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.downloadErrors.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = modifier
@@ -70,8 +87,11 @@ fun VideoDetailScreen(
             item != null -> DetailBody(
                 item = item,
                 episodes = state.episodes,
+                downloadUi = downloadUi,
                 onPlay = { viewModel.playTarget()?.let { onPlay(it.id) } },
                 onPlayEpisode = { onPlay(it.id) },
+                onDownload = viewModel::download,
+                onRemoveDownload = viewModel::removeDownload,
             )
             state.loading -> Unit
             else -> Text(
@@ -118,31 +138,32 @@ private fun Backdrop(item: VideoItem?, onBack: () -> Unit) {
 private fun DetailBody(
     item: VideoItem,
     episodes: List<VideoItem>,
+    downloadUi: VideoDownloadUi,
     onPlay: () -> Unit,
     onPlayEpisode: (VideoItem) -> Unit,
+    onDownload: (VideoItem) -> Unit,
+    onRemoveDownload: (String) -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(item.title, style = MaterialTheme.typography.displayMedium, color = TextPrimary)
-            val meta = listOfNotNull(
-                item.yearLabel.ifEmpty { null },
-                when (item.kind) {
-                    VideoKind.SERIES -> "Series"
-                    else -> item.runtimeLabel.ifEmpty { null }
-                },
-            ).joinToString(" · ")
-            if (meta.isNotEmpty()) {
-                Text(meta, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
-            }
-        }
+        TitleBlock(item)
 
         PlayButton(
             label = if (item.kind != VideoKind.SERIES && item.resumePositionMs > 0) "Resume" else "Play",
             onClick = onPlay,
         )
+
+        // Series are downloaded per-episode via the row icons; movies/episodes get a single button.
+        if (item.kind != VideoKind.SERIES) {
+            DownloadButton(
+                item = item,
+                downloadUi = downloadUi,
+                onDownload = onDownload,
+                onRemoveDownload = onRemoveDownload,
+            )
+        }
 
         if (item.overview.isNotEmpty()) {
             Text(item.overview, style = MaterialTheme.typography.bodyMedium, color = TextSecondary)
@@ -152,10 +173,91 @@ private fun DetailBody(
             Text("Episodes", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
             Column {
                 episodes.forEach { episode ->
-                    EpisodeRow(episode = episode, onClick = { onPlayEpisode(episode) })
+                    EpisodeRow(
+                        episode = episode,
+                        downloadUi = downloadUi,
+                        onClick = { onPlayEpisode(episode) },
+                        onDownload = onDownload,
+                        onRemoveDownload = onRemoveDownload,
+                    )
                 }
             }
         }
+    }
+}
+
+/** Display title with the "1931 · 1h 14m" (or "· Series") meta line under it. */
+@Composable
+private fun TitleBlock(item: VideoItem) {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(item.title, style = MaterialTheme.typography.displayMedium, color = TextPrimary)
+        val meta = listOfNotNull(
+            item.yearLabel.ifEmpty { null },
+            when (item.kind) {
+                VideoKind.SERIES -> "Series"
+                else -> item.runtimeLabel.ifEmpty { null }
+            },
+        ).joinToString(" · ")
+        if (meta.isNotEmpty()) {
+            Text(meta, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        }
+    }
+}
+
+/**
+ * Secondary full-width control cycling through the download lifecycle: Download -> transcoding
+ * progress (tap cancels) -> Downloaded (tap removes).
+ */
+@Composable
+private fun DownloadButton(
+    item: VideoItem,
+    downloadUi: VideoDownloadUi,
+    onDownload: (VideoItem) -> Unit,
+    onRemoveDownload: (String) -> Unit,
+) {
+    val inFlightLabel = downloadUi.inFlightLabels[item.id]
+    val downloaded = item.id in downloadUi.downloadedIds
+    val (label, onClick) = when {
+        downloaded -> "Downloaded · Remove" to { onRemoveDownload(item.id) }
+        inFlightLabel != null -> "Downloading · $inFlightLabel · Cancel" to { onRemoveDownload(item.id) }
+        else -> "Download" to { onDownload(item) }
+    }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .border(1.dp, Stroke, RoundedCornerShape(14.dp))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(vertical = 14.dp),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        when {
+            downloaded -> Icon(
+                Icons.Outlined.Check,
+                contentDescription = null,
+                tint = Accent,
+                modifier = Modifier.size(20.dp),
+            )
+            inFlightLabel != null -> CircularProgressIndicator(
+                color = Accent,
+                trackColor = Surface2,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(18.dp),
+            )
+            else -> Icon(
+                Icons.Outlined.ArrowDownward,
+                contentDescription = null,
+                tint = TextPrimary,
+                modifier = Modifier.size(20.dp),
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            label,
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            color = TextPrimary,
+        )
     }
 }
 
@@ -213,9 +315,15 @@ private fun EpisodeThumb(episode: VideoItem) {
     }
 }
 
-/** One episode: 16:9 still, title, "S2 E4 · 42m" meta, with a resume progress bar when started. */
+/** One episode: 16:9 still, title, "S2 E4 · 42m" meta, download state control, and play affordance. */
 @Composable
-private fun EpisodeRow(episode: VideoItem, onClick: () -> Unit) {
+private fun EpisodeRow(
+    episode: VideoItem,
+    downloadUi: VideoDownloadUi,
+    onClick: () -> Unit,
+    onDownload: (VideoItem) -> Unit,
+    onRemoveDownload: (String) -> Unit,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -241,11 +349,54 @@ private fun EpisodeRow(episode: VideoItem, onClick: () -> Unit) {
                 Text(meta, style = MaterialTheme.typography.bodySmall, color = TextMuted)
             }
         }
+        EpisodeDownloadIcon(episode, downloadUi, onDownload, onRemoveDownload)
         Icon(
             Icons.Filled.PlayArrow,
             contentDescription = "Play episode",
             tint = TextSecondary,
             modifier = Modifier.size(22.dp),
         )
+    }
+}
+
+/** Download state for one episode: arrow (download), spinner (cancel), or check (remove). */
+@Composable
+private fun EpisodeDownloadIcon(
+    episode: VideoItem,
+    downloadUi: VideoDownloadUi,
+    onDownload: (VideoItem) -> Unit,
+    onRemoveDownload: (String) -> Unit,
+) {
+    val inFlight = episode.id in downloadUi.inFlightLabels
+    val downloaded = episode.id in downloadUi.downloadedIds
+    Box(
+        modifier = Modifier
+            .size(36.dp)
+            .clip(CircleShape)
+            .clickable(role = Role.Button) {
+                if (downloaded || inFlight) onRemoveDownload(episode.id) else onDownload(episode)
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            downloaded -> Icon(
+                Icons.Outlined.Check,
+                contentDescription = "Remove download",
+                tint = Accent,
+                modifier = Modifier.size(20.dp),
+            )
+            inFlight -> CircularProgressIndicator(
+                color = Accent,
+                trackColor = Surface2,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(18.dp),
+            )
+            else -> Icon(
+                Icons.Outlined.ArrowDownward,
+                contentDescription = "Download episode",
+                tint = TextMuted,
+                modifier = Modifier.size(20.dp),
+            )
+        }
     }
 }

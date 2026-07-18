@@ -30,8 +30,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import pe.net.libre.mixtapehaven.data.download.DownloadProgress
 import pe.net.libre.mixtapehaven.di.appViewModel
+import pe.net.libre.mixtapehaven.model.Track
+import pe.net.libre.mixtapehaven.ui.components.Artwork
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
 import pe.net.libre.mixtapehaven.ui.components.SectionLabel
 import pe.net.libre.mixtapehaven.ui.components.StorageBar
@@ -43,9 +47,16 @@ import pe.net.libre.mixtapehaven.ui.theme.TextMuted
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
+/** Legend/progress color for the video segment of the storage bar (matches the Online pill green). */
+private val VideoLegend = Color(0xFF7BB661)
+
 @Composable
-fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val viewModel = appViewModel { DownloadsViewModel(it.downloadManager) }
+fun DownloadsScreen(
+    onBack: () -> Unit,
+    onPlayVideo: (String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val viewModel = appViewModel { DownloadsViewModel(it.downloadManager, it.videoDownloadManager) }
     val state by viewModel.state.collectAsState()
 
     Column(
@@ -60,85 +71,27 @@ fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         BackTopBar(title = "Downloads", onBack = onBack)
 
-        // Storage summary block
-        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text("Mixtape downloads", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
-                Text(state.totalLabel, style = MaterialTheme.typography.titleMedium, color = TextSecondary)
-            }
-            StorageBar(segments = listOf(state.usedFraction to Accent))
-            LegendItem(Accent, "Saved as you listen · ${state.totalLabel}")
-        }
+        StorageSummary(state)
 
-        val downloading = state.downloading
-        if (downloading != null) {
-            SectionLabel("DOWNLOADING")
-            TrackRow(
-                track = downloading.track,
-                trailing = {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Text(
-                            "${downloading.percent}%",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Accent,
-                        )
-                        CircularProgressIndicator(
-                            progress = { downloading.percent / 100f },
-                            color = Accent,
-                            trackColor = Surface2,
-                            modifier = Modifier.size(18.dp),
-                            strokeWidth = 2.dp,
-                        )
-                    }
-                },
-            )
-        }
+        state.downloading?.let { AudioDownloadingSection(it) }
 
-        SectionLabel("SAVED ON DEVICE")
+        SavedTracksSection(state.saved)
 
-        if (state.saved.isEmpty()) {
-            Text(
-                "Nothing saved yet. Play anything and it's kept for offline automatically.",
-                style = MaterialTheme.typography.bodySmall,
-                color = TextMuted,
-            )
-        } else {
+        if (state.videos.isNotEmpty()) {
+            SectionLabel("MOVIES & SHOWS")
             Column {
-                state.saved.forEach { track ->
-                    TrackRow(
-                        track = track,
-                        trailing = {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            ) {
-                                Text(
-                                    track.sizeLabel,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = TextMuted,
-                                )
-                                Icon(
-                                    Icons.Outlined.ArrowDownward,
-                                    contentDescription = "Saved offline",
-                                    tint = Accent,
-                                    modifier = Modifier.size(18.dp),
-                                )
-                            }
-                        },
+                state.videos.forEach { video ->
+                    SavedVideoRow(
+                        video = video,
+                        onPlay = { onPlayVideo(video.id) },
+                        onRemove = { viewModel.removeVideo(video.id) },
                     )
                 }
             }
         }
 
         // Destructive: remove all downloads
-        if (state.saved.isNotEmpty() || state.downloading != null) {
+        if (state.saved.isNotEmpty() || state.downloading != null || state.videos.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -163,6 +116,144 @@ fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+}
+
+/** Combined storage bar (music + video segments) with total and per-type legends. */
+@Composable
+private fun StorageSummary(state: DownloadsViewModel.UiState) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text("Mixtape downloads", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+            Text(state.totalLabel, style = MaterialTheme.typography.titleMedium, color = TextSecondary)
+        }
+        StorageBar(segments = listOf(state.audioFraction to Accent, state.videoFraction to VideoLegend))
+        LegendItem(Accent, "Music, saved as you listen · ${state.audioTotalLabel}")
+        LegendItem(VideoLegend, "Movies & shows · ${state.videoTotalLabel}")
+    }
+}
+
+/** The one audio track currently being auto-saved, with its live percent. */
+@Composable
+private fun AudioDownloadingSection(downloading: DownloadProgress) {
+    SectionLabel("DOWNLOADING")
+    TrackRow(
+        track = downloading.track,
+        trailing = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(
+                    "${downloading.percent}%",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Accent,
+                )
+                CircularProgressIndicator(
+                    progress = { downloading.percent / 100f },
+                    color = Accent,
+                    trackColor = Surface2,
+                    modifier = Modifier.size(18.dp),
+                    strokeWidth = 2.dp,
+                )
+            }
+        },
+    )
+}
+
+/** The saved audio library, or the how-it-works hint while it is still empty. */
+@Composable
+private fun SavedTracksSection(saved: List<Track>) {
+    SectionLabel("SAVED ON DEVICE")
+    if (saved.isEmpty()) {
+        Text(
+            "Nothing saved yet. Play anything and it's kept for offline automatically.",
+            style = MaterialTheme.typography.bodySmall,
+            color = TextMuted,
+        )
+    } else {
+        Column {
+            saved.forEach { track ->
+                TrackRow(
+                    track = track,
+                    trailing = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(
+                                track.sizeLabel,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = TextMuted,
+                            )
+                            Icon(
+                                Icons.Outlined.ArrowDownward,
+                                contentDescription = "Saved offline",
+                                tint = Accent,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    },
+                )
+            }
+        }
+    }
+}
+
+/**
+ * One saved (or still-downloading) video: poster thumb, title/meta, and cancel/delete control.
+ * Tapping a completed row plays it — the only path to downloaded videos when offline, where the
+ * server-backed Home rail and detail screen are unavailable.
+ */
+@Composable
+private fun SavedVideoRow(video: SavedVideoUi, onPlay: () -> Unit, onRemove: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !video.downloading, onClick = onPlay)
+            .padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Artwork(
+            color = video.artColor,
+            imageUrl = video.posterUrl,
+            modifier = Modifier.size(44.dp),
+            corner = 8.dp,
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                video.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val meta = listOf(video.subtitle, video.sizeLabel).filter { it.isNotEmpty() }.joinToString(" · ")
+            Text(meta, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+        }
+        if (video.downloading) {
+            CircularProgressIndicator(
+                color = VideoLegend,
+                trackColor = Surface2,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Icon(
+            Icons.Outlined.DeleteOutline,
+            contentDescription = if (video.downloading) "Cancel download" else "Remove download",
+            tint = TextSecondary,
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onRemove)
+                .padding(7.dp),
+        )
     }
 }
 

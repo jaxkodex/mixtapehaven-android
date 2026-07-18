@@ -15,6 +15,11 @@ tasks.named("check") {
     dependsOn("detekt")
 }
 
+// Room writes each version's schema JSON here so migrations are diffable in review and testable.
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 android {
     namespace = "pe.net.libre.mixtapehaven"
     compileSdk {

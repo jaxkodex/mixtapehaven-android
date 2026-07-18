@@ -7,6 +7,7 @@ import org.jellyfin.sdk.model.ClientInfo
 import pe.net.libre.mixtapehaven.data.download.DownloadDatabase
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.DownloadSettingsStore
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
 import pe.net.libre.mixtapehaven.data.download.resolveLocalFirst
 import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
@@ -52,6 +53,15 @@ class AppContainer(context: Context) {
         )
     }
 
+    val videoDownloadManager: VideoDownloadManager by lazy {
+        VideoDownloadManager(
+            context = appContext,
+            repository = repository,
+            dao = downloadDatabase.videoDownloadDao(),
+            settingsStore = downloadSettingsStore,
+        )
+    }
+
     init {
         // Wire the two app-scoped singletons after both are built, so neither depends on the other
         // at construction time. Eager so auto-download runs before any download UI is opened.
@@ -62,5 +72,12 @@ class AppContainer(context: Context) {
             resolveLocalFirst(track, manager::localUriFor, repository::audioStreamUrl)
         }
         manager.start(controller.nowPlaying)
+        // Same local-first idea for video: a saved copy is the only candidate (no network fallback
+        // mid-list — if the file plays, remote candidates are never needed; if it's gone the
+        // resolver won't have listed it since localUriFor checks existence).
+        val videoManager = videoDownloadManager
+        videoSourceResolver = { itemId ->
+            videoManager.localUriFor(itemId)?.let { listOf(it) } ?: repository.videoStreamCandidates(itemId)
+        }
     }
 }

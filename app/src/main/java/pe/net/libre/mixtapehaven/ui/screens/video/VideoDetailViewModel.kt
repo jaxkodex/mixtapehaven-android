@@ -3,16 +3,31 @@ package pe.net.libre.mixtapehaven.ui.screens.video
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
+import pe.net.libre.mixtapehaven.data.download.formatBytes
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.model.VideoKind
 
+/**
+ * Per-item download state shown on the detail screen: [downloadedIds] have a saved offline copy;
+ * [inFlightLabels] maps an actively downloading id to its progress label (e.g. "142 MB").
+ */
+data class VideoDownloadUi(
+    val downloadedIds: Set<String> = emptySet(),
+    val inFlightLabels: Map<String, String> = emptyMap(),
+)
+
 class VideoDetailViewModel(
     private val repository: JellyfinRepository,
+    private val downloadManager: VideoDownloadManager,
     private val itemId: String,
 ) : ViewModel() {
 
@@ -25,6 +40,17 @@ class VideoDetailViewModel(
 
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    /** One human-readable message per failed download; the screen toasts these. */
+    val downloadErrors = downloadManager.errors
+
+    val downloadUi: StateFlow<VideoDownloadUi> =
+        combine(downloadManager.downloads, downloadManager.progress) { rows, progress ->
+            VideoDownloadUi(
+                downloadedIds = rows.filter { it.complete }.map { it.id }.toSet(),
+                inFlightLabels = progress.mapValues { (_, p) -> formatBytes(p.bytes) },
+            )
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), VideoDownloadUi())
 
     init {
         load()
@@ -50,6 +76,17 @@ class VideoDetailViewModel(
 
     /** See [selectPlayTarget]. Null while loading or on error. */
     fun playTarget(): VideoItem? = selectPlayTarget(_state.value.item, _state.value.episodes)
+
+    fun download(item: VideoItem) = downloadManager.download(item)
+
+    /** Cancels an in-flight download or deletes the saved copy of [id]. */
+    fun removeDownload(id: String) {
+        viewModelScope.launch { downloadManager.remove(id) }
+    }
+
+    private companion object {
+        const val STOP_TIMEOUT_MS = 5_000L
+    }
 }
 
 /**

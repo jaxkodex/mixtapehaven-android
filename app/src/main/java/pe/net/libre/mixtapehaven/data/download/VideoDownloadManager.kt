@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.graphics.toArgb
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -11,8 +12,11 @@ import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.update
@@ -64,6 +68,11 @@ class VideoDownloadManager(
     /** In-flight download progress keyed by item id; an id is absent once its download ends. */
     val progress: StateFlow<Map<String, VideoDownloadProgress>> = _progress.asStateFlow()
 
+    private val _errors = MutableSharedFlow<String>(extraBufferCapacity = ERROR_BUFFER)
+
+    /** One human-readable message per failed download, for the UI to toast/snackbar. */
+    val errors: SharedFlow<String> = _errors.asSharedFlow()
+
     /** Completed downloads as id -> file path, kept in memory so the resolver lookup is synchronous. */
     @Volatile
     private var completedPaths: Map<String, String> = emptyMap()
@@ -103,13 +112,25 @@ class VideoDownloadManager(
             activeJobs[id] = scope.launch {
                 try {
                     runCatching { performDownload(item, id) }
-                        .onFailure { Log.w(TAG, "Video download failed for $id", it) }
+                        .onFailure { failure ->
+                            Log.w(TAG, "Video download failed for $id", failure)
+                            // A cancellation is the user's own doing; everything else deserves a
+                            // message. OkHttp surfaces our call.cancel() as an IOException, so also
+                            // check whether this job was cancelled rather than genuinely failing.
+                            val cancelled =
+                                failure is CancellationException || !currentCoroutineContext().isActive
+                            if (!cancelled) _errors.tryEmit("Download failed for ${item.title}")
+                        }
                 } finally {
                     // Also runs on success, where the row is complete and the cleanup no-ops.
                     withContext(NonCancellable) { cleanupIfIncomplete(id) }
-                    activeJobs.remove(id)
+                    // Same lock as start(): otherwise a finishing job can see the map momentarily
+                    // empty and stop the service right after a new download started it.
+                    synchronized(activeJobs) {
+                        activeJobs.remove(id)
+                        if (activeJobs.isEmpty()) VideoDownloadService.stop(appContext)
+                    }
                     _progress.update { it - id }
-                    if (activeJobs.isEmpty()) VideoDownloadService.stop(appContext)
                 }
             }
         }
@@ -163,21 +184,26 @@ class VideoDownloadManager(
         }
     }
 
-    /** The transcode URL to download for [id], or null if it is already saved or storage is low. */
+    /**
+     * The transcode URL to download for [id], or null if the download cannot start. Emits the
+     * reason on [errors] for every null except "already saved" (a silent no-op for the user).
+     */
     private suspend fun transcodeUrlOrNull(id: String, quality: VideoDownloadQuality): String? {
         val alreadySaved = dao.findById(id)?.complete == true
         val lowStorage = !shouldStartDownload(usableSpaceBytes(), MIN_FREE_BYTES)
-        if (lowStorage) Log.w(TAG, "Skipping video download of $id: storage low")
-        return if (alreadySaved || lowStorage) {
-            null
-        } else {
-            repository.videoDownloadUrl(
-                itemId = id,
-                maxHeight = quality.maxHeight,
-                videoBitRate = quality.videoBitRate,
-                audioBitRate = quality.audioBitRate,
-            )
+        if (lowStorage) {
+            Log.w(TAG, "Skipping video download of $id: storage low")
+            _errors.tryEmit("Not enough free space to download")
         }
+        if (alreadySaved || lowStorage) return null
+        val url = repository.videoDownloadUrl(
+            itemId = id,
+            maxHeight = quality.maxHeight,
+            videoBitRate = quality.videoBitRate,
+            audioBitRate = quality.audioBitRate,
+        )
+        if (url == null) _errors.tryEmit("Download unavailable — check your connection")
+        return url
     }
 
     /** Delete the partial file and the incomplete row of [id]; no-op once the download completed. */
@@ -190,14 +216,22 @@ class VideoDownloadManager(
 
     /** Stream [url] into [part], emitting progress for [id]. Returns false if cancelled or on HTTP error. */
     private suspend fun streamToFile(url: String, part: File, id: String): Boolean {
-        val request = Request.Builder().url(url).build()
-        return client.newCall(request).execute().use { response ->
-            if (!response.isSuccessful) {
-                Log.w(TAG, "Video download of $id got HTTP ${response.code}")
-                false
-            } else {
-                copyBody(response.body, part, id)
+        val call = client.newCall(Request.Builder().url(url).build())
+        // Blocking OkHttp I/O ignores coroutine cancellation; without this the socket keeps
+        // pulling the transcode until it times out after the user cancels.
+        val onCancel = currentCoroutineContext()[Job]?.invokeOnCompletion { call.cancel() }
+        return try {
+            call.execute().use { response ->
+                if (!response.isSuccessful) {
+                    Log.w(TAG, "Video download of $id got HTTP ${response.code}")
+                    _errors.tryEmit("Download failed (server error ${response.code})")
+                    false
+                } else {
+                    copyBody(response.body, part, id)
+                }
             }
+        } finally {
+            onCancel?.dispose()
         }
     }
 
@@ -263,5 +297,6 @@ class VideoDownloadManager(
         const val BUFFER_BYTES = 64 * 1024
         const val PROGRESS_STEP_BYTES = 512L * 1024
         const val MIN_FREE_BYTES = 500L * 1024 * 1024
+        const val ERROR_BUFFER = 4
     }
 }

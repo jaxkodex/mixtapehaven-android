@@ -41,6 +41,9 @@ class VideoDetailViewModel(
     private val _state = MutableStateFlow(UiState())
     val state: StateFlow<UiState> = _state.asStateFlow()
 
+    /** One human-readable message per failed download; the screen toasts these. */
+    val downloadErrors = downloadManager.errors
+
     val downloadUi: StateFlow<VideoDownloadUi> =
         combine(downloadManager.downloads, downloadManager.progress) { rows, progress ->
             VideoDownloadUi(

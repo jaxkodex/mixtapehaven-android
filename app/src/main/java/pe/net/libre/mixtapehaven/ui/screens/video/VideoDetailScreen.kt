@@ -1,5 +1,6 @@
 package pe.net.libre.mixtapehaven.ui.screens.video
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -31,10 +32,12 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -62,6 +65,14 @@ fun VideoDetailScreen(
     val viewModel = appViewModel { VideoDetailViewModel(it.repository, it.videoDownloadManager, itemId) }
     val state by viewModel.state.collectAsState()
     val downloadUi by viewModel.downloadUi.collectAsState()
+
+    // Downloads fail silently in the manager (logcat only); give the user the reason here.
+    val context = LocalContext.current
+    LaunchedEffect(viewModel) {
+        viewModel.downloadErrors.collect { message ->
+            Toast.makeText(context, message, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = modifier

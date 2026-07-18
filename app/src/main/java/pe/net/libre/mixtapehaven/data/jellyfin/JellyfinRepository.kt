@@ -200,7 +200,7 @@ class JellyfinRepository(
         val hls = client.dynamicHlsApi
             .getMasterHlsVideoPlaylistUrl(
                 itemId = id,
-                // The server requires a media source; the default source id is the item id unhyphenated.
+                // Known limitation: assumes the default single media source (see videoDownloadUrl).
                 mediaSourceId = itemId.replace("-", ""),
                 videoCodec = "h264",
                 audioCodec = "aac",
@@ -266,7 +266,10 @@ class JellyfinRepository(
                 itemId = id,
                 container = "ts",
                 static = false,
-                // The server requires a media source; the default source id is the item id unhyphenated.
+                // Known limitation: the default source id is the item id unhyphenated, which holds
+                // for plain single-file library items but not for multi-version or .strm-backed
+                // ones. The robust path is mediaInfoApi.getPostedPlaybackInfo and using
+                // mediaSources.first().id, as full clients do.
                 mediaSourceId = itemId.replace("-", ""),
                 videoCodec = "h264",
                 audioCodec = "aac",

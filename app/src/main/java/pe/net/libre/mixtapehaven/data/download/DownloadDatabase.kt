@@ -8,7 +8,7 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /** Room database holding the offline download library (audio tracks and videos). */
-@Database(entities = [DownloadedTrack::class, DownloadedVideo::class], version = 2, exportSchema = false)
+@Database(entities = [DownloadedTrack::class, DownloadedVideo::class], version = 2, exportSchema = true)
 abstract class DownloadDatabase : RoomDatabase() {
 
     abstract fun downloadDao(): DownloadDao

@@ -6,6 +6,7 @@ import android.app.NotificationManager
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ServiceInfo
 import android.os.IBinder
 import pe.net.libre.mixtapehaven.R
 
@@ -20,11 +21,17 @@ class VideoDownloadService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? = null
 
-    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+    // In onCreate, not onStartCommand: the system requires startForeground() within ~5s of
+    // startForegroundService(), and a download that fails instantly can issue stop() before
+    // onStartCommand ever runs. onCreate fires on instantiation, shrinking that window to zero.
+    // The explicit type is mandatory on API 34+ when the manifest declares one.
+    override fun onCreate() {
+        super.onCreate()
         createChannel()
-        startForeground(NOTIFICATION_ID, buildNotification())
-        return START_NOT_STICKY
+        startForeground(NOTIFICATION_ID, buildNotification(), ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC)
     }
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_NOT_STICKY
 
     private fun createChannel() {
         getSystemService(NotificationManager::class.java).createNotificationChannel(

@@ -30,8 +30,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.di.appViewModel
+import pe.net.libre.mixtapehaven.ui.components.Artwork
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
 import pe.net.libre.mixtapehaven.ui.components.SectionLabel
 import pe.net.libre.mixtapehaven.ui.components.StorageBar
@@ -43,9 +45,12 @@ import pe.net.libre.mixtapehaven.ui.theme.TextMuted
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
 
+/** Legend/progress color for the video segment of the storage bar (matches the Online pill green). */
+private val VideoLegend = Color(0xFF7BB661)
+
 @Composable
 fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
-    val viewModel = appViewModel { DownloadsViewModel(it.downloadManager) }
+    val viewModel = appViewModel { DownloadsViewModel(it.downloadManager, it.videoDownloadManager) }
     val state by viewModel.state.collectAsState()
 
     Column(
@@ -70,8 +75,9 @@ fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 Text("Mixtape downloads", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
                 Text(state.totalLabel, style = MaterialTheme.typography.titleMedium, color = TextSecondary)
             }
-            StorageBar(segments = listOf(state.usedFraction to Accent))
-            LegendItem(Accent, "Saved as you listen · ${state.totalLabel}")
+            StorageBar(segments = listOf(state.audioFraction to Accent, state.videoFraction to VideoLegend))
+            LegendItem(Accent, "Music, saved as you listen · ${state.audioTotalLabel}")
+            LegendItem(VideoLegend, "Movies & shows · ${state.videoTotalLabel}")
         }
 
         val downloading = state.downloading
@@ -137,8 +143,20 @@ fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             }
         }
 
+        if (state.videos.isNotEmpty()) {
+            SectionLabel("MOVIES & SHOWS")
+            Column {
+                state.videos.forEach { video ->
+                    SavedVideoRow(
+                        video = video,
+                        onRemove = { viewModel.removeVideo(video.id) },
+                    )
+                }
+            }
+        }
+
         // Destructive: remove all downloads
-        if (state.saved.isNotEmpty() || state.downloading != null) {
+        if (state.saved.isNotEmpty() || state.downloading != null || state.videos.isNotEmpty()) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -163,6 +181,52 @@ fun DownloadsScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 )
             }
         }
+    }
+}
+
+/** One saved (or still-downloading) video: poster thumb, title/meta, and cancel/delete control. */
+@Composable
+private fun SavedVideoRow(video: SavedVideoUi, onRemove: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Artwork(
+            color = video.artColor,
+            imageUrl = video.posterUrl,
+            modifier = Modifier.size(44.dp),
+            corner = 8.dp,
+        )
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(
+                video.title,
+                style = MaterialTheme.typography.titleMedium,
+                color = TextPrimary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            val meta = listOf(video.subtitle, video.sizeLabel).filter { it.isNotEmpty() }.joinToString(" · ")
+            Text(meta, style = MaterialTheme.typography.bodySmall, color = TextMuted)
+        }
+        if (video.downloading) {
+            CircularProgressIndicator(
+                color = VideoLegend,
+                trackColor = Surface2,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(18.dp),
+            )
+        }
+        Icon(
+            Icons.Outlined.DeleteOutline,
+            contentDescription = if (video.downloading) "Cancel download" else "Remove download",
+            tint = TextSecondary,
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onRemove)
+                .padding(7.dp),
+        )
     }
 }
 

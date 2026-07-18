@@ -1,6 +1,5 @@
 package pe.net.libre.mixtapehaven.data.jellyfin
 
-import androidx.compose.ui.graphics.Color
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import org.jellyfin.sdk.Jellyfin
@@ -8,16 +7,14 @@ import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.audioApi
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.dynamicHlsApi
-import org.jellyfin.sdk.api.client.extensions.imageApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.api.client.extensions.playStateApi
 import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.api.client.extensions.videosApi
-import org.jellyfin.sdk.model.api.BaseItemDto
 import org.jellyfin.sdk.model.api.BaseItemKind
-import org.jellyfin.sdk.model.api.ImageType
+import org.jellyfin.sdk.model.api.EncodingContext
 import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.ItemSortBy
 import org.jellyfin.sdk.model.api.PlayMethod
@@ -252,67 +249,31 @@ class JellyfinRepository(
         }
     }
 
+    /**
+     * URL of a server-side transcode of [itemId] capped at [maxHeight]/[videoBitRate]/[audioBitRate]
+     * (h264/aac mp4), for saving a phone-sized offline copy instead of the original file.
+     */
+    fun videoDownloadUrl(itemId: String, maxHeight: Int, videoBitRate: Int, audioBitRate: Int): String? {
+        val client = api
+        val id = runCatching { UUID.fromString(itemId) }.getOrNull()
+        if (client == null || id == null) return null
+        return client.videosApi
+            .getVideoStreamUrl(
+                itemId = id,
+                container = "mp4",
+                static = false,
+                // The server requires a media source; the default source id is the item id unhyphenated.
+                mediaSourceId = itemId.replace("-", ""),
+                videoCodec = "h264",
+                audioCodec = "aac",
+                maxHeight = maxHeight,
+                videoBitRate = videoBitRate,
+                audioBitRate = audioBitRate,
+                context = EncodingContext.STATIC,
+            )
+            .withApiKey(client)
+    }
+
     private fun requireApi(): ApiClient =
         api ?: error("Not authenticated with a Jellyfin server")
-
-    private fun BaseItemDto.toAlbum(client: ApiClient): Album = Album(
-        id = id.toString(),
-        title = name ?: "Unknown album",
-        artist = albumArtist ?: artists?.firstOrNull() ?: "Unknown artist",
-        artColor = colorFor(id.toString()),
-        imageUrl = primaryImageUrl(client),
-        downloaded = false,
-    )
-
-    private fun BaseItemDto.toTrack(client: ApiClient): Track = Track(
-        id = id.toString(),
-        title = name ?: "Unknown track",
-        artist = artists?.joinToString(", ").orEmpty().ifEmpty { albumArtist ?: "Unknown artist" },
-        durationLabel = formatDuration(runTimeTicks),
-        artColor = colorFor(id.toString()),
-        imageUrl = primaryImageUrl(client),
-    )
-
-    private fun BaseItemDto.primaryImageUrl(client: ApiClient): String? {
-        val ownTag = imageTags?.get(ImageType.PRIMARY)
-        return when {
-            ownTag != null ->
-                client.imageApi.getItemImageUrl(id, ImageType.PRIMARY, tag = ownTag, maxWidth = IMAGE_MAX_WIDTH)
-                    .withApiKey(client)
-
-            albumId != null && albumPrimaryImageTag != null ->
-                client.imageApi.getItemImageUrl(
-                    albumId!!,
-                    ImageType.PRIMARY,
-                    tag = albumPrimaryImageTag,
-                    maxWidth = IMAGE_MAX_WIDTH,
-                ).withApiKey(client)
-
-            else -> null
-        }
-    }
-
-    private companion object {
-        const val TICKS_PER_SECOND = 10_000_000L
-
-        val PALETTE = listOf(
-            Color(0xFFC65B4E),
-            Color(0xFF9A8A3C),
-            Color(0xFFA86B7E),
-            Color(0xFFB5633B),
-            Color(0xFFB59A4E),
-            Color(0xFF6C8A7A),
-        )
-
-        fun colorFor(key: String): Color =
-            PALETTE[(key.hashCode() and Int.MAX_VALUE) % PALETTE.size]
-
-        fun formatDuration(ticks: Long?): String {
-            if (ticks == null || ticks <= 0) return "--:--"
-            val totalSeconds = ticks / TICKS_PER_SECOND
-            val minutes = totalSeconds / 60
-            val seconds = totalSeconds % 60
-            return "%d:%02d".format(minutes, seconds)
-        }
-    }
 }

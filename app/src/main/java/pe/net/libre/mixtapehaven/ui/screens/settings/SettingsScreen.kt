@@ -21,9 +21,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ChevronRight
 import androidx.compose.material.icons.outlined.Logout
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -38,6 +41,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadQuality
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.components.BackTopBar
 import pe.net.libre.mixtapehaven.ui.components.SectionLabel
@@ -48,6 +52,7 @@ import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.AccentInk
 import pe.net.libre.mixtapehaven.ui.theme.Coral
 import pe.net.libre.mixtapehaven.ui.theme.Stroke
+import pe.net.libre.mixtapehaven.ui.theme.Surface
 import pe.net.libre.mixtapehaven.ui.theme.TextMuted
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 import pe.net.libre.mixtapehaven.ui.theme.TextSecondary
@@ -60,13 +65,32 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     val viewModel = appViewModel {
-        SettingsViewModel(it.sessionStore, it.downloadSettingsStore, it.downloadManager, it.diagnosticsLog)
+        SettingsViewModel(
+            it.sessionStore,
+            it.downloadSettingsStore,
+            it.downloadManager,
+            it.videoDownloadManager,
+            it.diagnosticsLog,
+        )
     }
     val automaticDownloads by viewModel.autoDownloadEnabled.collectAsState()
     val storageUsed by viewModel.storageUsedLabel.collectAsState()
+    val videoQuality by viewModel.videoQuality.collectAsState()
     val userName by viewModel.userName.collectAsState()
     val serverHost by viewModel.serverHost.collectAsState()
     var wifiOnly by remember { mutableStateOf(true) }
+    var showQualityPicker by remember { mutableStateOf(false) }
+
+    if (showQualityPicker) {
+        VideoQualityDialog(
+            selected = videoQuality,
+            onSelect = {
+                viewModel.setVideoQuality(it)
+                showQualityPicker = false
+            },
+            onDismiss = { showQualityPicker = false },
+        )
+    }
 
     val context = LocalContext.current
 
@@ -133,6 +157,12 @@ fun SettingsScreen(
                 )
                 HorizontalDivider(color = Stroke)
                 SettingLinkRow(title = "Audio quality", value = "Lossless", onClick = {})
+                HorizontalDivider(color = Stroke)
+                SettingLinkRow(
+                    title = "Video download quality",
+                    value = videoQuality.label,
+                    onClick = { showQualityPicker = true },
+                )
                 HorizontalDivider(color = Stroke)
                 SettingLinkRow(title = "Storage used", value = storageUsed, onClick = onOpenDownloads)
             }
@@ -202,6 +232,49 @@ private fun shareDiagnostics(context: Context, log: String) {
     } catch (_: ActivityNotFoundException) {
         Toast.makeText(context, "No app available to share diagnostics", Toast.LENGTH_SHORT).show()
     }
+}
+
+/** Picker for the transcode cap applied to video downloads (1080p / 720p / 480p). */
+@Composable
+private fun VideoQualityDialog(
+    selected: VideoDownloadQuality,
+    onSelect: (VideoDownloadQuality) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Surface,
+        title = { Text("Video download quality", style = MaterialTheme.typography.titleMedium, color = TextPrimary) },
+        text = {
+            Column {
+                VideoDownloadQuality.entries.forEach { quality ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelect(quality) }
+                            .padding(vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        RadioButton(
+                            selected = quality == selected,
+                            onClick = { onSelect(quality) },
+                            colors = RadioButtonDefaults.colors(selectedColor = Accent, unselectedColor = TextMuted),
+                        )
+                        Text(quality.label, style = MaterialTheme.typography.bodyMedium, color = TextPrimary)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Text(
+                "Done",
+                style = MaterialTheme.typography.titleMedium,
+                color = Accent,
+                modifier = Modifier.clickable(onClick = onDismiss).padding(8.dp),
+            )
+        },
+    )
 }
 
 @Composable

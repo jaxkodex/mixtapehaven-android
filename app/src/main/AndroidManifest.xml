@@ -33,7 +33,12 @@
         </activity>
 
         <!-- WorkManager runs VideoDownloadWorker as a foreground data sync on API 34+; its
-             service must declare the type or startForeground throws. Merged, not replaced. -->
+             service must declare the type or startForeground throws. Merged, not replaced.
+             Known limitation: Android 15+ caps dataSync foreground time at ~6h per 24h. A very
+             large queue on slow Wi-Fi can hit the cap — the system stops the service and the
+             workers re-run later (attempts are only counted on genuine transient failures, so
+             the retry budget is unaffected). -->
+
         <service
             android:name="androidx.work.impl.foreground.SystemForegroundService"
             android:foregroundServiceType="dataSync"

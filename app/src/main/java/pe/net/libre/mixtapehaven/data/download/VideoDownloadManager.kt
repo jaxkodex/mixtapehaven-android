@@ -42,6 +42,8 @@ import java.io.InputStream
 import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
+private const val TAG = "VideoDownloadManager"
+
 /**
  * Progress of one in-flight video download. [percent] stays 0 while the server transcodes with an
  * unknown final size, so surface [bytes] ("142 MB so far") rather than a determinate bar.
@@ -135,8 +137,8 @@ class VideoDownloadManager(
     fun usableSpaceBytes(): Long = downloadsDir.usableSpace
 
     /** True when the active network bills by the byte, i.e. queued work is waiting for Wi-Fi. */
-    fun isNetworkMetered(): Boolean =
-        appContext.getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered == true
+    val isNetworkMetered: Boolean
+        get() = appContext.getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered == true
 
     /**
      * Queue [item] (a movie or episode) for download. No-op if already saved or queued; re-taps
@@ -146,7 +148,10 @@ class VideoDownloadManager(
         val id = item.id
         if (completedPaths.containsKey(id)) return
         scope.launch {
-            if (dao.findById(id)?.complete == true) return@launch
+            val existing = dao.findById(id)
+            // RUNNING guard: re-tapping mid-stream must not reset the row (and its quality label)
+            // under the active worker. The UI shows Cancel while in flight, but keep the API safe.
+            if (existing?.complete == true || existing?.status == VideoDownloadStatus.RUNNING.name) return@launch
             val quality = settingsStore.videoQuality.first()
             // QUEUED row first, so the Downloads UI lists the title before any bytes stream.
             dao.upsert(
@@ -162,12 +167,12 @@ class VideoDownloadManager(
         }
     }
 
-    /** Re-queue a failed download. No-op if the row is gone or already saved. */
+    /** Re-queue a failed download with a fresh retry budget. No-op if the row is gone or saved. */
     fun retry(id: String) {
         scope.launch {
             val row = dao.findById(id) ?: return@launch
             if (row.complete) return@launch
-            dao.updateStatus(id, VideoDownloadStatus.QUEUED.name)
+            dao.requeue(id)
             enqueue(id)
         }
     }
@@ -198,25 +203,20 @@ class VideoDownloadManager(
      * and promote it to the final file + COMPLETE row. Called from [VideoDownloadWorker] only.
      * On [VideoDownloadOutcome.RETRY] the row is left QUEUED for the backoff re-run; on
      * [VideoDownloadOutcome.FAILED] it is already marked failed and the error emitted.
+     *
+     * The retry budget lives in the row's `attempts` column, counted here on genuine transient
+     * failures only — WorkManager's `runAttemptCount` also ticks up on constraint stops (Wi-Fi
+     * loss), which would eat the budget of a download that never actually failed.
+     *
+     * Runs on [Dispatchers.IO]: OkHttp's execute() and the file writes are blocking calls that
+     * must stay off the worker's default dispatcher.
      */
-    suspend fun runDownload(id: String): VideoDownloadOutcome {
+    suspend fun runDownload(id: String): VideoDownloadOutcome = withContext(Dispatchers.IO) {
         val row = dao.findById(id)
-        if (row == null || row.complete) return VideoDownloadOutcome.SKIPPED
+        if (row == null || row.complete) return@withContext VideoDownloadOutcome.SKIPPED
         val part = File(downloadsDir, "$id$FILE_EXT.part")
-        return try {
-            if (shouldStartDownload(usableSpaceBytes(), MIN_FREE_BYTES)) {
-                streamAtQuality(row, settingsStore.videoQuality.first(), part)
-            } else {
-                Log.w(TAG, "Skipping video download of ${row.id}: storage low")
-                failPermanently(row.id, "Not enough free space to download")
-            }
-        } catch (failure: IOException) {
-            // OkHttp surfaces our call.cancel() (worker stopped) as an IOException too; a genuine
-            // network failure in a live coroutine is the retryable case.
-            if (!currentCoroutineContext().isActive) throw CancellationException("worker stopped")
-            Log.w(TAG, "Video download failed for $id", failure)
-            withContext(NonCancellable) { dao.updateStatus(id, VideoDownloadStatus.QUEUED.name) }
-            VideoDownloadOutcome.RETRY
+        try {
+            attemptRun(row, part)
         } finally {
             withContext(NonCancellable) {
                 val after = dao.findById(id)
@@ -232,6 +232,30 @@ class VideoDownloadManager(
         }
     }
 
+    @Suppress("TooGenericExceptionCaught") // deliberate: see the second catch's comment
+    private suspend fun attemptRun(row: DownloadedVideo, part: File): VideoDownloadOutcome =
+        try {
+            if (shouldStartDownload(usableSpaceBytes(), MIN_FREE_BYTES)) {
+                streamAtQuality(row, settingsStore.videoQuality.first(), part)
+            } else {
+                Log.w(TAG, "Skipping video download of ${row.id}: storage low")
+                failPermanently(row.id, "Not enough free space to download")
+            }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: IOException) {
+            // OkHttp surfaces our call.cancel() (worker stopped) as an IOException too; a genuine
+            // network failure in a live coroutine is the retryable case.
+            if (!currentCoroutineContext().isActive) throw CancellationException("worker stopped")
+            Log.w(TAG, "Video download failed for ${row.id}", failure)
+            transientFailure(row.id)
+        } catch (unexpected: Exception) {
+            // Anything else (Room, repository) is not worth a blind retry: without this the worker
+            // would die with the row QUEUED — a zombie "Waiting…" with no live work behind it.
+            Log.e(TAG, "Unexpected video download failure for ${row.id}", unexpected)
+            failPermanently(row.id, "Download failed for ${row.title}")
+        }
+
     private suspend fun streamAtQuality(
         row: DownloadedVideo,
         quality: VideoDownloadQuality,
@@ -243,11 +267,8 @@ class VideoDownloadManager(
             videoBitRate = quality.videoBitRate,
             audioBitRate = quality.audioBitRate,
         )
-        if (url == null) {
-            // No session/connectivity yet: transient, the backoff re-run will find it.
-            dao.updateStatus(row.id, VideoDownloadStatus.QUEUED.name)
-            return VideoDownloadOutcome.RETRY
-        }
+        // No session/connectivity yet: transient, the backoff re-run will find it.
+        if (url == null) return transientFailure(row.id)
         dao.updateStatus(row.id, VideoDownloadStatus.RUNNING.name)
         _progress.update { it + (row.id to VideoDownloadProgress(percent = 0, bytes = 0)) }
         return when (val streamed = streamToFile(url, part, row.id)) {
@@ -282,17 +303,27 @@ class VideoDownloadManager(
     /** 4xx means the request itself is wrong and will stay wrong; anything else is worth a retry. */
     private suspend fun httpOutcome(id: String, code: Int): VideoDownloadOutcome =
         if (code in CLIENT_ERRORS) {
-            failPermanently(id, "Download failed (server error $code)")
+            failPermanently(id, "Download failed (error $code)")
         } else {
-            dao.updateStatus(id, VideoDownloadStatus.QUEUED.name)
-            VideoDownloadOutcome.RETRY
+            transientFailure(id)
         }
 
-    /** Mark [id] failed after the worker exhausted its retries, emitting the user-facing error. */
-    suspend fun markFailed(id: String) {
-        val title = dao.findById(id)?.title
-        failPermanently(id, if (title != null) "Download failed for $title" else "Download failed")
-    }
+    /**
+     * Record one transient failure of [id] and decide its fate: back to QUEUED for the worker's
+     * backoff retry while budget remains, permanently FAILED once [MAX_ATTEMPTS] are spent.
+     */
+    private suspend fun transientFailure(id: String): VideoDownloadOutcome =
+        withContext(NonCancellable) {
+            dao.incrementAttempts(id)
+            val row = dao.findById(id)
+            when (outcomeAfterTransient(row?.attempts ?: MAX_ATTEMPTS, MAX_ATTEMPTS)) {
+                VideoDownloadOutcome.RETRY -> {
+                    dao.updateStatus(id, VideoDownloadStatus.QUEUED.name)
+                    VideoDownloadOutcome.RETRY
+                }
+                else -> failPermanently(id, "Download failed for ${row?.title ?: "video"}")
+            }
+        }
 
     /** Enqueue the unique worker for [id]; KEEP so a re-tap while queued/running is a no-op. */
     private suspend fun enqueue(id: String) {
@@ -318,9 +349,8 @@ class VideoDownloadManager(
      */
     private suspend fun reconcileQueue() {
         for (id in dao.incompleteIds()) {
-            val alive = withContext(Dispatchers.IO) {
-                runCatching { workManager.getWorkInfosForUniqueWork(uniqueWorkName(id)).get() }.getOrNull()
-            }?.any { !it.state.isFinished }
+            val alive = runCatching { workManager.getWorkInfosForUniqueWorkFlow(uniqueWorkName(id)).first() }
+                .getOrNull()?.any { !it.state.isFinished }
             val row = dao.findById(id)
             when {
                 alive == null || row == null -> Unit // WorkManager unavailable / row deleted meanwhile
@@ -395,7 +425,6 @@ class VideoDownloadManager(
     }
 
     companion object {
-        private const val TAG = "VideoDownloadManager"
         private const val DIR = "video_downloads"
 
         /** MPEG-TS: the only container the server can finalize over a non-seekable HTTP response. */
@@ -407,6 +436,9 @@ class VideoDownloadManager(
         private const val BACKOFF_SECONDS = 30L
         private val CLIENT_ERRORS = 400..499
 
+        /** Total tries per download before it is marked failed; a manual retry resets the budget. */
+        internal const val MAX_ATTEMPTS = 5
+
         /** Tag on every video download work request, for bulk cancellation. */
         const val WORK_TAG = "video-download"
 
@@ -416,8 +448,15 @@ class VideoDownloadManager(
 }
 
 private fun deleteQuietly(file: File) {
-    if (file.exists() && !file.delete()) Log.w("VideoDownloadManager", "Could not delete ${file.name}")
+    if (file.exists() && !file.delete()) Log.w(TAG, "Could not delete ${file.name}")
 }
+
+/**
+ * Fate of a download after one more transient failure: retry while tries remain, fail once
+ * [maxAttempts] are spent. Pure so the retry-budget policy is unit-testable.
+ */
+internal fun outcomeAfterTransient(attempts: Int, maxAttempts: Int): VideoDownloadOutcome =
+    if (attempts < maxAttempts) VideoDownloadOutcome.RETRY else VideoDownloadOutcome.FAILED
 
 private fun VideoItem.toDownloadedVideo(
     path: String,

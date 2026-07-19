@@ -33,7 +33,8 @@ enum class VideoDownloadStatus {
  * A movie or episode saved to local storage as a quality-capped transcode for offline playback.
  * [kind] is the [VideoKind] name, [qualityLabel] the cap it was transcoded at (e.g. "720p").
  * [complete] is false while bytes are still being written and true once the file is fully saved;
- * [status] carries the finer-grained [VideoDownloadStatus] name for queue/retry UI.
+ * [status] carries the finer-grained [VideoDownloadStatus] name for queue/retry UI. [attempts]
+ * counts genuine transient failures (not constraint stops) against the retry budget.
  */
 @Entity(tableName = "downloaded_videos")
 data class DownloadedVideo(
@@ -50,6 +51,7 @@ data class DownloadedVideo(
     val sizeBytes: Long,
     val complete: Boolean,
     val status: String,
+    val attempts: Int = 0,
 )
 
 /** Map a persisted video download back to a UI [VideoItem]. */

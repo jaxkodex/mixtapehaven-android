@@ -78,7 +78,7 @@ class DownloadsViewModel(
         // The queue is only ever gated on network when the Wi-Fi-only constraint is set and the
         // current network would not satisfy it — that's when "Waiting…" deserves the reason.
         val waitingLabel =
-            if (wifiOnly && videoDownloadManager.isNetworkMetered()) "Waiting for Wi-Fi" else "Waiting…"
+            if (wifiOnly && videoDownloadManager.isNetworkMetered) "Waiting for Wi-Fi" else "Waiting…"
         return UiState(
             downloading = progress,
             saved = completedTracks.map { it.toTrack() },

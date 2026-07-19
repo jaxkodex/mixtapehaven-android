@@ -51,4 +51,16 @@ class DownloadedVideoMappingTest {
     fun `an unknown persisted status degrades to failed so the UI offers retry`() {
         assertEquals(VideoDownloadStatus.FAILED, VideoDownloadStatus.fromName("TELEPORTING"))
     }
+
+    @Test
+    fun `transient failures retry while the attempt budget lasts`() {
+        assertEquals(VideoDownloadOutcome.RETRY, outcomeAfterTransient(attempts = 1, maxAttempts = 5))
+        assertEquals(VideoDownloadOutcome.RETRY, outcomeAfterTransient(attempts = 4, maxAttempts = 5))
+    }
+
+    @Test
+    fun `the final attempt fails permanently instead of retrying forever`() {
+        assertEquals(VideoDownloadOutcome.FAILED, outcomeAfterTransient(attempts = 5, maxAttempts = 5))
+        assertEquals(VideoDownloadOutcome.FAILED, outcomeAfterTransient(attempts = 6, maxAttempts = 5))
+    }
 }

@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /** Room database holding the offline download library (audio tracks and videos). */
 @Database(
     entities = [DownloadedTrack::class, DownloadedVideo::class, VideoProgress::class],
-    version = 4,
+    version = 5,
     exportSchema = true,
 )
 abstract class DownloadDatabase : RoomDatabase() {
@@ -61,12 +61,24 @@ abstract class DownloadDatabase : RoomDatabase() {
             }
         }
 
+        /** v4 -> v5: adds the transient-failure counter backing the download retry budget. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `downloaded_videos` ADD COLUMN `attempts` INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        /** Every migration in order, shared by [build] and the instrumented migration tests. */
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+
         /** Build the app's download database in the default location. */
         fun build(context: Context): DownloadDatabase =
             Room.databaseBuilder(
                 context.applicationContext,
                 DownloadDatabase::class.java,
                 "downloads.db",
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4).build()
+            ).apply { MIGRATIONS.forEach { addMigrations(it) } }.build()
     }
 }

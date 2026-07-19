@@ -86,8 +86,9 @@ internal fun formatRuntime(runtimeMs: Long): String {
  * the runtime is unknown or the item is effectively finished, so the caller can drop the segment.
  */
 internal fun formatTimeLeft(runtimeMs: Long, positionMs: Long): String {
-    val remainingMs = runtimeMs - positionMs
-    if (runtimeMs <= 0L || remainingMs < 60_000) return ""
+    // An unknown runtime yields no remaining time at all, rather than a bogus countdown from 0.
+    val remainingMs = if (runtimeMs <= 0L) 0L else runtimeMs - positionMs
+    if (remainingMs < 60_000) return ""
     val totalMinutes = remainingMs / 60_000
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60

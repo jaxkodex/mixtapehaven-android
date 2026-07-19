@@ -72,6 +72,21 @@ class ContinueWatchingMergeTest {
         assertEquals(listOf("b"), merged.map { it.id })
     }
 
+    /**
+     * The regression this guards: the server snapshot still lists a just-finished title as in
+     * progress, and it is only refetched on reload.
+     */
+    @Test
+    fun `a locally finished title is suppressed from a stale server list`() {
+        val merged = mergeContinueWatching(
+            local = emptyList(),
+            server = listOf(item("a", 60_000, 100), item("b", 60_000, 200)),
+            finishedIds = setOf("a"),
+        )
+
+        assertEquals(listOf("b"), merged.map { it.id })
+    }
+
     @Test
     fun `the rail is capped`() {
         val many = (1..40).map { item("v$it", 60_000, it.toLong()) }

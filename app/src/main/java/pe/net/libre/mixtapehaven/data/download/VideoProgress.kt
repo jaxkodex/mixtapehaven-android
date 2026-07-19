@@ -31,6 +31,8 @@ data class VideoProgress(
     val title: String,
     val kind: String,
     val seriesName: String?,
+    /** Kept so an episode resumed from this row can still resolve its series for autoplay. */
+    val seriesId: String?,
     val seasonEpisodeLabel: String?,
     val posterUrl: String?,
     val backdropUrl: String?,
@@ -49,6 +51,7 @@ internal fun VideoProgress.toVideoItem(): VideoItem = VideoItem(
     resumePositionMs = positionMs,
     lastPlayedAtMs = updatedAtMs,
     seriesName = seriesName,
+    seriesId = seriesId,
     seasonEpisodeLabel = seasonEpisodeLabel,
 )
 
@@ -61,6 +64,7 @@ internal fun VideoItem.toProgress(positionMs: Long, runtimeMs: Long, nowMs: Long
     title = title,
     kind = kind.name,
     seriesName = seriesName,
+    seriesId = seriesId,
     seasonEpisodeLabel = seasonEpisodeLabel,
     posterUrl = posterUrl,
     backdropUrl = backdropUrl,
@@ -74,6 +78,14 @@ interface VideoProgressDao {
     /** In-progress titles, most recently watched first, for the Continue watching rail. */
     @Query("SELECT * FROM video_progress WHERE positionMs > 0 ORDER BY updatedAtMs DESC LIMIT :limit")
     fun observeContinueWatching(limit: Int): Flow<List<VideoProgress>>
+
+    /**
+     * Ids of titles finished locally. These are kept as position-0 tombstones rather than deleted:
+     * the server's Continue Watching snapshot still lists them until it is refetched, and without a
+     * local record to veto it the just-finished title would reappear in the rail.
+     */
+    @Query("SELECT id FROM video_progress WHERE positionMs <= 0")
+    fun observeFinishedIds(): Flow<List<String>>
 
     @Query("SELECT * FROM video_progress WHERE id = :id")
     suspend fun findById(id: String): VideoProgress?

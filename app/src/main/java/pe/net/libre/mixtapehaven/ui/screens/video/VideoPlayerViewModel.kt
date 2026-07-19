@@ -108,6 +108,9 @@ class VideoPlayerViewModel(
 
     /** Load [id], resume it, and begin playing. Used for the initial item and each autoplay hop. */
     private suspend fun startItem(id: String) {
+        // Cleared up front so a hop that fails below cannot leave the pill pointing at the
+        // previous episode's successor, and so it never shows a stale value while loadUpNext runs.
+        _upNext.value = null
         val resolved = progressStore.resolvePlayback(id)
         val item = resolved.item
         if (item == null) {
@@ -124,7 +127,7 @@ class VideoPlayerViewModel(
         }
         _error.value = null
         prepareCurrentCandidate(startMs = resolved.positionMs)
-        progressStore.record(item, resolved.positionMs, player.duration.orZero(), VideoPlaybackEvent.STARTED)
+        progressStore.record(item, resolved.positionMs, player.duration.durationOrZero(), VideoPlaybackEvent.STARTED)
         _upNext.value = loadUpNext(item)
     }
 
@@ -152,8 +155,8 @@ class VideoPlayerViewModel(
             // episode's own STARTED report lands.
             progressStore.record(
                 finished,
-                player.duration.orZero(),
-                player.duration.orZero(),
+                player.duration.durationOrZero(),
+                player.duration.durationOrZero(),
                 VideoPlaybackEvent.STOPPED,
                 transcoding = candidateIndex > 0,
             )
@@ -166,7 +169,7 @@ class VideoPlayerViewModel(
         val next = _upNext.value ?: return
         val current = _nowPlaying.value
         val positionMs = player.currentPosition.coerceAtLeast(0)
-        val durationMs = player.duration.orZero()
+        val durationMs = player.duration.durationOrZero()
         viewModelScope.launch {
             if (current != null) {
                 progressStore.record(
@@ -213,7 +216,7 @@ class VideoPlayerViewModel(
         progressStore.record(
             item,
             player.currentPosition.coerceAtLeast(0),
-            player.duration.orZero(),
+            player.duration.durationOrZero(),
             VideoPlaybackEvent.PROGRESS,
             paused = paused,
             transcoding = candidateIndex > 0,
@@ -228,7 +231,7 @@ class VideoPlayerViewModel(
     override fun onCleared() {
         val item = _nowPlaying.value
         val positionMs = player.currentPosition.coerceAtLeast(0)
-        val durationMs = player.duration.orZero()
+        val durationMs = player.duration.durationOrZero()
         val playedSomething = reachedReady
         val transcoding = candidateIndex > 0
         player.removeListener(listener)
@@ -255,4 +258,4 @@ class VideoPlayerViewModel(
 }
 
 /** ExoPlayer reports an unknown duration as [C.TIME_UNSET]; treat that as "not known yet". */
-private fun Long.orZero(): Long = if (this == C.TIME_UNSET || this < 0L) 0L else this
+private fun Long.durationOrZero(): Long = if (this == C.TIME_UNSET || this < 0L) 0L else this

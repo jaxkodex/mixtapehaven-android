@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 3,
-    "identityHash": "1128b1976054751408185f9838d4c059",
+    "identityHash": "5ce1504a2a327468d41e4df286626603",
     "entities": [
       {
         "tableName": "downloaded_tracks",
@@ -152,7 +152,7 @@
       },
       {
         "tableName": "video_progress",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, `runtimeMs` INTEGER NOT NULL, `updatedAtMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, `seriesName` TEXT, `seasonEpisodeLabel` TEXT, `posterUrl` TEXT, `backdropUrl` TEXT, `artColorArgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, `runtimeMs` INTEGER NOT NULL, `updatedAtMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, `seriesName` TEXT, `seriesId` TEXT, `seasonEpisodeLabel` TEXT, `posterUrl` TEXT, `backdropUrl` TEXT, `artColorArgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -196,6 +196,11 @@
             "affinity": "TEXT"
           },
           {
+            "fieldPath": "seriesId",
+            "columnName": "seriesId",
+            "affinity": "TEXT"
+          },
+          {
             "fieldPath": "seasonEpisodeLabel",
             "columnName": "seasonEpisodeLabel",
             "affinity": "TEXT"
@@ -227,7 +232,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '1128b1976054751408185f9838d4c059')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5ce1504a2a327468d41e4df286626603')"
     ]
   }
 }

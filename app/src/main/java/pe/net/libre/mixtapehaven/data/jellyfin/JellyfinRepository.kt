@@ -185,7 +185,13 @@ class JellyfinRepository(
         return item.toVideoItem(client)
     }
 
-    /** All episodes of [seriesId] in season/episode order, with overviews and resume positions. */
+    /**
+     * All episodes of [seriesId] in season/episode order, with overviews and resume positions.
+     *
+     * The sort is applied here rather than trusting the endpoint's default: autoplay picks the
+     * next episode positionally, so the ordering is load-bearing and should not be an implicit
+     * assumption about server behaviour.
+     */
     suspend fun seriesEpisodes(seriesId: String): List<VideoItem> {
         val client = requireApi()
         val id = runCatching { UUID.fromString(seriesId) }.getOrNull() ?: return emptyList()
@@ -194,17 +200,24 @@ class JellyfinRepository(
             userId = userId,
             fields = listOf(ItemFields.OVERVIEW),
         )
-        return result.items.orEmpty().map { it.toVideoItem(client) }
+        return result.items.orEmpty()
+            .map { it.toVideoItem(client) to it }
+            .sortedWith(compareBy({ it.second.parentIndexNumber ?: 0 }, { it.second.indexNumber ?: 0 }))
+            .map { it.first }
     }
 
     /**
      * The id of the media source the server picked for [itemId], via a PlaybackInfo negotiation.
      *
      * Transcode URLs need a real MediaSource id. For a plain single-file library item that happens
-     * to equal the item id unhyphenated, but multi-version items (a 4K and a 1080p cut) and
-     * .strm-backed ones have their own ids, and guessing sends the server the wrong source. Falls
-     * back to the guess when the call fails, so a negotiation error degrades to the old behaviour
-     * rather than blocking playback.
+     * to equal the item id unhyphenated, but .strm-backed items have their own, and guessing sends
+     * the server a source it does not know. Falls back to the guess when the call fails, so a
+     * negotiation error degrades to the old behaviour rather than blocking playback.
+     *
+     * Takes the first source the server lists, which is *not* a considered choice between the
+     * versions of a multi-version item (a 4K and a 1080p cut) — picking by requested quality would
+     * mean matching against each source's streams. Note also that this is an extra POST on the
+     * playback critical path, and that it opens a server-side play session.
      */
     suspend fun mediaSourceId(itemId: String): String {
         val fallback = itemId.replace("-", "")

@@ -48,7 +48,11 @@ class AppContainer(context: Context) {
 
     /** Local + server watch positions for video, backing offline resume and Continue watching. */
     val videoProgressStore: VideoProgressStore by lazy {
-        VideoProgressStore(repository, downloadDatabase.videoProgressDao())
+        VideoProgressStore(
+            repository = repository,
+            dao = downloadDatabase.videoProgressDao(),
+            downloadDao = downloadDatabase.videoDownloadDao(),
+        )
     }
 
     val downloadManager: DownloadManager by lazy {

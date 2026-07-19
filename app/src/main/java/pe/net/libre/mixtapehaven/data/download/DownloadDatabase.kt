@@ -43,8 +43,8 @@ abstract class DownloadDatabase : RoomDatabase() {
                     "CREATE TABLE IF NOT EXISTS `video_progress` (" +
                         "`id` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, `runtimeMs` INTEGER NOT NULL, " +
                         "`updatedAtMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
-                        "`seriesName` TEXT, `seasonEpisodeLabel` TEXT, `posterUrl` TEXT, `backdropUrl` TEXT, " +
-                        "`artColorArgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                        "`seriesName` TEXT, `seriesId` TEXT, `seasonEpisodeLabel` TEXT, `posterUrl` TEXT, " +
+                        "`backdropUrl` TEXT, `artColorArgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
                 )
             }
         }

@@ -115,9 +115,10 @@ class HomeViewModel(
             combine(
                 videoProgressStore.observeLocal(),
                 serverContinueWatching,
+                videoProgressStore.observeFinishedIds(),
                 videoDownloadManager.downloads,
-            ) { local, server, downloads ->
-                mergeContinueWatching(local, server) to
+            ) { local, server, finishedIds, downloads ->
+                mergeContinueWatching(local, server, finishedIds) to
                     downloads.filter { it.complete }.map { it.id }.toSet()
             }.collect { (merged, downloadedIds) ->
                 _state.update { it.copy(continueWatching = merged, downloadedVideoIds = downloadedIds) }
@@ -199,13 +200,19 @@ private const val CONTINUE_WATCHING_LIMIT = 12
  *
  * An id in both sides is kept once, taking whichever record was written later — the server knows
  * about other devices, the local table knows about offline viewing, and neither is reliably ahead.
+ *
+ * [finishedIds] are titles finished on this device. They are removed outright because the server
+ * snapshot is only refetched by a reload: without this, the episode just watched to the end would
+ * reappear in the rail as soon as its local row stopped counting as in-progress.
  */
 internal fun mergeContinueWatching(
     local: List<VideoItem>,
     server: List<VideoItem>,
+    finishedIds: Set<String> = emptySet(),
 ): List<VideoItem> = (local + server)
+    .filterNot { it.id in finishedIds }
     .groupBy { it.id }
-    .map { (_, records) -> records.maxBy { it.lastPlayedAtMs } }
+    .mapNotNull { (_, records) -> records.maxByOrNull { it.lastPlayedAtMs } }
     .filter { it.resumePositionMs > 0 }
     .sortedByDescending { it.lastPlayedAtMs }
     .take(CONTINUE_WATCHING_LIMIT)

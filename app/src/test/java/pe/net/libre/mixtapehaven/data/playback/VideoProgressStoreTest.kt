@@ -5,6 +5,8 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import pe.net.libre.mixtapehaven.data.download.VideoProgress
+import pe.net.libre.mixtapehaven.data.download.toProgress
+import pe.net.libre.mixtapehaven.data.download.toVideoItem
 import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.model.VideoKind
 
@@ -19,6 +21,7 @@ class VideoProgressStoreTest {
         title = "Title",
         kind = VideoKind.MOVIE.name,
         seriesName = null,
+        seriesId = null,
         seasonEpisodeLabel = null,
         posterUrl = null,
         backdropUrl = null,
@@ -106,6 +109,26 @@ class VideoProgressStoreTest {
     @Test
     fun `an unknown runtime is never finished`() {
         assertFalse(isFinished(positionMs = 600_000, runtimeMs = 0))
+    }
+
+    /** An episode resumed from a local row must keep its series, or autoplay dies offline. */
+    @Test
+    fun `a local row round-trips the series id`() {
+        val episode = VideoItem(
+            id = "e1",
+            title = "Episode",
+            kind = VideoKind.EPISODE,
+            runtimeMs = HOUR_MS,
+            seriesName = "Show",
+            seriesId = "series-1",
+            seasonEpisodeLabel = "S3 E2",
+        )
+
+        val restored = episode.toProgress(positionMs = 60_000, runtimeMs = HOUR_MS, nowMs = 1_000).toVideoItem()
+
+        assertEquals("series-1", restored.seriesId)
+        assertEquals(VideoKind.EPISODE, restored.kind)
+        assertEquals("S3 E2", restored.seasonEpisodeLabel)
     }
 
     private companion object {

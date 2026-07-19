@@ -2,6 +2,7 @@ package pe.net.libre.mixtapehaven.data.playback
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadDao
 import pe.net.libre.mixtapehaven.data.download.VideoProgress
 import pe.net.libre.mixtapehaven.data.download.VideoProgressDao
 import pe.net.libre.mixtapehaven.data.download.toProgress
@@ -21,21 +22,34 @@ import pe.net.libre.mixtapehaven.model.VideoItem
 class VideoProgressStore(
     private val repository: JellyfinRepository,
     private val dao: VideoProgressDao,
+    private val downloadDao: VideoDownloadDao,
     private val now: () -> Long = System::currentTimeMillis,
 ) {
     /** Locally known in-progress titles, most recent first — the offline Continue watching source. */
     fun observeLocal(limit: Int = CONTINUE_LIMIT): Flow<List<VideoItem>> =
         dao.observeContinueWatching(limit).map { rows -> rows.map { it.toVideoItem() } }
 
+    /** Ids finished locally, which must be suppressed from a staler server Continue Watching list. */
+    fun observeFinishedIds(): Flow<Set<String>> = dao.observeFinishedIds().map { it.toSet() }
+
     /**
-     * The item to play for [itemId] and the position to start it at, merging the server's copy
-     * (authoritative metadata, may be unreachable) with the local row (always available).
+     * The item to play for [itemId] and the position to start it at.
+     *
+     * Three sources in descending authority: the server (best metadata, unreachable offline), the
+     * local progress row (present once the title has been played), and finally the download row.
+     * That last fallback is what lets a downloaded-but-never-played title start offline — without
+     * it the one case the offline feature exists for would fail to resolve an item at all.
      */
     suspend fun resolvePlayback(itemId: String): ResolvedPlayback {
         val local = dao.findById(itemId)
         val remote = runCatching { repository.videoItem(itemId) }.getOrNull()
+        val downloaded = if (remote == null && local == null) {
+            runCatching { downloadDao.findById(itemId) }.getOrNull()?.takeIf { it.complete }?.toVideoItem()
+        } else {
+            null
+        }
         return ResolvedPlayback(
-            item = remote ?: local?.toVideoItem(),
+            item = remote ?: local?.toVideoItem() ?: downloaded,
             positionMs = resolveResumePosition(local, remote),
         )
     }
@@ -54,18 +68,18 @@ class VideoProgressStore(
         paused: Boolean = false,
         transcoding: Boolean = false,
     ) {
-        if (isFinished(positionMs, runtimeMs)) {
-            // Finished: drop it from Continue watching instead of stranding it at 99%.
-            dao.deleteById(item.id)
-        } else {
-            dao.upsert(item.toProgress(positionMs, runtimeMs, now()))
-        }
+        // A finished title is stored at position 0 rather than deleted, so it both leaves the rail
+        // and leaves behind a tombstone that outvotes the server's staler "still in progress" copy.
+        val storedPosition = if (isFinished(positionMs, runtimeMs)) 0L else positionMs
+        dao.upsert(item.toProgress(storedPosition, runtimeMs, now()))
         repository.reportVideoPlayback(item.id, positionMs, event, paused = paused, transcoding = transcoding)
     }
 
-    /** Forget the local position for [itemId] (e.g. when its download is deleted). */
-    suspend fun clear(itemId: String) = dao.deleteById(itemId)
-
+    /**
+     * Forget every local watch position. Called on sign-out — positions are per-user, and deleting
+     * a *download* deliberately does not come here: the title stays in the library and the server
+     * still holds its resume point.
+     */
     suspend fun clearAll() = dao.clear()
 
     private companion object {

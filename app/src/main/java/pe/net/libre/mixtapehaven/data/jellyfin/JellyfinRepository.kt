@@ -8,6 +8,7 @@ import org.jellyfin.sdk.api.client.extensions.audioApi
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.dynamicHlsApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
+import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
 import org.jellyfin.sdk.api.client.extensions.playStateApi
 import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.api.client.extensions.userApi
@@ -15,11 +16,16 @@ import org.jellyfin.sdk.api.client.extensions.userLibraryApi
 import org.jellyfin.sdk.api.client.extensions.videosApi
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.EncodingContext
+import org.jellyfin.sdk.model.api.ImageType
 import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.ItemSortBy
+import org.jellyfin.sdk.model.api.MediaType
 import org.jellyfin.sdk.model.api.PlayMethod
+import org.jellyfin.sdk.model.api.PlaybackInfoDto
 import org.jellyfin.sdk.model.api.SortOrder
 import org.jellyfin.sdk.model.api.request.GetItemsRequest
+import org.jellyfin.sdk.model.api.request.GetNextUpRequest
+import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
 import pe.net.libre.mixtapehaven.data.session.Session
 import pe.net.libre.mixtapehaven.data.session.SessionStore
 import pe.net.libre.mixtapehaven.model.Album
@@ -29,6 +35,12 @@ import java.util.UUID
 
 /** Lifecycle moment of video playback reported to the server via [JellyfinRepository.reportVideoPlayback]. */
 enum class VideoPlaybackEvent { STARTED, PROGRESS, STOPPED }
+
+/**
+ * Image types requested for Continue watching / Next Up rows. BACKDROP and THUMB are the wide art
+ * the 16:9 still wants; PRIMARY is the fallback (and is itself a 16:9 still for episodes).
+ */
+private val CONTINUE_IMAGE_TYPES = listOf(ImageType.BACKDROP, ImageType.THUMB, ImageType.PRIMARY)
 
 /** Wraps the Jellyfin Kotlin SDK: authentication, library browsing, search, and stream/image URLs. */
 class JellyfinRepository(
@@ -173,7 +185,13 @@ class JellyfinRepository(
         return item.toVideoItem(client)
     }
 
-    /** All episodes of [seriesId] in season/episode order, with overviews and resume positions. */
+    /**
+     * All episodes of [seriesId] in season/episode order, with overviews and resume positions.
+     *
+     * The sort is applied here rather than trusting the endpoint's default: autoplay picks the
+     * next episode positionally, so the ordering is load-bearing and should not be an implicit
+     * assumption about server behaviour.
+     */
     suspend fun seriesEpisodes(seriesId: String): List<VideoItem> {
         val client = requireApi()
         val id = runCatching { UUID.fromString(seriesId) }.getOrNull() ?: return emptyList()
@@ -182,7 +200,37 @@ class JellyfinRepository(
             userId = userId,
             fields = listOf(ItemFields.OVERVIEW),
         )
-        return result.items.orEmpty().map { it.toVideoItem(client) }
+        return result.items.orEmpty()
+            .map { it.toVideoItem(client) to it }
+            .sortedWith(compareBy({ it.second.parentIndexNumber ?: 0 }, { it.second.indexNumber ?: 0 }))
+            .map { it.first }
+    }
+
+    /**
+     * The id of the media source the server picked for [itemId], via a PlaybackInfo negotiation.
+     *
+     * Transcode URLs need a real MediaSource id. For a plain single-file library item that happens
+     * to equal the item id unhyphenated, but .strm-backed items have their own, and guessing sends
+     * the server a source it does not know. Falls back to the guess when the call fails, so a
+     * negotiation error degrades to the old behaviour rather than blocking playback.
+     *
+     * Takes the first source the server lists, which is *not* a considered choice between the
+     * versions of a multi-version item (a 4K and a 1080p cut) — picking by requested quality would
+     * mean matching against each source's streams. Note also that this is an extra POST on the
+     * playback critical path, and that it opens a server-side play session.
+     */
+    suspend fun mediaSourceId(itemId: String): String {
+        val fallback = itemId.replace("-", "")
+        val client = api
+        val id = runCatching { UUID.fromString(itemId) }.getOrNull()
+        if (client == null || id == null) return fallback
+        return runCatching {
+            val info by client.mediaInfoApi.getPostedPlaybackInfo(
+                itemId = id,
+                data = PlaybackInfoDto(userId = userId, enableDirectPlay = true, enableTranscoding = true),
+            )
+            info.mediaSources.firstOrNull()?.id
+        }.getOrNull() ?: fallback
     }
 
     /**
@@ -190,7 +238,7 @@ class JellyfinRepository(
      * HLS transcode pinned to h264/aac for anything the device cannot play natively. The player
      * tries them in order and falls through on error.
      */
-    fun videoStreamCandidates(itemId: String): List<String> {
+    suspend fun videoStreamCandidates(itemId: String): List<String> {
         val client = api
         val id = runCatching { UUID.fromString(itemId) }.getOrNull()
         if (client == null || id == null) return emptyList()
@@ -200,13 +248,55 @@ class JellyfinRepository(
         val hls = client.dynamicHlsApi
             .getMasterHlsVideoPlaylistUrl(
                 itemId = id,
-                // Known limitation: assumes the default single media source (see videoDownloadUrl).
-                mediaSourceId = itemId.replace("-", ""),
+                mediaSourceId = mediaSourceId(itemId),
                 videoCodec = "h264",
                 audioCodec = "aac",
             )
             .withApiKey(client)
         return listOf(direct, hls)
+    }
+
+    /**
+     * The next episode to watch in [seriesId] per the server's Next Up logic, or null when the
+     * series is finished or unwatched. Unlike scanning episodes for a resume position this is
+     * correct after an episode is watched to completion (Jellyfin zeroes its position, so a local
+     * scan would send the user back to the episode they just finished).
+     */
+    suspend fun nextUpEpisode(seriesId: String): VideoItem? {
+        val client = requireApi()
+        val id = runCatching { UUID.fromString(seriesId) }.getOrNull() ?: return null
+        val result by client.tvShowsApi.getNextUp(
+            GetNextUpRequest(
+                userId = userId,
+                seriesId = id,
+                fields = listOf(ItemFields.OVERVIEW),
+                limit = 1,
+                // Include the partially-watched episode itself, not just the one after it.
+                enableResumable = true,
+                enableImages = true,
+                enableImageTypes = CONTINUE_IMAGE_TYPES,
+            ),
+        )
+        return result.items.orEmpty().firstOrNull()?.toVideoItem(client)
+    }
+
+    /** The server's Continue Watching list: partially-watched movies and episodes, most recent first. */
+    suspend fun continueWatching(limit: Int = 12): List<VideoItem> {
+        val client = requireApi()
+        val result by client.itemsApi.getResumeItems(
+            GetResumeItemsRequest(
+                userId = userId,
+                limit = limit,
+                mediaTypes = listOf(MediaType.VIDEO),
+                includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.EPISODE),
+                fields = listOf(ItemFields.OVERVIEW),
+                // Resume items come back without image tags unless asked for, which would leave
+                // every Continue watching still on its flat colour fallback.
+                enableImages = true,
+                enableImageTypes = CONTINUE_IMAGE_TYPES,
+            ),
+        )
+        return result.items.orEmpty().map { it.toVideoItem(client) }
     }
 
     /**
@@ -257,7 +347,7 @@ class JellyfinRepository(
      * never backpatch the mdat size, so the moov index at the tail is unreachable and ExoPlayer
      * rejects the saved file as malformed. TS needs no finalization and stays seekable.
      */
-    fun videoDownloadUrl(itemId: String, maxHeight: Int, videoBitRate: Int, audioBitRate: Int): String? {
+    suspend fun videoDownloadUrl(itemId: String, maxHeight: Int, videoBitRate: Int, audioBitRate: Int): String? {
         val client = api
         val id = runCatching { UUID.fromString(itemId) }.getOrNull()
         if (client == null || id == null) return null
@@ -266,11 +356,7 @@ class JellyfinRepository(
                 itemId = id,
                 container = "ts",
                 static = false,
-                // Known limitation: the default source id is the item id unhyphenated, which holds
-                // for plain single-file library items but not for multi-version or .strm-backed
-                // ones. The robust path is mediaInfoApi.getPostedPlaybackInfo and using
-                // mediaSources.first().id, as full clients do.
-                mediaSourceId = itemId.replace("-", ""),
+                mediaSourceId = mediaSourceId(itemId),
                 videoCodec = "h264",
                 audioCodec = "aac",
                 maxHeight = maxHeight,

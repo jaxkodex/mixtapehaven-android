@@ -52,6 +52,7 @@ import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
 import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
+import pe.net.libre.mixtapehaven.ui.components.ContinueCard
 import pe.net.libre.mixtapehaven.ui.components.NowPlayingBar
 import pe.net.libre.mixtapehaven.ui.components.PosterCard
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
@@ -74,11 +75,10 @@ fun HomeScreen(
     onOpenDownloads: () -> Unit,
     onOpenNowPlaying: () -> Unit,
     onOpenVideo: (String) -> Unit,
+    onResumeVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel {
-        HomeViewModel(it.repository, it.playerController, it.downloadManager, it.diagnosticsLog)
-    }
+    val viewModel = rememberHomeViewModel()
     val state by viewModel.state.collectAsState()
     val nowPlayingTrack by viewModel.nowPlaying.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
@@ -116,12 +116,15 @@ fun HomeScreen(
 
             HomeSections(
                 state = state,
-                onOpenDownloads = onOpenDownloads,
-                onOpenSettings = onOpenSettings,
-                onOpenVideo = onOpenVideo,
-                onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
-                onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
-                onRetry = viewModel::load,
+                actions = HomeSectionActions(
+                    onOpenDownloads = onOpenDownloads,
+                    onOpenSettings = onOpenSettings,
+                    onOpenVideo = onOpenVideo,
+                    onResumeVideo = onResumeVideo,
+                    onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
+                    onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
+                    onRetry = viewModel::load,
+                ),
             )
         }
 
@@ -167,47 +170,77 @@ private fun BoxScope.HomeOverlays(
     }
 }
 
-/** The library sections of Home: saved tracks, Movies & shows, and the Recently added grid. */
+/** Builds the Home ViewModel from the app container. */
+@Composable
+private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
+    HomeViewModel(
+        it.repository,
+        it.playerController,
+        it.downloadManager,
+        it.videoDownloadManager,
+        it.videoProgressStore,
+        it.diagnosticsLog,
+    )
+}
+
+/** The callbacks [HomeSections] hands to its individual sections. */
+private data class HomeSectionActions(
+    val onOpenDownloads: () -> Unit,
+    val onOpenSettings: () -> Unit,
+    val onOpenVideo: (String) -> Unit,
+    val onResumeVideo: (String) -> Unit,
+    val onPlayTrack: (Track) -> Unit,
+    val onPlayAlbum: (Album) -> Unit,
+    val onRetry: () -> Unit,
+)
+
+/**
+ * The library sections of Home, in design order: saved tracks, Continue watching, Movies & shows,
+ * and the Recently added grid.
+ */
 @Composable
 private fun HomeSections(
     state: HomeViewModel.UiState,
-    onOpenDownloads: () -> Unit,
-    onOpenSettings: () -> Unit,
-    onOpenVideo: (String) -> Unit,
-    onPlayTrack: (Track) -> Unit,
-    onPlayAlbum: (Album) -> Unit,
-    onRetry: () -> Unit,
+    actions: HomeSectionActions,
 ) {
     if (state.onDevice.isNotEmpty()) {
         OnDeviceSection(
             tracks = state.onDevice,
-            onManage = onOpenDownloads,
-            onPlay = onPlayTrack,
+            onManage = actions.onOpenDownloads,
+            onPlay = actions.onPlayTrack,
+        )
+    }
+
+    if (state.continueWatching.isNotEmpty()) {
+        ContinueWatchingSection(
+            videos = state.continueWatching,
+            downloadedIds = state.downloadedVideoIds,
+            onVideoClick = { actions.onResumeVideo(it.id) },
         )
     }
 
     if (state.videos.isNotEmpty()) {
         MoviesAndShowsSection(
             videos = state.videos,
-            onVideoClick = { onOpenVideo(it.id) },
+            onVideoClick = { actions.onOpenVideo(it.id) },
         )
     }
 
     SectionHeader(
         title = "Recently added",
         actionLabel = "See all",
-        onAction = onOpenDownloads,
+        onAction = actions.onOpenDownloads,
     )
 
     when {
         state.albums.isNotEmpty() -> AlbumGrid(
             albums = state.albums,
-            onAlbumClick = onPlayAlbum,
+            onAlbumClick = actions.onPlayAlbum,
         )
         // Fetch in flight: render nothing rather than flash an empty state.
         state.loading -> Unit
-        state.error != null -> OfflineAlbumsState(onRetry = onRetry)
-        else -> FirstRunEmptyState(onOpenSettings = onOpenSettings)
+        state.error != null -> OfflineAlbumsState(onRetry = actions.onRetry)
+        else -> FirstRunEmptyState(onOpenSettings = actions.onOpenSettings)
     }
 }
 
@@ -271,6 +304,30 @@ private fun OnDeviceSection(
     Column {
         tracks.take(ON_DEVICE_PREVIEW).forEach { track ->
             TrackRow(track = track, onClick = { onPlay(track) })
+        }
+    }
+}
+
+/**
+ * Horizontal rail of partially-watched titles. Tapping one resumes it straight in the player
+ * rather than opening the detail screen — the whole point of the rail is skipping that hop.
+ *
+ * The plain title (no "See all") matches the design: the rail is the complete list.
+ */
+@Composable
+private fun ContinueWatchingSection(
+    videos: List<VideoItem>,
+    downloadedIds: Set<String>,
+    onVideoClick: (VideoItem) -> Unit,
+) {
+    SectionHeader(title = "Continue watching")
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        items(videos, key = { it.id }) { video ->
+            ContinueCard(
+                video = video,
+                downloaded = video.id in downloadedIds,
+                onClick = { onVideoClick(video) },
+            )
         }
     }
 }

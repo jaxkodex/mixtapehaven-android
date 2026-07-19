@@ -8,12 +8,18 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 /** Room database holding the offline download library (audio tracks and videos). */
-@Database(entities = [DownloadedTrack::class, DownloadedVideo::class], version = 2, exportSchema = true)
+@Database(
+    entities = [DownloadedTrack::class, DownloadedVideo::class, VideoProgress::class],
+    version = 3,
+    exportSchema = true,
+)
 abstract class DownloadDatabase : RoomDatabase() {
 
     abstract fun downloadDao(): DownloadDao
 
     abstract fun videoDownloadDao(): VideoDownloadDao
+
+    abstract fun videoProgressDao(): VideoProgressDao
 
     companion object {
         /** v1 -> v2: adds the video download table. Additive so existing audio downloads survive. */
@@ -30,12 +36,25 @@ abstract class DownloadDatabase : RoomDatabase() {
             }
         }
 
+        /** v2 -> v3: adds the local watch-position table backing offline resume and Continue watching. */
+        private val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `video_progress` (" +
+                        "`id` TEXT NOT NULL, `positionMs` INTEGER NOT NULL, `runtimeMs` INTEGER NOT NULL, " +
+                        "`updatedAtMs` INTEGER NOT NULL, `title` TEXT NOT NULL, `kind` TEXT NOT NULL, " +
+                        "`seriesName` TEXT, `seriesId` TEXT, `seasonEpisodeLabel` TEXT, `posterUrl` TEXT, " +
+                        "`backdropUrl` TEXT, `artColorArgb` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+                )
+            }
+        }
+
         /** Build the app's download database in the default location. */
         fun build(context: Context): DownloadDatabase =
             Room.databaseBuilder(
                 context.applicationContext,
                 DownloadDatabase::class.java,
                 "downloads.db",
-            ).addMigrations(MIGRATION_1_2).build()
+            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
     }
 }

@@ -8,7 +8,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import pe.net.libre.mixtapehaven.di.AppContainer
 import pe.net.libre.mixtapehaven.di.appContainer
 import pe.net.libre.mixtapehaven.ui.screens.downloads.DownloadsScreen
 import pe.net.libre.mixtapehaven.ui.screens.home.HomeScreen
@@ -46,6 +48,7 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
                 onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
                 onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
+                onResumeVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
             )
         }
         videoDestinations(navController)
@@ -63,8 +66,7 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onBack = { navController.popBackStack() },
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
                 onSignOut = {
-                    container.playerController.stop()
-                    scope.launch { container.repository.signOut() }
+                    signOut(container, scope)
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
                     }
@@ -77,6 +79,20 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onPlayVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
             )
         }
+    }
+}
+
+/**
+ * Stop playback and drop this user's session and local state.
+ *
+ * Watch positions are cleared too: they are per-user, so without this the next account to sign in
+ * would inherit the previous one's Continue watching rail.
+ */
+private fun signOut(container: AppContainer, scope: CoroutineScope) {
+    container.playerController.stop()
+    scope.launch {
+        container.videoProgressStore.clearAll()
+        container.repository.signOut()
     }
 }
 

@@ -12,6 +12,7 @@ import pe.net.libre.mixtapehaven.data.download.resolveLocalFirst
 import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
+import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.data.session.SessionStore
 
 /** Manual dependency container holding app-scoped singletons. Created once in MixtapeApplication. */
@@ -40,9 +41,19 @@ class AppContainer(context: Context) {
     /**
      * Resolves ordered playable source URLs for a video item id. Defaults to remote streaming
      * (direct play, then HLS transcode); swap to serve local video downloads first, mirroring
-     * [PlayerController.streamUrlResolver] for audio.
+     * [PlayerController.streamUrlResolver] for audio. Suspending because building the transcode
+     * URL negotiates the media source id with the server.
      */
-    var videoSourceResolver: (String) -> List<String> = repository::videoStreamCandidates
+    var videoSourceResolver: suspend (String) -> List<String> = repository::videoStreamCandidates
+
+    /** Local + server watch positions for video, backing offline resume and Continue watching. */
+    val videoProgressStore: VideoProgressStore by lazy {
+        VideoProgressStore(
+            repository = repository,
+            dao = downloadDatabase.videoProgressDao(),
+            downloadDao = downloadDatabase.videoDownloadDao(),
+        )
+    }
 
     val downloadManager: DownloadManager by lazy {
         DownloadManager(

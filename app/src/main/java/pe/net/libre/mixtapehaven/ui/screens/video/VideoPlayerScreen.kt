@@ -2,13 +2,16 @@ package pe.net.libre.mixtapehaven.ui.screens.video
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.ArrowBack
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -45,9 +48,17 @@ fun VideoPlayerScreen(
 ) {
     val appContext = LocalContext.current.applicationContext
     val viewModel = appViewModel {
-        VideoPlayerViewModel(appContext, it.repository, it.playerController, itemId, it.videoSourceResolver)
+        VideoPlayerViewModel(
+            appContext,
+            it.repository,
+            it.videoProgressStore,
+            it.playerController,
+            itemId,
+            it.videoSourceResolver,
+        )
     }
     val error by viewModel.error.collectAsState()
+    val upNext by viewModel.upNext.collectAsState()
 
     // No background video service exists, so pause when the screen stops (Home button, lock);
     // otherwise audio would keep playing invisibly and the progress loop would churn the radio.
@@ -84,22 +95,66 @@ fun VideoPlayerScreen(
             )
         }
 
-        Box(
-            modifier = Modifier
-                .statusBarsPadding()
-                .padding(12.dp)
-                .size(40.dp)
-                .clip(CircleShape)
-                .background(Color.Black.copy(alpha = 0.45f))
-                .clickable(role = Role.Button, onClick = onBack),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                Icons.Outlined.ArrowBack,
-                contentDescription = "Back",
-                tint = TextPrimary,
-                modifier = Modifier.size(22.dp),
+        BackButton(onBack = onBack, modifier = Modifier.align(Alignment.TopStart))
+
+        upNext?.let { next ->
+            NextEpisodePill(
+                label = next.seasonEpisodeLabel ?: "Next episode",
+                onClick = viewModel::playNext,
+                modifier = Modifier.align(Alignment.TopEnd),
             )
         }
+    }
+}
+
+/** Circular back affordance over the video surface, which has no system chrome of its own. */
+@Composable
+private fun BackButton(onBack: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .statusBarsPadding()
+            .padding(12.dp)
+            .size(40.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(role = Role.Button, onClick = onBack),
+        contentAlignment = Alignment.Center,
+    ) {
+        Icon(
+            Icons.Outlined.ArrowBack,
+            contentDescription = "Back",
+            tint = TextPrimary,
+            modifier = Modifier.size(22.dp),
+        )
+    }
+}
+
+/**
+ * Skip-to-next-episode pill.
+ *
+ * A dedicated control rather than PlayerView's next button: the player holds a single MediaItem at
+ * a time (each episode negotiates its own stream), so the built-in next would render permanently
+ * disabled.
+ */
+@Composable
+private fun NextEpisodePill(label: String, onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Row(
+        modifier = modifier
+            .statusBarsPadding()
+            .padding(12.dp)
+            .clip(CircleShape)
+            .background(Color.Black.copy(alpha = 0.45f))
+            .clickable(role = Role.Button, onClick = onClick)
+            .padding(horizontal = 14.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = TextPrimary)
+        Icon(
+            Icons.Filled.SkipNext,
+            contentDescription = "Play next episode",
+            tint = TextPrimary,
+            modifier = Modifier.size(18.dp),
+        )
     }
 }

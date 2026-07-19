@@ -34,6 +34,8 @@ class VideoDetailViewModel(
     data class UiState(
         val item: VideoItem? = null,
         val episodes: List<VideoItem> = emptyList(),
+        /** For a series, the server's Next Up episode — what the Play button starts. */
+        val nextUp: VideoItem? = null,
         val loading: Boolean = true,
         val error: String? = null,
     )
@@ -61,11 +63,17 @@ class VideoDetailViewModel(
         viewModelScope.launch {
             runCatching {
                 val item = requireNotNull(repository.videoItem(itemId)) { "Item not found" }
-                val episodes = if (item.kind == VideoKind.SERIES) repository.seriesEpisodes(itemId) else emptyList()
-                item to episodes
+                val series = item.kind == VideoKind.SERIES
+                val episodes = if (series) repository.seriesEpisodes(itemId) else emptyList()
+                // Next Up is advisory: a server that cannot answer falls back to the episode scan
+                // in selectPlayTarget rather than failing the whole screen.
+                val nextUp = if (series) runCatching { repository.nextUpEpisode(itemId) }.getOrNull() else null
+                Triple(item, episodes, nextUp)
             }.fold(
-                onSuccess = { (item, episodes) ->
-                    _state.update { it.copy(item = item, episodes = episodes, loading = false) }
+                onSuccess = { (item, episodes, nextUp) ->
+                    _state.update {
+                        it.copy(item = item, episodes = episodes, nextUp = nextUp, loading = false)
+                    }
                 },
                 onFailure = { error ->
                     _state.update { it.copy(loading = false, error = error.message ?: "Could not load this title") }
@@ -75,7 +83,8 @@ class VideoDetailViewModel(
     }
 
     /** See [selectPlayTarget]. Null while loading or on error. */
-    fun playTarget(): VideoItem? = selectPlayTarget(_state.value.item, _state.value.episodes)
+    fun playTarget(): VideoItem? =
+        selectPlayTarget(_state.value.item, _state.value.episodes, _state.value.nextUp)
 
     fun download(item: VideoItem) = downloadManager.download(item)
 
@@ -90,15 +99,21 @@ class VideoDetailViewModel(
 }
 
 /**
- * The item playback should start with: the movie/episode itself, or for a series the first
- * in-progress episode, falling back to the first episode.
+ * The item playback should start with: the movie/episode itself, or for a series the server's
+ * [nextUp] episode.
  *
- * Known limitation: once an episode is watched to completion Jellyfin zeroes its position, so a
- * user who finished E1 (with nothing in progress) is sent to E1 again instead of E2. Switching to
- * tvShowsApi.getNextUp would solve exactly this.
+ * Next Up is what makes "finished E1, press Play" land on E2: Jellyfin zeroes an episode's
+ * position once it is watched, so the local fallback below — first in-progress episode, else the
+ * first episode — would send that user back to E1. The fallback only runs when the server could
+ * not answer (offline, or an older server), where being off by one beats not playing at all.
  */
-internal fun selectPlayTarget(item: VideoItem?, episodes: List<VideoItem>): VideoItem? = when {
+internal fun selectPlayTarget(
+    item: VideoItem?,
+    episodes: List<VideoItem>,
+    nextUp: VideoItem? = null,
+): VideoItem? = when {
     item == null -> null
     item.kind != VideoKind.SERIES -> item
+    nextUp != null -> nextUp
     else -> episodes.firstOrNull { it.resumePositionMs > 0 } ?: episodes.firstOrNull()
 }

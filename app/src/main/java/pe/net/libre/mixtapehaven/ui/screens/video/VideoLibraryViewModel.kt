@@ -2,16 +2,35 @@ package pe.net.libre.mixtapehaven.ui.screens.video
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
+import pe.net.libre.mixtapehaven.data.jellyfin.VIDEO_PAGE_SIZE
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoFilter
+import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoSort
 import pe.net.libre.mixtapehaven.model.VideoItem
+
+/**
+ * [existing] plus the entries of [page] not already loaded.
+ *
+ * Offset paging over a live library can hand back an item twice: a title added — or re-sorted under
+ * RECENTLY_ADDED — between two page fetches shifts every later row by one, so the boundary item
+ * arrives again in the next page. The grid is keyed by id, where a duplicate throws rather than
+ * rendering twice, so the overlap is dropped here. The SORT_NAME tiebreak makes the *ordering*
+ * total; it cannot make a changing result set stable.
+ *
+ * Dropping a row leaves `items.size` below the true server offset, so the following page re-reads
+ * one row — which this same filter then discards.
+ */
+internal fun appendPage(existing: List<VideoItem>, page: List<VideoItem>): List<VideoItem> {
+    val seen = existing.mapTo(HashSet()) { it.id }
+    return existing + page.filterNot { it.id in seen }
+}
 
 /**
  * Backs the paged video library grid: kind/genre/sort selection plus offset paging.
@@ -21,7 +40,7 @@ import pe.net.libre.mixtapehaven.model.VideoItem
  * silently hide everything past the first page.
  */
 class VideoLibraryViewModel(
-    private val repository: JellyfinRepository,
+    private val repository: VideoLibrarySource,
 ) : ViewModel() {
 
     data class UiState(
@@ -35,6 +54,12 @@ class VideoLibraryViewModel(
         val error: String? = null,
         /** Size of the whole filtered set on the server, not of [items]. */
         val totalCount: Int = 0,
+        /**
+         * Bumped on every facet change. The screen scrolls back to the top when it changes: the
+         * item list is replaced from index 0, but the grid would otherwise keep its old offset and
+         * drop the user mid-list in a set they never scrolled.
+         */
+        val facetGeneration: Int = 0,
     ) {
         /** True once the loaded prefix covers the whole filtered set. */
         val endReached: Boolean get() = items.size >= totalCount
@@ -85,7 +110,14 @@ class VideoLibraryViewModel(
     }
 
     private fun reload() {
-        _state.update { it.copy(loading = true, loadingMore = false, error = null) }
+        _state.update {
+            it.copy(
+                loading = true,
+                loadingMore = false,
+                error = null,
+                facetGeneration = it.facetGeneration + 1,
+            )
+        }
         fetch(startIndex = 0, append = false)
     }
 
@@ -101,10 +133,14 @@ class VideoLibraryViewModel(
                     startIndex = startIndex,
                 )
             }
+            // runCatching also traps CancellationException. A job cancelled by a facet change must
+            // not fall through to the failure branch and clear the loading flag of the job that
+            // replaced it, so cancellation is rethrown to unwind this coroutine untouched.
+            page.exceptionOrNull()?.let { if (it is CancellationException) throw it }
             _state.update { state ->
                 page.fold(
                     onSuccess = { result ->
-                        val items = if (append) state.items + result.items else result.items
+                        val items = if (append) appendPage(state.items, result.items) else result.items
                         state.copy(
                             items = items,
                             loading = false,

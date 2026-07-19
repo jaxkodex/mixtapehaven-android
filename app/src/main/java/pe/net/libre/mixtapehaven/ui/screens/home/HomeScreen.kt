@@ -55,6 +55,7 @@ import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.components.ContinueCard
 import pe.net.libre.mixtapehaven.ui.components.NowPlayingBar
+import pe.net.libre.mixtapehaven.ui.components.POSTER_RAIL_WIDTH
 import pe.net.libre.mixtapehaven.ui.components.PosterCard
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
@@ -75,9 +76,7 @@ fun HomeScreen(
     onOpenSearch: () -> Unit,
     onOpenDownloads: () -> Unit,
     onOpenNowPlaying: () -> Unit,
-    onOpenVideo: (String) -> Unit,
-    onResumeVideo: (String) -> Unit,
-    onOpenVideoLibrary: () -> Unit,
+    videoNav: VideoNavActions,
     modifier: Modifier = Modifier,
 ) {
     val viewModel = rememberHomeViewModel()
@@ -121,9 +120,7 @@ fun HomeScreen(
                 actions = HomeSectionActions(
                     onOpenDownloads = onOpenDownloads,
                     onOpenSettings = onOpenSettings,
-                    onOpenVideo = onOpenVideo,
-                    onResumeVideo = onResumeVideo,
-                    onOpenVideoLibrary = onOpenVideoLibrary,
+                    videoNav = videoNav,
                     onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
                     onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
                     onRetry = viewModel::load,
@@ -178,6 +175,7 @@ private fun BoxScope.HomeOverlays(
 private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
     HomeViewModel(
         it.repository,
+        it.videoLibrary,
         it.playerController,
         it.downloadManager,
         it.videoDownloadManager,
@@ -190,9 +188,7 @@ private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
 private data class HomeSectionActions(
     val onOpenDownloads: () -> Unit,
     val onOpenSettings: () -> Unit,
-    val onOpenVideo: (String) -> Unit,
-    val onResumeVideo: (String) -> Unit,
-    val onOpenVideoLibrary: () -> Unit,
+    val videoNav: VideoNavActions,
     val onPlayTrack: (Track) -> Unit,
     val onPlayAlbum: (Album) -> Unit,
     val onRetry: () -> Unit,
@@ -219,15 +215,15 @@ private fun HomeSections(
         ContinueWatchingSection(
             videos = state.continueWatching,
             downloadedIds = state.downloadedVideoIds,
-            onVideoClick = { actions.onResumeVideo(it.id) },
+            onVideoClick = { actions.videoNav.onResumeVideo(it.id) },
         )
     }
 
     if (state.videos.isNotEmpty()) {
         MoviesAndShowsSection(
             videos = state.videos,
-            onVideoClick = { actions.onOpenVideo(it.id) },
-            onSeeAll = actions.onOpenVideoLibrary,
+            onVideoClick = { actions.videoNav.onOpenVideo(it.id) },
+            onSeeAll = actions.videoNav.onOpenLibrary,
         )
     }
 
@@ -359,9 +355,6 @@ private fun MoviesAndShowsSection(
         }
     }
 }
-
-/** Width of a poster in the Home rail; the library grid sizes its own from the cell. */
-private val POSTER_RAIL_WIDTH = 120.dp
 
 @Composable
 private fun AlbumGrid(

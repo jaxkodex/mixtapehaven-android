@@ -53,6 +53,29 @@ class SeasonGroupingTest {
         assertEquals(listOf("x", "sp"), grouped.single().second.map { it.id })
     }
 
+    /**
+     * Every non-positive season collapses to one group. Two groups would both render as
+     * "Specials", and the season chips are keyed by label — a duplicate key crashes the row.
+     */
+    @Test
+    fun `negative zero and null seasons all share one Specials bucket`() {
+        val grouped = groupBySeason(
+            listOf(episode("neg", -1), episode("zero", 0), episode("null", null), episode("s1", 1)),
+        )
+
+        assertEquals(listOf("Season 1", SPECIALS_LABEL), grouped.map { it.first })
+        assertEquals(listOf("neg", "zero", "null"), grouped[1].second.map { it.id })
+    }
+
+    @Test
+    fun `season labels are unique so the chip row can key on them`() {
+        val labels = groupBySeason(
+            listOf(episode("a", -2), episode("b", 0), episode("c", null), episode("d", 2)),
+        ).map { it.first }
+
+        assertEquals(labels.size, labels.toSet().size)
+    }
+
     @Test
     fun `no episodes yields no seasons`() {
         assertEquals(emptyList<Pair<String, List<VideoItem>>>(), groupBySeason(emptyList()))

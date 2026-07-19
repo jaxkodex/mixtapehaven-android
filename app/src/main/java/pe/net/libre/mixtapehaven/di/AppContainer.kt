@@ -11,6 +11,8 @@ import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
 import pe.net.libre.mixtapehaven.data.download.resolveLocalFirst
 import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
+import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinVideoLibrary
+import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.data.session.SessionStore
@@ -31,6 +33,9 @@ class AppContainer(context: Context) {
     val diagnosticsLog: DiagnosticsLog = DiagnosticsLog()
 
     val repository: JellyfinRepository = JellyfinRepository(jellyfin, sessionStore)
+
+    /** Video browse/search queries, kept out of [repository] so it stays auth + playback. */
+    val videoLibrary: VideoLibrarySource = JellyfinVideoLibrary(repository)
 
     val downloadSettingsStore: DownloadSettingsStore = DownloadSettingsStore(appContext)
 

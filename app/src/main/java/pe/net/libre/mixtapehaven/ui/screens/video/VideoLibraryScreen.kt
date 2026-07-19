@@ -29,6 +29,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -71,18 +72,28 @@ fun VideoLibraryScreen(
     onOpenVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { VideoLibraryViewModel(it.repository) }
+    val viewModel = appViewModel { VideoLibraryViewModel(it.videoLibrary) }
     val state by viewModel.state.collectAsState()
     val gridState = rememberLazyGridState()
 
     // Paging is driven off the last visible index rather than an onClick "Load more" so the grid
     // fills ahead of the user; distinctUntilChanged keeps every scroll pixel from re-asking.
+    //
+    // Only the index is de-duplicated, but the condition also depends on state.items.size — that
+    // is read through the composable's State, so an appended page re-evaluates the comparison on
+    // the next emission without needing to be part of the key.
     LaunchedEffect(gridState, viewModel) {
         snapshotFlow { gridState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0 }
             .distinctUntilChanged()
             .collect { lastVisible ->
                 if (lastVisible >= state.items.size - PREFETCH_DISTANCE) viewModel.loadMore()
             }
+    }
+
+    // A facet change replaces the list from index 0; without this the grid keeps its old offset
+    // and lands the user mid-list in a set they never scrolled.
+    LaunchedEffect(state.facetGeneration) {
+        gridState.scrollToItem(0)
     }
 
     Column(
@@ -167,12 +178,14 @@ private fun LibraryHeader(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            Icons.Outlined.ArrowBack,
-            contentDescription = "Back",
-            tint = TextSecondary,
-            modifier = Modifier.size(24.dp).clickable(role = Role.Button, onClick = onBack),
-        )
+        IconButton(onClick = onBack) {
+            Icon(
+                Icons.Outlined.ArrowBack,
+                contentDescription = "Back",
+                tint = TextSecondary,
+                modifier = Modifier.size(24.dp),
+            )
+        }
         Text(
             "Movies & shows",
             style = MaterialTheme.typography.titleMedium,
@@ -188,12 +201,14 @@ private fun LibraryHeader(
 private fun SortMenu(sort: VideoSort, onSort: (VideoSort) -> Unit) {
     var expanded by remember { mutableStateOf(false) }
     Box {
-        Icon(
-            Icons.Outlined.SwapVert,
-            contentDescription = "Sort",
-            tint = TextSecondary,
-            modifier = Modifier.size(24.dp).clickable(role = Role.Button) { expanded = true },
-        )
+        IconButton(onClick = { expanded = true }) {
+            Icon(
+                Icons.Outlined.SwapVert,
+                contentDescription = "Sort",
+                tint = TextSecondary,
+                modifier = Modifier.size(24.dp),
+            )
+        }
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             VideoSort.entries.forEach { option ->
                 DropdownMenuItem(

@@ -26,6 +26,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.di.appViewModel
+import pe.net.libre.mixtapehaven.model.VideoItem
+import pe.net.libre.mixtapehaven.ui.components.POSTER_RAIL_WIDTH
 import pe.net.libre.mixtapehaven.ui.components.PosterCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
 import pe.net.libre.mixtapehaven.ui.components.SectionHeader
@@ -40,7 +42,7 @@ fun SearchScreen(
     onOpenVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { SearchViewModel(it.repository, it.playerController) }
+    val viewModel = appViewModel { SearchViewModel(it.repository, it.videoLibrary, it.playerController) }
     val state by viewModel.state.collectAsState()
     var query by remember { mutableStateOf(TextFieldValue("")) }
 
@@ -54,48 +56,24 @@ fun SearchScreen(
             .padding(bottom = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            SearchField(
-                placeholder = "Search songs, movies, shows",
-                value = query,
-                onValueChange = {
-                    query = it
-                    viewModel.onQueryChange(it.text)
-                },
-                modifier = Modifier.weight(1f),
-            )
-            Text(
-                "Cancel",
-                style = MaterialTheme.typography.bodyMedium,
-                color = TextSecondary,
-                modifier = Modifier.clickable(onClick = onBack),
-            )
-        }
+        SearchBar(
+            query = query,
+            onQueryChange = {
+                query = it
+                viewModel.onQueryChange(it.text)
+            },
+            onBack = onBack,
+        )
 
         val countLabel = when {
             state.loading -> "Searching…"
             query.text.isBlank() -> "Type to search your library"
+            state.isEmpty -> "No matches in your library"
             else -> "${state.results.size + state.videos.size} results"
         }
         Text(countLabel, style = MaterialTheme.typography.labelMedium, color = TextMuted)
 
-        // Video leads: a title match is a stronger intent signal than the song matches that
-        // usually accompany it (soundtracks share the film's name).
-        if (state.videos.isNotEmpty()) {
-            SectionHeader("Movies & shows")
-            LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                items(state.videos, key = { it.id }) { video ->
-                    PosterCard(
-                        video = video,
-                        onClick = { onOpenVideo(video.id) },
-                        modifier = Modifier.width(120.dp),
-                    )
-                }
-            }
-        }
+        VideoResults(videos = state.videos, onOpenVideo = onOpenVideo)
 
         if (state.results.isNotEmpty()) {
             SectionHeader(
@@ -118,6 +96,51 @@ fun SearchScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/** The query field with the Cancel affordance that leaves search. */
+@Composable
+private fun SearchBar(
+    query: TextFieldValue,
+    onQueryChange: (TextFieldValue) -> Unit,
+    onBack: () -> Unit,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        SearchField(
+            placeholder = "Search songs, movies, shows",
+            value = query,
+            onValueChange = onQueryChange,
+            modifier = Modifier.weight(1f),
+        )
+        Text(
+            "Cancel",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextSecondary,
+            modifier = Modifier.clickable(onClick = onBack),
+        )
+    }
+}
+
+/**
+ * Video hits, above the songs. A title match is a stronger intent signal than the song matches
+ * that usually accompany it, since soundtracks share the film's name.
+ */
+@Composable
+private fun VideoResults(videos: List<VideoItem>, onOpenVideo: (String) -> Unit) {
+    if (videos.isEmpty()) return
+    SectionHeader("Movies & shows")
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        items(videos, key = { it.id }) { video ->
+            PosterCard(
+                video = video,
+                onClick = { onOpenVideo(video.id) },
+                modifier = Modifier.width(POSTER_RAIL_WIDTH),
+            )
         }
     }
 }

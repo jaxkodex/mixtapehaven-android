@@ -88,15 +88,19 @@ fun VideoDetailScreen(
         when {
             item != null -> DetailBody(
                 item = item,
-                seasons = state.seasons.map { it.first },
-                selectedSeason = state.selectedSeason,
-                onSelectSeason = viewModel::selectSeason,
+                seasonUi = SeasonUi(
+                    seasons = state.seasons.map { it.first },
+                    selected = state.selectedSeason,
+                    onSelect = viewModel::selectSeason,
+                ),
                 episodes = state.visibleEpisodes,
-                downloadUi = downloadUi,
+                downloads = DownloadUi(
+                    state = downloadUi,
+                    onDownload = viewModel::download,
+                    onRemove = viewModel::removeDownload,
+                ),
                 onPlay = { viewModel.playTarget()?.let { onPlay(it.id) } },
                 onPlayEpisode = { onPlay(it.id) },
-                onDownload = viewModel::download,
-                onRemoveDownload = viewModel::removeDownload,
             )
             state.loading -> Unit
             else -> Text(
@@ -142,16 +146,15 @@ private fun Backdrop(item: VideoItem?, onBack: () -> Unit) {
 @Composable
 private fun DetailBody(
     item: VideoItem,
-    seasons: List<String>,
-    selectedSeason: String?,
-    onSelectSeason: (String) -> Unit,
+    seasonUi: SeasonUi,
     episodes: List<VideoItem>,
-    downloadUi: VideoDownloadUi,
+    downloads: DownloadUi,
     onPlay: () -> Unit,
     onPlayEpisode: (VideoItem) -> Unit,
-    onDownload: (VideoItem) -> Unit,
-    onRemoveDownload: (String) -> Unit,
 ) {
+    val downloadUi = downloads.state
+    val onDownload = downloads.onDownload
+    val onRemoveDownload = downloads.onRemove
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -180,11 +183,11 @@ private fun DetailBody(
         if (episodes.isNotEmpty()) {
             // A single-season show gets the plain "Episodes" heading: a lone season chip is a
             // control the user can never change anything with.
-            if (seasons.size > 1) {
+            if (seasonUi.seasons.size > 1) {
                 SeasonSelector(
-                    seasons = seasons,
-                    selected = selectedSeason ?: seasons.first(),
-                    onSelect = onSelectSeason,
+                    seasons = seasonUi.seasons,
+                    selected = seasonUi.selected ?: seasonUi.seasons.first(),
+                    onSelect = seasonUi.onSelect,
                 )
             } else {
                 Text("Episodes", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
@@ -233,6 +236,20 @@ private fun TitleBlock(item: VideoItem) {
 
 /** Genres past this are noise on a phone-width line. */
 private const val MAX_GENRES = 3
+
+/** Download state plus the two actions that mutate it, which always travel together. */
+private data class DownloadUi(
+    val state: VideoDownloadUi,
+    val onDownload: (VideoItem) -> Unit,
+    val onRemove: (String) -> Unit,
+)
+
+/** Season chip state for [DetailBody]: the labels, which is active, and how to change it. */
+private data class SeasonUi(
+    val seasons: List<String>,
+    val selected: String?,
+    val onSelect: (String) -> Unit,
+)
 
 /** Horizontally scrolling season chips for a multi-season series. */
 @Composable

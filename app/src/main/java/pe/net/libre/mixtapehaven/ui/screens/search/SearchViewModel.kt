@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
+import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.model.Track
 import pe.net.libre.mixtapehaven.model.VideoItem
@@ -22,6 +23,7 @@ import pe.net.libre.mixtapehaven.model.VideoItem
 @OptIn(FlowPreview::class)
 class SearchViewModel(
     private val repository: JellyfinRepository,
+    private val videoLibrary: VideoLibrarySource,
     private val playerController: PlayerController,
 ) : ViewModel() {
 
@@ -75,7 +77,7 @@ class SearchViewModel(
         }
         _state.update { it.copy(loading = true) }
         val tracks = async { runCatching { repository.search(query) }.getOrDefault(emptyList()) }
-        val videos = async { runCatching { repository.searchVideos(query) }.getOrDefault(emptyList()) }
+        val videos = async { runCatching { videoLibrary.searchVideos(query) }.getOrDefault(emptyList()) }
         _state.update { it.copy(results = tracks.await(), videos = videos.await(), loading = false) }
     }
 

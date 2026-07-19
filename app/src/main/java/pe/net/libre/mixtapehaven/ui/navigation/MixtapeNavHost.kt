@@ -19,6 +19,7 @@ import pe.net.libre.mixtapehaven.ui.screens.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.screens.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.screens.settings.SettingsScreen
 import pe.net.libre.mixtapehaven.ui.screens.video.VideoDetailScreen
+import pe.net.libre.mixtapehaven.ui.screens.video.VideoLibraryScreen
 import pe.net.libre.mixtapehaven.ui.screens.video.VideoPlayerScreen
 
 @Composable
@@ -49,6 +50,7 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
                 onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
                 onResumeVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
+                onOpenVideoLibrary = { navController.navigate(Routes.VIDEO_LIBRARY) },
             )
         }
         videoDestinations(navController)
@@ -56,6 +58,7 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
             SearchScreen(
                 onBack = { navController.popBackStack() },
                 onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
+                onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
             )
         }
         composable(Routes.NOW_PLAYING) {
@@ -96,8 +99,14 @@ private fun signOut(container: AppContainer, scope: CoroutineScope) {
     }
 }
 
-/** Video detail + full-screen player destinations, both keyed by the Jellyfin item id. */
+/** The video library grid, plus the detail and full-screen player keyed by the Jellyfin item id. */
 private fun NavGraphBuilder.videoDestinations(navController: NavHostController) {
+    composable(Routes.VIDEO_LIBRARY) {
+        VideoLibraryScreen(
+            onBack = { navController.popBackStack() },
+            onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
+        )
+    }
     composable(Routes.VIDEO_DETAIL) { entry ->
         VideoDetailScreen(
             itemId = entry.arguments?.getString("itemId").orEmpty(),

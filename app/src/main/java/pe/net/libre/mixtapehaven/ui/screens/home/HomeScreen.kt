@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -76,6 +77,7 @@ fun HomeScreen(
     onOpenNowPlaying: () -> Unit,
     onOpenVideo: (String) -> Unit,
     onResumeVideo: (String) -> Unit,
+    onOpenVideoLibrary: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val viewModel = rememberHomeViewModel()
@@ -110,7 +112,7 @@ fun HomeScreen(
             RandomWalkCard(onPlay = { viewModel.startRandomWalk(); onOpenNowPlaying() })
 
             SearchField(
-                placeholder = "Search songs, albums, artists",
+                placeholder = "Search songs, movies, shows",
                 onClick = onOpenSearch,
             )
 
@@ -121,6 +123,7 @@ fun HomeScreen(
                     onOpenSettings = onOpenSettings,
                     onOpenVideo = onOpenVideo,
                     onResumeVideo = onResumeVideo,
+                    onOpenVideoLibrary = onOpenVideoLibrary,
                     onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
                     onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
                     onRetry = viewModel::load,
@@ -189,6 +192,7 @@ private data class HomeSectionActions(
     val onOpenSettings: () -> Unit,
     val onOpenVideo: (String) -> Unit,
     val onResumeVideo: (String) -> Unit,
+    val onOpenVideoLibrary: () -> Unit,
     val onPlayTrack: (Track) -> Unit,
     val onPlayAlbum: (Album) -> Unit,
     val onRetry: () -> Unit,
@@ -223,6 +227,7 @@ private fun HomeSections(
         MoviesAndShowsSection(
             videos = state.videos,
             onVideoClick = { actions.onOpenVideo(it.id) },
+            onSeeAll = actions.onOpenVideoLibrary,
         )
     }
 
@@ -332,19 +337,31 @@ private fun ContinueWatchingSection(
     }
 }
 
-/** Horizontal poster rail of the user's movies and TV series. */
+/** Horizontal poster rail of the user's movies and TV series, with "See all" into the library. */
 @Composable
 private fun MoviesAndShowsSection(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
+    onSeeAll: () -> Unit,
 ) {
-    SectionHeader(title = "Movies & shows")
+    SectionHeader(
+        title = "Movies & shows",
+        actionLabel = "See all",
+        onAction = onSeeAll,
+    )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(videos, key = { it.id }) { video ->
-            PosterCard(video = video, onClick = { onVideoClick(video) })
+            PosterCard(
+                video = video,
+                onClick = { onVideoClick(video) },
+                modifier = Modifier.width(POSTER_RAIL_WIDTH),
+            )
         }
     }
 }
+
+/** Width of a poster in the Home rail; the library grid sizes its own from the cell. */
+private val POSTER_RAIL_WIDTH = 120.dp
 
 @Composable
 private fun AlbumGrid(

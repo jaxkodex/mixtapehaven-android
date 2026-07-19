@@ -7,6 +7,7 @@ object Routes {
     const val NOW_PLAYING = "now_playing"
     const val SETTINGS = "settings"
     const val DOWNLOADS = "downloads"
+    const val VIDEO_LIBRARY = "video_library"
     const val VIDEO_DETAIL = "video_detail/{itemId}"
     const val VIDEO_PLAYER = "video_player/{itemId}"
 

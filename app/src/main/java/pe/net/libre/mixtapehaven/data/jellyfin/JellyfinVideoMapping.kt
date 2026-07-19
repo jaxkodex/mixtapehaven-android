@@ -50,8 +50,40 @@ internal fun BaseItemDto.toVideoItem(client: ApiClient): VideoItem {
         } else {
             null
         },
+        played = userData?.played == true,
+        unplayedCount = userData?.unplayedItemCount ?: 0,
+        genres = genres.orEmpty(),
+        communityRating = communityRating,
+        officialRating = officialRating.orEmpty(),
+        seasonNumber = if (type == BaseItemKind.EPISODE) parentIndexNumber else null,
     )
 }
+
+/**
+ * "Season 2" for a grouped episode list, from the number the episodes carry. Episodes with no
+ * season number (specials, or a flat library) land under [SPECIALS_LABEL] rather than "Season 0",
+ * which reads as a real season the user does not have.
+ */
+internal fun seasonLabel(seasonNumber: Int?): String = when {
+    seasonNumber == null -> SPECIALS_LABEL
+    seasonNumber <= 0 -> SPECIALS_LABEL
+    else -> "Season $seasonNumber"
+}
+
+internal const val SPECIALS_LABEL = "Specials"
+
+/**
+ * Episodes grouped into seasons in ascending season order, with [SPECIALS_LABEL] last.
+ *
+ * Season 0 is Jellyfin's specials bucket and sorts *before* season 1 numerically, so it is pushed
+ * to the end explicitly — a series should open on its first real season, not its specials.
+ */
+internal fun groupBySeason(episodes: List<VideoItem>): List<Pair<String, List<VideoItem>>> =
+    episodes
+        .groupBy { it.seasonNumber ?: 0 }
+        .toList()
+        .sortedBy { (season, _) -> if (season <= 0) Int.MAX_VALUE else season }
+        .map { (season, items) -> seasonLabel(season) to items }
 
 private fun BaseItemDto.videoPrimaryImageUrl(client: ApiClient): String? {
     val tag = imageTags?.get(ImageType.PRIMARY) ?: return null

@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -350,27 +351,41 @@ fun AlbumCard(album: Album, modifier: Modifier = Modifier, onClick: () -> Unit =
     }
 }
 
-/** Portrait 2:3 poster tile for a movie or TV series (Home "Movies & shows" row). */
+/**
+ * Portrait 2:3 poster tile for a movie or TV series.
+ *
+ * The caller sizes it — the Home rail pins a width, the library grid lets the cell decide — so no
+ * width is baked in here.
+ */
 @Composable
 fun PosterCard(
     video: VideoItem,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val meta = listOfNotNull(
-        video.yearLabel.ifEmpty { null },
-        if (video.kind == VideoKind.SERIES) "Series" else video.runtimeLabel.ifEmpty { null },
-    ).joinToString(" · ")
+    // An episode is placed by its series and number, not its year: search can surface an episode
+    // and its own series side by side, and "2006 · 53m" does not tell them apart.
+    val meta = when (video.kind) {
+        VideoKind.EPISODE -> listOfNotNull(video.seriesName, video.seasonEpisodeLabel)
+        VideoKind.SERIES -> listOfNotNull(video.yearLabel.ifEmpty { null }, "Series")
+        VideoKind.MOVIE -> listOfNotNull(
+            video.yearLabel.ifEmpty { null },
+            video.runtimeLabel.ifEmpty { null },
+        )
+    }.joinToString(" · ")
     Column(
-        modifier = modifier.width(120.dp).clickable(onClick = onClick),
+        modifier = modifier.clickable(onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        Artwork(
-            video.artColor,
-            video.posterUrl,
-            Modifier.fillMaxWidth().aspectRatio(2f / 3f),
-            corner = 12.dp,
-        )
+        Box {
+            Artwork(
+                video.artColor,
+                video.posterUrl,
+                Modifier.fillMaxWidth().aspectRatio(2f / 3f),
+                corner = 12.dp,
+            )
+            WatchBadge(video, Modifier.align(Alignment.TopEnd).padding(6.dp))
+        }
         Text(
             video.title,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -381,6 +396,41 @@ fun PosterCard(
         )
         if (meta.isNotEmpty()) {
             Text(meta, style = MaterialTheme.typography.labelSmall, color = TextSecondary, maxLines = 1)
+        }
+    }
+}
+
+/**
+ * Corner badge summarising watch state: a tick for a finished title, or the number of unwatched
+ * episodes for a series part-way through. Renders nothing when there is neither — an untouched
+ * title should look untouched, not carry a "0".
+ */
+@Composable
+private fun WatchBadge(video: VideoItem, modifier: Modifier = Modifier) {
+    val unplayed = if (video.kind == VideoKind.SERIES) video.unplayedCount else 0
+    when {
+        video.played -> Box(
+            modifier = modifier.clip(CircleShape).background(Accent).padding(4.dp),
+        ) {
+            Icon(
+                Icons.Outlined.Check,
+                contentDescription = "Watched",
+                tint = AccentInk,
+                modifier = Modifier.size(12.dp),
+            )
+        }
+
+        unplayed > 0 -> Box(
+            modifier = modifier
+                .clip(CircleShape)
+                .background(Accent)
+                .padding(horizontal = 6.dp, vertical = 2.dp),
+        ) {
+            Text(
+                unplayed.toString(),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = AccentInk,
+            )
         }
     }
 }

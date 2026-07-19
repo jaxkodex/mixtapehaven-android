@@ -7,6 +7,7 @@ import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.audioApi
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.dynamicHlsApi
+import org.jellyfin.sdk.api.client.extensions.genresApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
 import org.jellyfin.sdk.api.client.extensions.playStateApi
@@ -23,6 +24,7 @@ import org.jellyfin.sdk.model.api.MediaType
 import org.jellyfin.sdk.model.api.PlayMethod
 import org.jellyfin.sdk.model.api.PlaybackInfoDto
 import org.jellyfin.sdk.model.api.SortOrder
+import org.jellyfin.sdk.model.api.request.GetGenresRequest
 import org.jellyfin.sdk.model.api.request.GetItemsRequest
 import org.jellyfin.sdk.model.api.request.GetNextUpRequest
 import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
@@ -41,6 +43,49 @@ enum class VideoPlaybackEvent { STARTED, PROGRESS, STOPPED }
  * the 16:9 still wants; PRIMARY is the fallback (and is itself a 16:9 still for episodes).
  */
 private val CONTINUE_IMAGE_TYPES = listOf(ImageType.BACKDROP, ImageType.THUMB, ImageType.PRIMARY)
+
+/** Which kinds of video the library screen is showing. */
+enum class VideoFilter { ALL, MOVIES, SERIES }
+
+/** Ordering offered by the library screen, mapped to Jellyfin sort keys in [JellyfinRepository.videoLibrary]. */
+enum class VideoSort { RECENTLY_ADDED, TITLE, YEAR, RATING }
+
+/**
+ * One page of library results. [totalCount] is the size of the whole filtered set, so the caller
+ * knows whether another page exists without having to fetch an empty one.
+ */
+data class VideoPage(
+    val items: List<VideoItem>,
+    val totalCount: Int,
+)
+
+/** Item types requested per [VideoFilter]. */
+private fun VideoFilter.itemTypes(): List<BaseItemKind> = when (this) {
+    VideoFilter.ALL -> listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES)
+    VideoFilter.MOVIES -> listOf(BaseItemKind.MOVIE)
+    VideoFilter.SERIES -> listOf(BaseItemKind.SERIES)
+}
+
+/**
+ * Sort keys per [VideoSort]. Each falls back to SORT_NAME so items the primary key cannot separate
+ * (no year, no rating) come back alphabetically instead of in server order, which is arbitrary and
+ * changes between pages — that would make paging duplicate and drop items.
+ */
+private fun VideoSort.sortBy(): List<ItemSortBy> = when (this) {
+    VideoSort.RECENTLY_ADDED -> listOf(ItemSortBy.DATE_CREATED, ItemSortBy.SORT_NAME)
+    VideoSort.TITLE -> listOf(ItemSortBy.SORT_NAME)
+    VideoSort.YEAR -> listOf(ItemSortBy.PRODUCTION_YEAR, ItemSortBy.SORT_NAME)
+    VideoSort.RATING -> listOf(ItemSortBy.COMMUNITY_RATING, ItemSortBy.SORT_NAME)
+}
+
+/** Only titles sort descending; alphabetical order is the one case where ascending is wanted. */
+private fun VideoSort.sortOrder(): List<SortOrder> = when (this) {
+    VideoSort.TITLE -> listOf(SortOrder.ASCENDING)
+    else -> listOf(SortOrder.DESCENDING)
+}
+
+/** Fields the video grid and detail header need beyond the defaults. */
+private val VIDEO_FIELDS = listOf(ItemFields.OVERVIEW, ItemFields.GENRES)
 
 /** Wraps the Jellyfin Kotlin SDK: authentication, library browsing, search, and stream/image URLs. */
 class JellyfinRepository(
@@ -171,10 +216,92 @@ class JellyfinRepository(
                 recursive = true,
                 sortBy = listOf(ItemSortBy.DATE_CREATED),
                 sortOrder = listOf(SortOrder.DESCENDING),
+                fields = VIDEO_FIELDS,
+                enableUserData = true,
                 limit = limit,
             ),
         )
         return result.items.orEmpty().map { it.toVideoItem(client) }
+    }
+
+    /**
+     * One page of the video library, filtered by [filter] and optionally by [genre], ordered by
+     * [sort].
+     *
+     * Paging is offset-based ([startIndex]), which is only stable because every [VideoSort] pins a
+     * total order — see [VideoSort.sortBy].
+     */
+    suspend fun videoLibrary(
+        filter: VideoFilter = VideoFilter.ALL,
+        genre: String? = null,
+        sort: VideoSort = VideoSort.RECENTLY_ADDED,
+        startIndex: Int = 0,
+        limit: Int = VIDEO_PAGE_SIZE,
+    ): VideoPage {
+        val client = requireApi()
+        val result by client.itemsApi.getItems(
+            GetItemsRequest(
+                userId = userId,
+                includeItemTypes = filter.itemTypes(),
+                recursive = true,
+                sortBy = sort.sortBy(),
+                sortOrder = sort.sortOrder(),
+                genres = genre?.let { listOf(it) },
+                fields = VIDEO_FIELDS,
+                enableUserData = true,
+                startIndex = startIndex,
+                limit = limit,
+                enableTotalRecordCount = true,
+            ),
+        )
+        return VideoPage(
+            items = result.items.map { it.toVideoItem(client) },
+            totalCount = result.totalRecordCount,
+        )
+    }
+
+    /**
+     * Genre names present in the user's movie and series libraries, for the library filter chips.
+     * Returns empty rather than throwing when the server has no video libraries at all.
+     */
+    suspend fun videoGenres(limit: Int = 60): List<String> {
+        val client = requireApi()
+        return runCatching {
+            val result by client.genresApi.getGenres(
+                GetGenresRequest(
+                    userId = userId,
+                    includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
+                    sortBy = listOf(ItemSortBy.SORT_NAME),
+                    sortOrder = listOf(SortOrder.ASCENDING),
+                    limit = limit,
+                    enableImages = false,
+                ),
+            )
+            result.items.mapNotNull { it.name }
+        }.getOrDefault(emptyList())
+    }
+
+    /**
+     * Movies, series, and episodes matching [query], for the video section of search.
+     *
+     * Episodes are included because users search for an episode title as readily as a series one;
+     * the caller routes an episode hit to its own detail entry.
+     */
+    suspend fun searchVideos(query: String, limit: Int = 24): List<VideoItem> {
+        val client = requireApi()
+        val result by client.itemsApi.getItems(
+            GetItemsRequest(
+                userId = userId,
+                includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE),
+                recursive = true,
+                searchTerm = query,
+                sortBy = listOf(ItemSortBy.SORT_NAME),
+                fields = VIDEO_FIELDS,
+                enableUserData = true,
+                limit = limit,
+            ),
+        )
+        return result.items.map { it.toVideoItem(client) }
     }
 
     /** Full detail (overview + this user's resume position) for one movie/series/episode. */
@@ -199,6 +326,7 @@ class JellyfinRepository(
             seriesId = id,
             userId = userId,
             fields = listOf(ItemFields.OVERVIEW),
+            enableUserData = true,
         )
         return result.items.orEmpty()
             .map { it.toVideoItem(client) to it }
@@ -369,4 +497,9 @@ class JellyfinRepository(
 
     private fun requireApi(): ApiClient =
         api ?: error("Not authenticated with a Jellyfin server")
+
+    companion object {
+        /** Items per page in the video library grid. */
+        const val VIDEO_PAGE_SIZE = 36
+    }
 }

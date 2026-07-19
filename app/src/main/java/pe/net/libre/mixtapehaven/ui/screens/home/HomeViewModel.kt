@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
@@ -18,11 +19,13 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.download.DownloadManager
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
 import pe.net.libre.mixtapehaven.data.download.toTrack
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.RandomWalk
+import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.model.Album
 import pe.net.libre.mixtapehaven.model.Track
 import pe.net.libre.mixtapehaven.model.VideoItem
@@ -31,6 +34,8 @@ class HomeViewModel(
     private val repository: JellyfinRepository,
     private val playerController: PlayerController,
     private val downloadManager: DownloadManager,
+    private val videoDownloadManager: VideoDownloadManager,
+    private val videoProgressStore: VideoProgressStore,
     private val diagnostics: DiagnosticsLog,
 ) : ViewModel() {
 
@@ -38,6 +43,10 @@ class HomeViewModel(
         val userName: String = "",
         val albums: List<Album> = emptyList(),
         val videos: List<VideoItem> = emptyList(),
+        /** Partially-watched movies/episodes for the Continue watching rail. */
+        val continueWatching: List<VideoItem> = emptyList(),
+        /** Ids with a completed offline copy, for the Continue card's download check. */
+        val downloadedVideoIds: Set<String> = emptySet(),
         val onDevice: List<Track> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
@@ -50,6 +59,9 @@ class HomeViewModel(
     val nowPlaying: StateFlow<Track?> = playerController.nowPlaying
     val isPlaying: StateFlow<Boolean> = playerController.isPlaying
 
+    /** Last successful server Continue Watching fetch; empty until [load] completes or when offline. */
+    private val serverContinueWatching = MutableStateFlow<List<VideoItem>>(emptyList())
+
     private val _snackbarMessages = Channel<String>(Channel.BUFFERED)
 
     /** One-shot messages for transient UI feedback (e.g. a Snackbar), not persisted in [state]. */
@@ -58,6 +70,7 @@ class HomeViewModel(
     init {
         load()
         observeDownloads()
+        observeContinueWatching()
     }
 
     fun load() {
@@ -68,8 +81,12 @@ class HomeViewModel(
             // music Home, so videos degrade to an empty (hidden) section independently — and load
             // in parallel so the new section adds no latency to the album fetch.
             val videosDeferred = async { runCatching { repository.moviesAndShows() }.getOrDefault(emptyList()) }
+            // Offline this fails and the rail falls back to the local table, so keep the last
+            // known server list rather than clearing it.
+            val continueDeferred = async { runCatching { repository.continueWatching() }.getOrNull() }
             val albumsResult = runCatching { repository.recentlyAddedAlbums() }
             val videos = videosDeferred.await()
+            continueDeferred.await()?.let { serverContinueWatching.value = it }
             albumsResult.fold(
                 onSuccess = { albums ->
                     _state.update { it.copy(userName = userName, albums = albums, videos = videos, loading = false) }
@@ -85,6 +102,26 @@ class HomeViewModel(
                     }
                 },
             )
+        }
+    }
+
+    /**
+     * Keep the Continue watching rail in sync. The local table is the base (it is the only source
+     * that works offline); the server's list is layered on top when reachable so progress made on
+     * other devices shows up too.
+     */
+    private fun observeContinueWatching() {
+        viewModelScope.launch {
+            combine(
+                videoProgressStore.observeLocal(),
+                serverContinueWatching,
+                videoDownloadManager.downloads,
+            ) { local, server, downloads ->
+                mergeContinueWatching(local, server) to
+                    downloads.filter { it.complete }.map { it.id }.toSet()
+            }.collect { (merged, downloadedIds) ->
+                _state.update { it.copy(continueWatching = merged, downloadedVideoIds = downloadedIds) }
+            }
         }
     }
 
@@ -152,3 +189,23 @@ class HomeViewModel(
         const val TAG = "HomeViewModel"
     }
 }
+
+/** How many titles the Continue watching rail shows. */
+private const val CONTINUE_WATCHING_LIMIT = 12
+
+/**
+ * Merge the [local] and [server] Continue watching lists into one rail, most recently watched
+ * first.
+ *
+ * An id in both sides is kept once, taking whichever record was written later — the server knows
+ * about other devices, the local table knows about offline viewing, and neither is reliably ahead.
+ */
+internal fun mergeContinueWatching(
+    local: List<VideoItem>,
+    server: List<VideoItem>,
+): List<VideoItem> = (local + server)
+    .groupBy { it.id }
+    .map { (_, records) -> records.maxBy { it.lastPlayedAtMs } }
+    .filter { it.resumePositionMs > 0 }
+    .sortedByDescending { it.lastPlayedAtMs }
+    .take(CONTINUE_WATCHING_LIMIT)

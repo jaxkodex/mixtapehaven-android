@@ -46,6 +46,7 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
                 onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
                 onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
+                onResumeVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
             )
         }
         videoDestinations(navController)

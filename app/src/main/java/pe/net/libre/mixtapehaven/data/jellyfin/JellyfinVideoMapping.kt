@@ -8,6 +8,8 @@ import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.ImageType
 import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.model.VideoKind
+import java.time.LocalDateTime
+import java.time.ZoneOffset
 
 /** Mapping from Jellyfin DTOs to the video domain model, kept out of [JellyfinRepository] for size. */
 
@@ -40,7 +42,9 @@ internal fun BaseItemDto.toVideoItem(client: ApiClient): VideoItem {
         artColor = videoColorFor(id.toString()),
         runtimeMs = runtimeMs,
         resumePositionMs = (userData?.playbackPositionTicks ?: 0L) / TICKS_PER_MS,
+        lastPlayedAtMs = userData?.lastPlayedDate?.toEpochMilliUtc() ?: 0L,
         seriesName = seriesName,
+        seriesId = seriesId?.toString(),
         seasonEpisodeLabel = if (type == BaseItemKind.EPISODE && parentIndexNumber != null && indexNumber != null) {
             "S$parentIndexNumber E$indexNumber"
         } else {
@@ -56,12 +60,18 @@ private fun BaseItemDto.videoPrimaryImageUrl(client: ApiClient): String? {
         .withApiKey(client)
 }
 
+/** Wide art for 16:9 surfaces: a real backdrop when present, else the THUMB some libraries use. */
 private fun BaseItemDto.backdropImageUrl(client: ApiClient): String? {
-    val tag = backdropImageTags?.firstOrNull() ?: return null
+    val backdrop = backdropImageTags?.firstOrNull()?.let { ImageType.BACKDROP to it }
+    val thumb = imageTags?.get(ImageType.THUMB)?.let { ImageType.THUMB to it }
+    val (type, tag) = backdrop ?: thumb ?: return null
     return client.imageApi
-        .getItemImageUrl(id, ImageType.BACKDROP, tag = tag, maxWidth = BACKDROP_MAX_WIDTH)
+        .getItemImageUrl(id, type, tag = tag, maxWidth = BACKDROP_MAX_WIDTH)
         .withApiKey(client)
 }
+
+/** Jellyfin serialises timestamps as zoneless UTC, so they are read back against [ZoneOffset.UTC]. */
+private fun LocalDateTime.toEpochMilliUtc(): Long = toInstant(ZoneOffset.UTC).toEpochMilli()
 
 internal fun formatRuntime(runtimeMs: Long): String {
     if (runtimeMs <= 0) return ""
@@ -69,6 +79,19 @@ internal fun formatRuntime(runtimeMs: Long): String {
     val hours = totalMinutes / 60
     val minutes = totalMinutes % 60
     return if (hours > 0) "${hours}h ${minutes}m" else "${minutes}m"
+}
+
+/**
+ * Remaining watch time for the Continue watching card ("23 min left", "1h 12m left"). Empty when
+ * the runtime is unknown or the item is effectively finished, so the caller can drop the segment.
+ */
+internal fun formatTimeLeft(runtimeMs: Long, positionMs: Long): String {
+    val remainingMs = runtimeMs - positionMs
+    if (runtimeMs <= 0L || remainingMs < 60_000) return ""
+    val totalMinutes = remainingMs / 60_000
+    val hours = totalMinutes / 60
+    val minutes = totalMinutes % 60
+    return if (hours > 0) "${hours}h ${minutes}m left" else "$totalMinutes min left"
 }
 
 private val VIDEO_PALETTE = listOf(

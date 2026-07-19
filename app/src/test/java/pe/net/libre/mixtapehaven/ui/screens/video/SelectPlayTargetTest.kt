@@ -48,4 +48,32 @@ class SelectPlayTargetTest {
     fun `series without episodes yields no target`() {
         assertNull(selectPlayTarget(video("s", VideoKind.SERIES), emptyList()))
     }
+
+    @Test
+    fun `series prefers the server's next up over the episode scan`() {
+        val series = video("s", VideoKind.SERIES)
+        val episodes = listOf(
+            video("e1", VideoKind.EPISODE, resumeMs = 60_000),
+            video("e2", VideoKind.EPISODE),
+        )
+
+        assertEquals("e2", selectPlayTarget(series, episodes, nextUp = video("e2", VideoKind.EPISODE))?.id)
+    }
+
+    /** The regression this fixes: a finished E1 has no position, so the scan would replay it. */
+    @Test
+    fun `series after finishing an episode plays the following one`() {
+        val series = video("s", VideoKind.SERIES)
+        // Jellyfin zeroes a watched episode's position, so nothing here looks in progress.
+        val episodes = listOf(video("e1", VideoKind.EPISODE), video("e2", VideoKind.EPISODE))
+
+        assertEquals("e2", selectPlayTarget(series, episodes, nextUp = video("e2", VideoKind.EPISODE))?.id)
+    }
+
+    @Test
+    fun `next up is ignored for a movie`() {
+        val movie = video("m", VideoKind.MOVIE)
+
+        assertEquals(movie, selectPlayTarget(movie, emptyList(), nextUp = video("e2", VideoKind.EPISODE)))
+    }
 }

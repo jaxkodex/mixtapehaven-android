@@ -11,6 +11,10 @@ enum class VideoKind { MOVIE, SERIES, EPISODE }
  * stores as an episode's primary). [backdropUrl] is the wide art; [artColor] is the tint fallback
  * when no artwork exists. [resumePositionMs] > 0 means the server has an in-progress watch
  * position for this user, last updated at [lastPlayedAtMs] (epoch millis, 0 when never played).
+ *
+ * [played] is the server's watched flag, which is independent of [resumePositionMs]: Jellyfin zeroes
+ * the position when an item is finished, so "watched" and "in progress" are distinct states rather
+ * than two readings of the same number. [unplayedCount] is only meaningful for a SERIES.
  */
 data class VideoItem(
     val id: String,
@@ -29,6 +33,16 @@ data class VideoItem(
     /** Parent series of an episode, for Next Up and autoplay lookups. Null for movies. */
     val seriesId: String? = null,
     val seasonEpisodeLabel: String? = null,
+    val played: Boolean = false,
+    /** Episodes of this series the user has not watched. 0 for movies and episodes. */
+    val unplayedCount: Int = 0,
+    val genres: List<String> = emptyList(),
+    /** Community score out of 10, null when the server has none. */
+    val communityRating: Float? = null,
+    /** Content rating such as "PG-13". Empty when unrated. */
+    val officialRating: String = "",
+    /** Season this episode belongs to, for grouping the episode list. Null for movies/series. */
+    val seasonNumber: Int? = null,
 ) {
     /** Fraction of the runtime already watched, in 0f..1f. 0 when the runtime is unknown. */
     val progressFraction: Float

@@ -18,6 +18,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -86,12 +88,19 @@ fun VideoDetailScreen(
         when {
             item != null -> DetailBody(
                 item = item,
-                episodes = state.episodes,
-                downloadUi = downloadUi,
+                seasonUi = SeasonUi(
+                    seasons = state.seasons.map { it.first },
+                    selected = state.selectedSeason,
+                    onSelect = viewModel::selectSeason,
+                ),
+                episodes = state.visibleEpisodes,
+                downloads = DownloadUi(
+                    state = downloadUi,
+                    onDownload = viewModel::download,
+                    onRemove = viewModel::removeDownload,
+                ),
                 onPlay = { viewModel.playTarget()?.let { onPlay(it.id) } },
                 onPlayEpisode = { onPlay(it.id) },
-                onDownload = viewModel::download,
-                onRemoveDownload = viewModel::removeDownload,
             )
             state.loading -> Unit
             else -> Text(
@@ -137,13 +146,15 @@ private fun Backdrop(item: VideoItem?, onBack: () -> Unit) {
 @Composable
 private fun DetailBody(
     item: VideoItem,
+    seasonUi: SeasonUi,
     episodes: List<VideoItem>,
-    downloadUi: VideoDownloadUi,
+    downloads: DownloadUi,
     onPlay: () -> Unit,
     onPlayEpisode: (VideoItem) -> Unit,
-    onDownload: (VideoItem) -> Unit,
-    onRemoveDownload: (String) -> Unit,
 ) {
+    val downloadUi = downloads.state
+    val onDownload = downloads.onDownload
+    val onRemoveDownload = downloads.onRemove
     Column(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -170,7 +181,17 @@ private fun DetailBody(
         }
 
         if (episodes.isNotEmpty()) {
-            Text("Episodes", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+            // A single-season show gets the plain "Episodes" heading: a lone season chip is a
+            // control the user can never change anything with.
+            if (seasonUi.seasons.size > 1) {
+                SeasonSelector(
+                    seasons = seasonUi.seasons,
+                    selected = seasonUi.selected ?: seasonUi.seasons.first(),
+                    onSelect = seasonUi.onSelect,
+                )
+            } else {
+                Text("Episodes", style = MaterialTheme.typography.titleMedium, color = TextPrimary)
+            }
             Column {
                 episodes.forEach { episode ->
                     EpisodeRow(
@@ -186,7 +207,7 @@ private fun DetailBody(
     }
 }
 
-/** Display title with the "1931 · 1h 14m" (or "· Series") meta line under it. */
+/** Display title with the "1931 · 1h 14m · PG · ★ 7.8" meta line and genres under it. */
 @Composable
 private fun TitleBlock(item: VideoItem) {
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -197,9 +218,63 @@ private fun TitleBlock(item: VideoItem) {
                 VideoKind.SERIES -> "Series"
                 else -> item.runtimeLabel.ifEmpty { null }
             },
+            item.officialRating.ifEmpty { null },
+            item.communityRating?.let { "★ %.1f".format(it) },
         ).joinToString(" · ")
         if (meta.isNotEmpty()) {
             Text(meta, style = MaterialTheme.typography.bodySmall, color = TextSecondary)
+        }
+        if (item.genres.isNotEmpty()) {
+            Text(
+                item.genres.take(MAX_GENRES).joinToString(" · "),
+                style = MaterialTheme.typography.labelSmall,
+                color = TextMuted,
+            )
+        }
+    }
+}
+
+/** Genres past this are noise on a phone-width line. */
+private const val MAX_GENRES = 3
+
+/** Download state plus the two actions that mutate it, which always travel together. */
+private data class DownloadUi(
+    val state: VideoDownloadUi,
+    val onDownload: (VideoItem) -> Unit,
+    val onRemove: (String) -> Unit,
+)
+
+/** Season chip state for [DetailBody]: the labels, which is active, and how to change it. */
+private data class SeasonUi(
+    val seasons: List<String>,
+    val selected: String?,
+    val onSelect: (String) -> Unit,
+)
+
+/** Horizontally scrolling season chips for a multi-season series. */
+@Composable
+private fun SeasonSelector(
+    seasons: List<String>,
+    selected: String,
+    onSelect: (String) -> Unit,
+) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        items(seasons, key = { it }) { season ->
+            val isSelected = season == selected
+            Box(
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .clickable(role = Role.Button) { onSelect(season) }
+                    .background(if (isSelected) Accent else Surface2, CircleShape)
+                    .border(1.dp, if (isSelected) Accent else Stroke, CircleShape)
+                    .padding(horizontal = 14.dp, vertical = 8.dp),
+            ) {
+                Text(
+                    season,
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                    color = if (isSelected) AccentInk else TextSecondary,
+                )
+            }
         }
     }
 }
@@ -293,6 +368,23 @@ private fun EpisodeThumb(episode: VideoItem) {
             modifier = Modifier.width(112.dp).aspectRatio(16f / 9f),
             corner = 8.dp,
         )
+        if (episode.played) {
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .clip(CircleShape)
+                    .background(Accent)
+                    .padding(3.dp),
+            ) {
+                Icon(
+                    Icons.Outlined.Check,
+                    contentDescription = "Watched",
+                    tint = AccentInk,
+                    modifier = Modifier.size(11.dp),
+                )
+            }
+        }
         if (episode.resumePositionMs > 0 && episode.runtimeMs > 0) {
             val fraction = (episode.resumePositionMs.toFloat() / episode.runtimeMs).coerceIn(0f, 1f)
             Row(

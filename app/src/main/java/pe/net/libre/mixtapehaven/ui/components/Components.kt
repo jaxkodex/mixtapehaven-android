@@ -26,6 +26,7 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Check
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Switch
@@ -347,41 +348,6 @@ fun AlbumCard(album: Album, modifier: Modifier = Modifier, onClick: () -> Unit =
         }
         Text(album.title, style = MaterialTheme.typography.titleMedium, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
         Text(album.artist, style = MaterialTheme.typography.bodySmall, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
-    }
-}
-
-/** Portrait 2:3 poster tile for a movie or TV series (Home "Movies & shows" row). */
-@Composable
-fun PosterCard(
-    video: VideoItem,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val meta = listOfNotNull(
-        video.yearLabel.ifEmpty { null },
-        if (video.kind == VideoKind.SERIES) "Series" else video.runtimeLabel.ifEmpty { null },
-    ).joinToString(" · ")
-    Column(
-        modifier = modifier.width(120.dp).clickable(onClick = onClick),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        Artwork(
-            video.artColor,
-            video.posterUrl,
-            Modifier.fillMaxWidth().aspectRatio(2f / 3f),
-            corner = 12.dp,
-        )
-        Text(
-            video.title,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = TextPrimary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.padding(top = 4.dp),
-        )
-        if (meta.isNotEmpty()) {
-            Text(meta, style = MaterialTheme.typography.labelSmall, color = TextSecondary, maxLines = 1)
-        }
     }
 }
 

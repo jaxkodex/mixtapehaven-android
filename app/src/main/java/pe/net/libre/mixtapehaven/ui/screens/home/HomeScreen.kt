@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -54,6 +55,7 @@ import pe.net.libre.mixtapehaven.model.VideoItem
 import pe.net.libre.mixtapehaven.ui.components.AlbumCard
 import pe.net.libre.mixtapehaven.ui.components.ContinueCard
 import pe.net.libre.mixtapehaven.ui.components.NowPlayingBar
+import pe.net.libre.mixtapehaven.ui.components.POSTER_RAIL_WIDTH
 import pe.net.libre.mixtapehaven.ui.components.PosterCard
 import pe.net.libre.mixtapehaven.ui.components.RandomWalkCard
 import pe.net.libre.mixtapehaven.ui.components.SearchField
@@ -74,8 +76,7 @@ fun HomeScreen(
     onOpenSearch: () -> Unit,
     onOpenDownloads: () -> Unit,
     onOpenNowPlaying: () -> Unit,
-    onOpenVideo: (String) -> Unit,
-    onResumeVideo: (String) -> Unit,
+    videoNav: VideoNavActions,
     modifier: Modifier = Modifier,
 ) {
     val viewModel = rememberHomeViewModel()
@@ -110,7 +111,7 @@ fun HomeScreen(
             RandomWalkCard(onPlay = { viewModel.startRandomWalk(); onOpenNowPlaying() })
 
             SearchField(
-                placeholder = "Search songs, albums, artists",
+                placeholder = "Search songs, movies, shows",
                 onClick = onOpenSearch,
             )
 
@@ -119,8 +120,7 @@ fun HomeScreen(
                 actions = HomeSectionActions(
                     onOpenDownloads = onOpenDownloads,
                     onOpenSettings = onOpenSettings,
-                    onOpenVideo = onOpenVideo,
-                    onResumeVideo = onResumeVideo,
+                    videoNav = videoNav,
                     onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
                     onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
                     onRetry = viewModel::load,
@@ -175,6 +175,7 @@ private fun BoxScope.HomeOverlays(
 private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
     HomeViewModel(
         it.repository,
+        it.videoLibrary,
         it.playerController,
         it.downloadManager,
         it.videoDownloadManager,
@@ -187,8 +188,7 @@ private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
 private data class HomeSectionActions(
     val onOpenDownloads: () -> Unit,
     val onOpenSettings: () -> Unit,
-    val onOpenVideo: (String) -> Unit,
-    val onResumeVideo: (String) -> Unit,
+    val videoNav: VideoNavActions,
     val onPlayTrack: (Track) -> Unit,
     val onPlayAlbum: (Album) -> Unit,
     val onRetry: () -> Unit,
@@ -215,14 +215,15 @@ private fun HomeSections(
         ContinueWatchingSection(
             videos = state.continueWatching,
             downloadedIds = state.downloadedVideoIds,
-            onVideoClick = { actions.onResumeVideo(it.id) },
+            onVideoClick = { actions.videoNav.onResumeVideo(it.id) },
         )
     }
 
     if (state.videos.isNotEmpty()) {
         MoviesAndShowsSection(
             videos = state.videos,
-            onVideoClick = { actions.onOpenVideo(it.id) },
+            onVideoClick = { actions.videoNav.onOpenVideo(it.id) },
+            onSeeAll = actions.videoNav.onOpenLibrary,
         )
     }
 
@@ -332,16 +333,25 @@ private fun ContinueWatchingSection(
     }
 }
 
-/** Horizontal poster rail of the user's movies and TV series. */
+/** Horizontal poster rail of the user's movies and TV series, with "See all" into the library. */
 @Composable
 private fun MoviesAndShowsSection(
     videos: List<VideoItem>,
     onVideoClick: (VideoItem) -> Unit,
+    onSeeAll: () -> Unit,
 ) {
-    SectionHeader(title = "Movies & shows")
+    SectionHeader(
+        title = "Movies & shows",
+        actionLabel = "See all",
+        onAction = onSeeAll,
+    )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(videos, key = { it.id }) { video ->
-            PosterCard(video = video, onClick = { onVideoClick(video) })
+            PosterCard(
+                video = video,
+                onClick = { onVideoClick(video) },
+                modifier = Modifier.width(POSTER_RAIL_WIDTH),
+            )
         }
     }
 }

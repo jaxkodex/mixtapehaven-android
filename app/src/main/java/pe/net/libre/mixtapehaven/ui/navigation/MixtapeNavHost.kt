@@ -14,11 +14,13 @@ import pe.net.libre.mixtapehaven.di.AppContainer
 import pe.net.libre.mixtapehaven.di.appContainer
 import pe.net.libre.mixtapehaven.ui.screens.downloads.DownloadsScreen
 import pe.net.libre.mixtapehaven.ui.screens.home.HomeScreen
+import pe.net.libre.mixtapehaven.ui.screens.home.VideoNavActions
 import pe.net.libre.mixtapehaven.ui.screens.login.LoginScreen
 import pe.net.libre.mixtapehaven.ui.screens.nowplaying.NowPlayingScreen
 import pe.net.libre.mixtapehaven.ui.screens.search.SearchScreen
 import pe.net.libre.mixtapehaven.ui.screens.settings.SettingsScreen
 import pe.net.libre.mixtapehaven.ui.screens.video.VideoDetailScreen
+import pe.net.libre.mixtapehaven.ui.screens.video.VideoLibraryScreen
 import pe.net.libre.mixtapehaven.ui.screens.video.VideoPlayerScreen
 
 @Composable
@@ -47,40 +49,55 @@ fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
                 onOpenSearch = { navController.navigate(Routes.SEARCH) },
                 onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
                 onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
-                onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
-                onResumeVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
+                videoNav = navController.videoNavActions(),
             )
         }
         videoDestinations(navController)
-        composable(Routes.SEARCH) {
-            SearchScreen(
-                onBack = { navController.popBackStack() },
-                onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
-            )
-        }
-        composable(Routes.NOW_PLAYING) {
-            NowPlayingScreen(onBack = { navController.popBackStack() })
-        }
-        composable(Routes.SETTINGS) {
-            SettingsScreen(
-                onBack = { navController.popBackStack() },
-                onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
-                onSignOut = {
-                    signOut(container, scope)
-                    navController.navigate(Routes.LOGIN) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
-            )
-        }
-        composable(Routes.DOWNLOADS) {
-            DownloadsScreen(
-                onBack = { navController.popBackStack() },
-                onPlayVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
-            )
-        }
+        libraryDestinations(navController, container, scope)
     }
 }
+
+/** Search, Now Playing, Settings, and Downloads — everything reached from Home's chrome. */
+private fun NavGraphBuilder.libraryDestinations(
+    navController: NavHostController,
+    container: AppContainer,
+    scope: CoroutineScope,
+) {
+    composable(Routes.SEARCH) {
+        SearchScreen(
+            onBack = { navController.popBackStack() },
+            onOpenNowPlaying = { navController.navigate(Routes.NOW_PLAYING) },
+            onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
+        )
+    }
+    composable(Routes.NOW_PLAYING) {
+        NowPlayingScreen(onBack = { navController.popBackStack() })
+    }
+    composable(Routes.SETTINGS) {
+        SettingsScreen(
+            onBack = { navController.popBackStack() },
+            onOpenDownloads = { navController.navigate(Routes.DOWNLOADS) },
+            onSignOut = {
+                signOut(container, scope)
+                navController.navigate(Routes.LOGIN) {
+                    popUpTo(0) { inclusive = true }
+                }
+            },
+        )
+    }
+    composable(Routes.DOWNLOADS) {
+        DownloadsScreen(
+            onBack = { navController.popBackStack() },
+            onPlayVideo = { itemId -> navController.navigate(Routes.videoPlayer(itemId)) },
+        )
+    }
+}
+
+private fun NavHostController.videoNavActions() = VideoNavActions(
+    onOpenVideo = { itemId -> navigate(Routes.videoDetail(itemId)) },
+    onResumeVideo = { itemId -> navigate(Routes.videoPlayer(itemId)) },
+    onOpenLibrary = { navigate(Routes.VIDEO_LIBRARY) },
+)
 
 /**
  * Stop playback and drop this user's session and local state.
@@ -96,8 +113,14 @@ private fun signOut(container: AppContainer, scope: CoroutineScope) {
     }
 }
 
-/** Video detail + full-screen player destinations, both keyed by the Jellyfin item id. */
+/** The video library grid, plus the detail and full-screen player keyed by the Jellyfin item id. */
 private fun NavGraphBuilder.videoDestinations(navController: NavHostController) {
+    composable(Routes.VIDEO_LIBRARY) {
+        VideoLibraryScreen(
+            onBack = { navController.popBackStack() },
+            onOpenVideo = { itemId -> navController.navigate(Routes.videoDetail(itemId)) },
+        )
+    }
     composable(Routes.VIDEO_DETAIL) { entry ->
         VideoDetailScreen(
             itemId = entry.arguments?.getString("itemId").orEmpty(),

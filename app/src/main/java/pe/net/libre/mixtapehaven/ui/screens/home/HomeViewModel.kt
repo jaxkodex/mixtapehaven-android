@@ -22,6 +22,7 @@ import pe.net.libre.mixtapehaven.data.download.DownloadManager
 import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
 import pe.net.libre.mixtapehaven.data.download.toTrack
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
+import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
 import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.RandomWalk
@@ -32,6 +33,7 @@ import pe.net.libre.mixtapehaven.model.VideoItem
 
 class HomeViewModel(
     private val repository: JellyfinRepository,
+    private val videoLibrary: VideoLibrarySource,
     private val playerController: PlayerController,
     private val downloadManager: DownloadManager,
     private val videoDownloadManager: VideoDownloadManager,
@@ -80,7 +82,10 @@ class HomeViewModel(
             // A server without video libraries (or a video fetch failure) must not break the
             // music Home, so videos degrade to an empty (hidden) section independently — and load
             // in parallel so the new section adds no latency to the album fetch.
-            val videosDeferred = async { runCatching { repository.moviesAndShows() }.getOrDefault(emptyList()) }
+            val videosDeferred = async {
+                runCatching { videoLibrary.videoLibrary(limit = VIDEO_RAIL_LIMIT).items }
+                    .getOrDefault(emptyList())
+            }
             // Offline this fails and the rail falls back to the local table, so keep the last
             // known server list rather than clearing it.
             val continueDeferred = async { runCatching { repository.continueWatching() }.getOrNull() }
@@ -188,6 +193,9 @@ class HomeViewModel(
 
     private companion object {
         const val TAG = "HomeViewModel"
+
+        /** Titles in the Home "Movies & shows" rail; the full set lives behind "See all". */
+        const val VIDEO_RAIL_LIMIT = 20
     }
 }
 

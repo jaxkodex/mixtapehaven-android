@@ -7,6 +7,7 @@ import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.audioApi
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
 import org.jellyfin.sdk.api.client.extensions.dynamicHlsApi
+import org.jellyfin.sdk.api.client.extensions.genresApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
 import org.jellyfin.sdk.api.client.extensions.playStateApi
@@ -23,6 +24,7 @@ import org.jellyfin.sdk.model.api.MediaType
 import org.jellyfin.sdk.model.api.PlayMethod
 import org.jellyfin.sdk.model.api.PlaybackInfoDto
 import org.jellyfin.sdk.model.api.SortOrder
+import org.jellyfin.sdk.model.api.request.GetGenresRequest
 import org.jellyfin.sdk.model.api.request.GetItemsRequest
 import org.jellyfin.sdk.model.api.request.GetNextUpRequest
 import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
@@ -161,22 +163,6 @@ class JellyfinRepository(
         }
     }
 
-    /** Movies and TV series for the Home "Movies & shows" row, newest first. Empty if no video libraries. */
-    suspend fun moviesAndShows(limit: Int = 20): List<VideoItem> {
-        val client = requireApi()
-        val result by client.itemsApi.getItems(
-            GetItemsRequest(
-                userId = userId,
-                includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
-                recursive = true,
-                sortBy = listOf(ItemSortBy.DATE_CREATED),
-                sortOrder = listOf(SortOrder.DESCENDING),
-                limit = limit,
-            ),
-        )
-        return result.items.orEmpty().map { it.toVideoItem(client) }
-    }
-
     /** Full detail (overview + this user's resume position) for one movie/series/episode. */
     suspend fun videoItem(itemId: String): VideoItem? {
         val client = requireApi()
@@ -199,6 +185,7 @@ class JellyfinRepository(
             seriesId = id,
             userId = userId,
             fields = listOf(ItemFields.OVERVIEW),
+            enableUserData = true,
         )
         return result.items.orEmpty()
             .map { it.toVideoItem(client) to it }
@@ -369,4 +356,7 @@ class JellyfinRepository(
 
     private fun requireApi(): ApiClient =
         api ?: error("Not authenticated with a Jellyfin server")
+
+    /** The authenticated client and current user, for query classes built on this session. */
+    internal fun authedClient(): Pair<ApiClient, UUID?> = requireApi() to userId
 }

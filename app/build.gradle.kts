@@ -20,6 +20,11 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Expose the exported schemas to instrumented tests so MigrationTestHelper can replay them.
+android.sourceSets.getByName("androidTest") {
+    assets.srcDir("$projectDir/schemas")
+}
+
 android {
     namespace = "pe.net.libre.mixtapehaven"
     compileSdk {
@@ -70,6 +75,7 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.work.runtime.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.jellyfin.core)
     implementation(libs.slf4j.api)
@@ -85,6 +91,7 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
+    androidTestImplementation(libs.androidx.room.testing)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)

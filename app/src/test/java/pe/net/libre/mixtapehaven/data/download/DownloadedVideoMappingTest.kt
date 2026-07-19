@@ -19,6 +19,7 @@ class DownloadedVideoMappingTest {
         filePath = "/data/x.mp4",
         sizeBytes = 1_000,
         complete = true,
+        status = VideoDownloadStatus.COMPLETE.name,
     )
 
     @Test
@@ -37,5 +38,17 @@ class DownloadedVideoMappingTest {
         val item = row("MOVIE").toVideoItem()
         assertEquals("Dracula", item.title)
         assertEquals("1h 14m", item.runtimeLabel)
+    }
+
+    @Test
+    fun `download status round-trips by name`() {
+        VideoDownloadStatus.entries.forEach { status ->
+            assertEquals(status, VideoDownloadStatus.fromName(status.name))
+        }
+    }
+
+    @Test
+    fun `an unknown persisted status degrades to failed so the UI offers retry`() {
+        assertEquals(VideoDownloadStatus.FAILED, VideoDownloadStatus.fromName("TELEPORTING"))
     }
 }

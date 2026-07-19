@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.ArrowDownward
 import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -33,6 +34,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import pe.net.libre.mixtapehaven.data.download.DownloadProgress
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadStatus
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.model.Track
 import pe.net.libre.mixtapehaven.ui.components.Artwork
@@ -56,7 +58,9 @@ fun DownloadsScreen(
     onPlayVideo: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val viewModel = appViewModel { DownloadsViewModel(it.downloadManager, it.videoDownloadManager) }
+    val viewModel = appViewModel {
+        DownloadsViewModel(it.downloadManager, it.videoDownloadManager, it.downloadSettingsStore)
+    }
     val state by viewModel.state.collectAsState()
 
     Column(
@@ -84,6 +88,7 @@ fun DownloadsScreen(
                     SavedVideoRow(
                         video = video,
                         onPlay = { onPlayVideo(video.id) },
+                        onRetry = { viewModel.retryVideo(video.id) },
                         onRemove = { viewModel.removeVideo(video.id) },
                     )
                 }
@@ -205,16 +210,23 @@ private fun SavedTracksSection(saved: List<Track>) {
 }
 
 /**
- * One saved (or still-downloading) video: poster thumb, title/meta, and cancel/delete control.
- * Tapping a completed row plays it — the only path to downloaded videos when offline, where the
- * server-backed Home rail and detail screen are unavailable.
+ * One saved, queued, downloading, or failed video: poster thumb, title/meta, per-state trailing
+ * control. Tapping a completed row plays it — the only path to downloaded videos when offline,
+ * where the server-backed Home rail and detail screen are unavailable. Failed rows show a retry
+ * button; queued rows say why they're waiting via [SavedVideoUi.sizeLabel].
  */
 @Composable
-private fun SavedVideoRow(video: SavedVideoUi, onPlay: () -> Unit, onRemove: () -> Unit) {
+private fun SavedVideoRow(
+    video: SavedVideoUi,
+    onPlay: () -> Unit,
+    onRetry: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    val complete = video.status == VideoDownloadStatus.COMPLETE
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(enabled = !video.downloading, onClick = onPlay)
+            .clickable(enabled = complete, onClick = onPlay)
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
@@ -234,19 +246,16 @@ private fun SavedVideoRow(video: SavedVideoUi, onPlay: () -> Unit, onRemove: () 
                 overflow = TextOverflow.Ellipsis,
             )
             val meta = listOf(video.subtitle, video.sizeLabel).filter { it.isNotEmpty() }.joinToString(" · ")
-            Text(meta, style = MaterialTheme.typography.bodySmall, color = TextMuted)
-        }
-        if (video.downloading) {
-            CircularProgressIndicator(
-                color = VideoLegend,
-                trackColor = Surface2,
-                strokeWidth = 2.dp,
-                modifier = Modifier.size(18.dp),
+            Text(
+                meta,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (video.status == VideoDownloadStatus.FAILED) Coral else TextMuted,
             )
         }
+        VideoRowStateControl(video.status, onRetry)
         Icon(
             Icons.Outlined.DeleteOutline,
-            contentDescription = if (video.downloading) "Cancel download" else "Remove download",
+            contentDescription = if (complete) "Remove download" else "Cancel download",
             tint = TextSecondary,
             modifier = Modifier
                 .size(34.dp)
@@ -254,6 +263,30 @@ private fun SavedVideoRow(video: SavedVideoUi, onPlay: () -> Unit, onRemove: () 
                 .clickable(onClick = onRemove)
                 .padding(7.dp),
         )
+    }
+}
+
+/** Spinner while downloading, retry button after a failure; nothing for queued/complete rows. */
+@Composable
+private fun VideoRowStateControl(status: VideoDownloadStatus, onRetry: () -> Unit) {
+    when (status) {
+        VideoDownloadStatus.RUNNING -> CircularProgressIndicator(
+            color = VideoLegend,
+            trackColor = Surface2,
+            strokeWidth = 2.dp,
+            modifier = Modifier.size(18.dp),
+        )
+        VideoDownloadStatus.FAILED -> Icon(
+            Icons.Outlined.Refresh,
+            contentDescription = "Retry download",
+            tint = Accent,
+            modifier = Modifier
+                .size(34.dp)
+                .clip(CircleShape)
+                .clickable(onClick = onRetry)
+                .padding(7.dp),
+        )
+        VideoDownloadStatus.QUEUED, VideoDownloadStatus.COMPLETE -> Unit
     }
 }
 

@@ -23,6 +23,14 @@ interface VideoDownloadDao {
     @Query("SELECT * FROM downloaded_videos WHERE id = :id")
     suspend fun findById(id: String): DownloadedVideo?
 
+    /** Move [id] to [status] without touching the rest of the row; no-op if the row is gone. */
+    @Query("UPDATE downloaded_videos SET status = :status WHERE id = :id")
+    suspend fun updateStatus(id: String, status: String)
+
+    /** Ids of rows not yet complete, for reconciling against WorkManager's queue at startup. */
+    @Query("SELECT id FROM downloaded_videos WHERE complete = 0")
+    suspend fun incompleteIds(): List<String>
+
     @Query("DELETE FROM downloaded_videos WHERE id = :id")
     suspend fun deleteById(id: String)
 

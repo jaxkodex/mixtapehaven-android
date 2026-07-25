@@ -1,0 +1,16 @@
+# Normalize line endings to LF in the repository so cross-platform work
+# (Windows/macOS/Linux, Android Studio vs CLI) doesn't produce whole-file
+# CRLF rewrites that drown real changes in review diffs.
+* text=auto eol=lf
+
+# Windows scripts need CRLF to run correctly.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Binaries — never touch.
+*.png binary
+*.jpg binary
+*.webp binary
+*.jar binary
+*.keystore binary
+*.pen binary

@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
+import pe.net.libre.mixtapehaven.data.download.VideoDownloadStatus
 import pe.net.libre.mixtapehaven.data.download.formatBytes
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.groupBySeason
@@ -19,11 +20,13 @@ import pe.net.libre.mixtapehaven.model.VideoKind
 
 /**
  * Per-item download state shown on the detail screen: [downloadedIds] have a saved offline copy;
- * [inFlightLabels] maps an actively downloading id to its progress label (e.g. "142 MB").
+ * [inFlightLabels] maps a queued/downloading id to its display label (e.g. "Downloading · 142 MB"
+ * or "Queued"); [failedIds] exhausted their retries and offer a re-download.
  */
 data class VideoDownloadUi(
     val downloadedIds: Set<String> = emptySet(),
     val inFlightLabels: Map<String, String> = emptyMap(),
+    val failedIds: Set<String> = emptySet(),
 )
 
 class VideoDetailViewModel(
@@ -58,9 +61,15 @@ class VideoDetailViewModel(
 
     val downloadUi: StateFlow<VideoDownloadUi> =
         combine(downloadManager.downloads, downloadManager.progress) { rows, progress ->
+            val byStatus = rows.groupBy { VideoDownloadStatus.fromName(it.status) }
             VideoDownloadUi(
                 downloadedIds = rows.filter { it.complete }.map { it.id }.toSet(),
-                inFlightLabels = progress.mapValues { (_, p) -> formatBytes(p.bytes) },
+                // Queued rows haven't streamed a byte yet (waiting for Wi-Fi or their turn), so
+                // they get a static label rather than a 0-byte count.
+                inFlightLabels = byStatus[VideoDownloadStatus.RUNNING].orEmpty()
+                    .associate { it.id to "Downloading · ${formatBytes(progress[it.id]?.bytes ?: 0)}" } +
+                    byStatus[VideoDownloadStatus.QUEUED].orEmpty().associate { it.id to "Queued" },
+                failedIds = byStatus[VideoDownloadStatus.FAILED].orEmpty().map { it.id }.toSet(),
             )
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), VideoDownloadUi())
 

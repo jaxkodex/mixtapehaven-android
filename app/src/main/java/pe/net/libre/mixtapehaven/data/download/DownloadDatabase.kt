@@ -10,7 +10,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
 /** Room database holding the offline download library (audio tracks and videos). */
 @Database(
     entities = [DownloadedTrack::class, DownloadedVideo::class, VideoProgress::class],
-    version = 3,
+    version = 5,
     exportSchema = true,
 )
 abstract class DownloadDatabase : RoomDatabase() {
@@ -49,12 +49,36 @@ abstract class DownloadDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 -> v4: adds the download lifecycle status backing the WorkManager queue/retry UI. */
+        private val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `downloaded_videos` ADD COLUMN `status` TEXT NOT NULL DEFAULT 'COMPLETE'",
+                )
+                // Incomplete rows normally don't survive a session, but if one did (e.g. process
+                // death mid-write) surface it as failed so the user can retry rather than as saved.
+                db.execSQL("UPDATE `downloaded_videos` SET `status` = 'FAILED' WHERE `complete` = 0")
+            }
+        }
+
+        /** v4 -> v5: adds the transient-failure counter backing the download retry budget. */
+        private val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "ALTER TABLE `downloaded_videos` ADD COLUMN `attempts` INTEGER NOT NULL DEFAULT 0",
+                )
+            }
+        }
+
+        /** Every migration in order, shared by [build] and the instrumented migration tests. */
+        internal val MIGRATIONS = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
+
         /** Build the app's download database in the default location. */
         fun build(context: Context): DownloadDatabase =
             Room.databaseBuilder(
                 context.applicationContext,
                 DownloadDatabase::class.java,
                 "downloads.db",
-            ).addMigrations(MIGRATION_1_2, MIGRATION_2_3).build()
+            ).apply { MIGRATIONS.forEach { addMigrations(it) } }.build()
     }
 }

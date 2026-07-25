@@ -1,6 +1,7 @@
 package pe.net.libre.mixtapehaven.data.download
 
 import android.content.Context
+import android.net.ConnectivityManager
 import android.net.Uri
 import android.util.Log
 import androidx.compose.ui.graphics.toArgb
@@ -59,6 +60,9 @@ class DownloadManager(
     @Volatile
     private var autoDownloadEnabled: Boolean = true
 
+    @Volatile
+    private var wifiOnly: Boolean = true
+
     /** Completed downloads as id -> file path, kept in memory so the resolver lookup is synchronous. */
     @Volatile
     private var completedPaths: Map<String, String> = emptyMap()
@@ -72,6 +76,7 @@ class DownloadManager(
      */
     fun start(nowPlaying: Flow<Track?>) {
         scope.launch { settingsStore.autoDownloadEnabled.collect { autoDownloadEnabled = it } }
+        scope.launch { settingsStore.wifiOnly.collect { wifiOnly = it } }
         scope.launch {
             dao.observeAll().collect { rows ->
                 completedPaths = rows.filter { it.complete }.associate { it.id to it.filePath }
@@ -114,7 +119,7 @@ class DownloadManager(
 
     private fun onTrackPlaying(track: Track) {
         val id = track.id
-        if (!autoDownloadEnabled || id == null || completedPaths.containsKey(id)) return
+        if (id == null || shouldSkipAutoDownload(id)) return
         synchronized(activeJobs) {
             if (activeJobs.containsKey(id)) return
             activeJobs[id] = scope.launch {
@@ -142,6 +147,19 @@ class DownloadManager(
             deleteQuietly(part)
         }
     }
+
+    /**
+     * True when [id] shouldn't be auto-saved: the feature is off, a copy already exists, or the
+     * Wi-Fi-only setting is on while the network is metered. The metered check makes Wi-Fi-only a
+     * best-effort skip, not a queue — the track is playing over this same network anyway, and it
+     * saves next time it plays on an unmetered one.
+     */
+    private fun shouldSkipAutoDownload(id: String): Boolean =
+        !autoDownloadEnabled || completedPaths.containsKey(id) || (wifiOnly && isMeteredNetwork())
+
+    /** True when the active network bills by the byte (mobile data); offline counts as unmetered. */
+    private fun isMeteredNetwork(): Boolean =
+        appContext.getSystemService(ConnectivityManager::class.java)?.isActiveNetworkMetered == true
 
     /** Best-effort delete that consumes [File.delete]'s result, logging when a file can't be removed. */
     private fun deleteQuietly(file: File) {

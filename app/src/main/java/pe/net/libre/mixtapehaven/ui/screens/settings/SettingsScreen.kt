@@ -78,7 +78,7 @@ fun SettingsScreen(
     val videoQuality by viewModel.videoQuality.collectAsState()
     val userName by viewModel.userName.collectAsState()
     val serverHost by viewModel.serverHost.collectAsState()
-    var wifiOnly by remember { mutableStateOf(true) }
+    val wifiOnly by viewModel.wifiOnly.collectAsState()
     var showQualityPicker by remember { mutableStateOf(false) }
 
     if (showQualityPicker) {
@@ -153,7 +153,7 @@ fun SettingsScreen(
                     title = "Download over Wi-Fi only",
                     subtitle = "Avoid using mobile data",
                     checked = wifiOnly,
-                    onCheckedChange = { wifiOnly = it },
+                    onCheckedChange = viewModel::setWifiOnly,
                 )
                 HorizontalDivider(color = Stroke)
                 SettingLinkRow(title = "Audio quality", value = "Lossless", onClick = {})

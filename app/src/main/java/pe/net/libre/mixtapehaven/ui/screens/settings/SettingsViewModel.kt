@@ -40,6 +40,10 @@ class SettingsViewModel(
         settingsStore.autoDownloadEnabled
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), true)
 
+    val wifiOnly: StateFlow<Boolean> =
+        settingsStore.wifiOnly
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MS), true)
+
     val storageUsedLabel: StateFlow<String> =
         combine(downloadManager.totalSizeBytes, videoDownloadManager.totalSizeBytes) { audio, video ->
             formatBytes(audio + video)
@@ -51,6 +55,10 @@ class SettingsViewModel(
 
     fun setAutoDownloadEnabled(enabled: Boolean) {
         viewModelScope.launch { settingsStore.setAutoDownloadEnabled(enabled) }
+    }
+
+    fun setWifiOnly(enabled: Boolean) {
+        viewModelScope.launch { settingsStore.setWifiOnly(enabled) }
     }
 
     fun setVideoQuality(quality: VideoDownloadQuality) {

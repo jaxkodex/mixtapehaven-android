@@ -19,6 +19,7 @@ class DownloadSettingsStore(private val context: Context) {
     private object Keys {
         val AUTO_DOWNLOAD = booleanPreferencesKey("auto_download_enabled")
         val VIDEO_QUALITY = stringPreferencesKey("video_download_quality")
+        val WIFI_ONLY = booleanPreferencesKey("download_wifi_only")
     }
 
     /** Whether tracks are saved for offline automatically as they play. Defaults to enabled. */
@@ -28,6 +29,19 @@ class DownloadSettingsStore(private val context: Context) {
 
     suspend fun setAutoDownloadEnabled(enabled: Boolean) {
         context.downloadSettingsDataStore.edit { it[Keys.AUTO_DOWNLOAD] = enabled }
+    }
+
+    /**
+     * Whether downloads are restricted to unmetered (Wi-Fi) networks. Defaults to enabled:
+     * video downloads are GB-sized transcodes. Gates video via a WorkManager constraint and
+     * audio auto-download via a metered-network check at play time.
+     */
+    val wifiOnly: Flow<Boolean> = context.downloadSettingsDataStore.data.map { prefs ->
+        prefs[Keys.WIFI_ONLY] ?: true
+    }
+
+    suspend fun setWifiOnly(enabled: Boolean) {
+        context.downloadSettingsDataStore.edit { it[Keys.WIFI_ONLY] = enabled }
     }
 
     /** The quality cap applied to video downloads. Defaults to [VideoDownloadQuality.DEFAULT]. */

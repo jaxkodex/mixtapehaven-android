@@ -294,7 +294,10 @@ private fun DownloadButton(
     val downloaded = item.id in downloadUi.downloadedIds
     val (label, onClick) = when {
         downloaded -> "Downloaded · Remove" to { onRemoveDownload(item.id) }
-        inFlightLabel != null -> "Downloading · $inFlightLabel · Cancel" to { onRemoveDownload(item.id) }
+        // Re-tapping a failed item re-queues it (the manager treats download() on an
+        // incomplete row as a retry).
+        item.id in downloadUi.failedIds -> "Download failed · Retry" to { onDownload(item) }
+        inFlightLabel != null -> "$inFlightLabel · Cancel" to { onRemoveDownload(item.id) }
         else -> "Download" to { onDownload(item) }
     }
     Row(

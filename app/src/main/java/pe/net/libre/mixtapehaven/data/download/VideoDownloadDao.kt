@@ -23,6 +23,22 @@ interface VideoDownloadDao {
     @Query("SELECT * FROM downloaded_videos WHERE id = :id")
     suspend fun findById(id: String): DownloadedVideo?
 
+    /** Move [id] to [status] without touching the rest of the row; no-op if the row is gone. */
+    @Query("UPDATE downloaded_videos SET status = :status WHERE id = :id")
+    suspend fun updateStatus(id: String, status: String)
+
+    /** Count one transient failure of [id] against its retry budget. */
+    @Query("UPDATE downloaded_videos SET attempts = attempts + 1 WHERE id = :id")
+    suspend fun incrementAttempts(id: String)
+
+    /** Put [id] back in the queue with a fresh retry budget (manual retry). */
+    @Query("UPDATE downloaded_videos SET status = 'QUEUED', attempts = 0 WHERE id = :id")
+    suspend fun requeue(id: String)
+
+    /** Ids of rows not yet complete, for reconciling against WorkManager's queue at startup. */
+    @Query("SELECT id FROM downloaded_videos WHERE complete = 0")
+    suspend fun incompleteIds(): List<String>
+
     @Query("DELETE FROM downloaded_videos WHERE id = :id")
     suspend fun deleteById(id: String)
 

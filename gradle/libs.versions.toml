@@ -23,7 +23,7 @@ room = "2.8.4"
 work = "2.11.2"
 detekt = "1.23.8"
 detektCompose = "0.6.3"
-jellyfin = "1.8.11"
+jellyfin = "1.8.12"
 slf4j = "2.0.18"
 
 [libraries]

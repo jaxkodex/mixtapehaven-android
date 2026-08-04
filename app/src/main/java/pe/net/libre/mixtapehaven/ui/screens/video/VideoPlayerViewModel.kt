@@ -59,6 +59,14 @@ class VideoPlayerViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error.asStateFlow()
 
+    /**
+     * True whenever the surface has nothing to show: resolving a stream, filling the initial buffer,
+     * rebuffering mid-playback, or re-preparing on the transcode fallback. Starts true because [init]
+     * launches straight into [startItem].
+     */
+    private val _buffering = MutableStateFlow(true)
+    val buffering: StateFlow<Boolean> = _buffering.asStateFlow()
+
     /** The item currently on screen; changes when autoplay advances to the next episode. */
     private val _nowPlaying = MutableStateFlow<VideoItem?>(null)
     val nowPlaying: StateFlow<VideoItem?> = _nowPlaying.asStateFlow()
@@ -76,8 +84,16 @@ class VideoPlayerViewModel(
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
-                Player.STATE_READY -> reachedReady = true
-                Player.STATE_ENDED -> onPlaybackEnded()
+                Player.STATE_BUFFERING -> _buffering.value = true
+                Player.STATE_READY -> {
+                    reachedReady = true
+                    _buffering.value = false
+                }
+                Player.STATE_ENDED -> {
+                    _buffering.value = false
+                    onPlaybackEnded()
+                }
+                // STATE_IDLE follows an error or a release; the error path below owns the flag there.
                 else -> Unit
             }
         }
@@ -88,8 +104,11 @@ class VideoPlayerViewModel(
             val positionMs = player.currentPosition.coerceAtLeast(0)
             if (candidateIndex + 1 < candidates.size) {
                 candidateIndex++
+                // Keep the indicator up: the swap to the transcode is another wait, not a resume.
+                _buffering.value = true
                 prepareCurrentCandidate(startMs = positionMs)
             } else {
+                _buffering.value = false
                 _error.value = error.message ?: "Playback failed"
             }
         }
@@ -111,9 +130,13 @@ class VideoPlayerViewModel(
         // Cleared up front so a hop that fails below cannot leave the pill pointing at the
         // previous episode's successor, and so it never shows a stale value while loadUpNext runs.
         _upNext.value = null
+        // Resolving the item and its sources are network hops with the player still idle, so the
+        // flag is raised here rather than waiting for STATE_BUFFERING.
+        _buffering.value = true
         val resolved = progressStore.resolvePlayback(id)
         val item = resolved.item
         if (item == null) {
+            _buffering.value = false
             _error.value = "Could not load this title"
             return
         }
@@ -122,6 +145,7 @@ class VideoPlayerViewModel(
         candidateIndex = 0
         reachedReady = false
         if (candidates.isEmpty()) {
+            _buffering.value = false
             _error.value = "No playable source for this title"
             return
         }

@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -35,6 +36,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import pe.net.libre.mixtapehaven.di.appViewModel
+import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 /** Full-screen video playback surface using media3's [PlayerView] for transport controls. */
@@ -59,6 +61,7 @@ fun VideoPlayerScreen(
     }
     val error by viewModel.error.collectAsState()
     val upNext by viewModel.upNext.collectAsState()
+    val buffering by viewModel.buffering.collectAsState()
 
     // No background video service exists, so pause when the screen stops (Home button, lock);
     // otherwise audio would keep playing invisibly and the progress loop would churn the radio.
@@ -84,6 +87,15 @@ fun VideoPlayerScreen(
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )
+
+        // Suppressed once an error is up: the message explains the black frame better than a
+        // spinner that would never resolve.
+        if (buffering && error == null) {
+            CircularProgressIndicator(
+                color = Accent,
+                modifier = Modifier.align(Alignment.Center).size(48.dp),
+            )
+        }
 
         error?.let { message ->
             Text(

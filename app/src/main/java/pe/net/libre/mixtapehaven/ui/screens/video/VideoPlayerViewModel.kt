@@ -9,6 +9,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -125,14 +126,34 @@ class VideoPlayerViewModel(
         }
     }
 
-    /** Load [id], resume it, and begin playing. Used for the initial item and each autoplay hop. */
+    /**
+     * Load [id], resume it, and begin playing. Used for the initial item and each autoplay hop.
+     *
+     * Owns the buffering flag for the whole attempt so the indicator cannot outlive it: [prepareItem]
+     * clears it on the paths that end in an error, and a throw is caught here. Neither seam it calls
+     * is fully guarded — [resolveSources] is injected, and the Room read inside `resolvePlayback` is
+     * unguarded — and a spinner turning forever reads worse than the black frame it replaced.
+     */
     private suspend fun startItem(id: String) {
         // Cleared up front so a hop that fails below cannot leave the pill pointing at the
         // previous episode's successor, and so it never shows a stale value while loadUpNext runs.
         _upNext.value = null
+        // The previous item's error goes with it: the screen hides the indicator whenever an error
+        // is up, so a stale one would leave the next hop looking frozen for the whole resolve
+        // window rather than showing that work is under way.
+        _error.value = null
         // Resolving the item and its sources are network hops with the player still idle, so the
         // flag is raised here rather than waiting for STATE_BUFFERING.
         _buffering.value = true
+        val failure = runCatching { prepareItem(id) }.exceptionOrNull() ?: return
+        // Cancellation is the scope shutting down, not a load failure; let it unwind.
+        if (failure is CancellationException) throw failure
+        _buffering.value = false
+        _error.value = "Could not load this title"
+    }
+
+    /** The load proper; [startItem] wraps it so every exit clears the buffering flag. */
+    private suspend fun prepareItem(id: String) {
         val resolved = progressStore.resolvePlayback(id)
         val item = resolved.item
         if (item == null) {
@@ -149,7 +170,6 @@ class VideoPlayerViewModel(
             _error.value = "No playable source for this title"
             return
         }
-        _error.value = null
         prepareCurrentCandidate(startMs = resolved.positionMs)
         progressStore.record(item, resolved.positionMs, player.duration.durationOrZero(), VideoPlaybackEvent.STARTED)
         _upNext.value = loadUpNext(item)

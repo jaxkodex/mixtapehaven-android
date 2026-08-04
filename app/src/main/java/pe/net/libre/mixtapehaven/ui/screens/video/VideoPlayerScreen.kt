@@ -27,6 +27,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -121,7 +123,11 @@ fun VideoPlayerScreen(
 private fun BufferingIndicator(modifier: Modifier = Modifier) {
     CircularProgressIndicator(
         color = Accent,
-        modifier = modifier.size(48.dp),
+        // Without this the load is silent to TalkBack — the black frame with no announcement is
+        // the exact state this indicator exists to explain.
+        modifier = modifier
+            .size(48.dp)
+            .semantics { contentDescription = "Loading video" },
     )
 }
 

@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -26,6 +27,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
@@ -35,6 +38,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.PlayerView
 import pe.net.libre.mixtapehaven.di.appViewModel
+import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.TextPrimary
 
 /** Full-screen video playback surface using media3's [PlayerView] for transport controls. */
@@ -59,6 +63,7 @@ fun VideoPlayerScreen(
     }
     val error by viewModel.error.collectAsState()
     val upNext by viewModel.upNext.collectAsState()
+    val buffering by viewModel.buffering.collectAsState()
 
     // No background video service exists, so pause when the screen stops (Home button, lock);
     // otherwise audio would keep playing invisibly and the progress loop would churn the radio.
@@ -85,6 +90,12 @@ fun VideoPlayerScreen(
             modifier = Modifier.fillMaxSize(),
         )
 
+        // Suppressed once an error is up: the message explains the black frame better than a
+        // spinner that would never resolve.
+        if (buffering && error == null) {
+            BufferingIndicator(modifier = Modifier.align(Alignment.Center))
+        }
+
         error?.let { message ->
             Text(
                 message,
@@ -105,6 +116,19 @@ fun VideoPlayerScreen(
             )
         }
     }
+}
+
+/** Spinner shown over the black frame while a stream is being resolved or buffered. */
+@Composable
+private fun BufferingIndicator(modifier: Modifier = Modifier) {
+    CircularProgressIndicator(
+        color = Accent,
+        // Without this the load is silent to TalkBack — the black frame with no announcement is
+        // the exact state this indicator exists to explain.
+        modifier = modifier
+            .size(48.dp)
+            .semantics { contentDescription = "Loading video" },
+    )
 }
 
 /** Circular back affordance over the video surface, which has no system chrome of its own. */

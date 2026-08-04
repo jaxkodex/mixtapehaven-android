@@ -91,10 +91,7 @@ fun VideoPlayerScreen(
         // Suppressed once an error is up: the message explains the black frame better than a
         // spinner that would never resolve.
         if (buffering && error == null) {
-            CircularProgressIndicator(
-                color = Accent,
-                modifier = Modifier.align(Alignment.Center).size(48.dp),
-            )
+            BufferingIndicator(modifier = Modifier.align(Alignment.Center))
         }
 
         error?.let { message ->
@@ -117,6 +114,15 @@ fun VideoPlayerScreen(
             )
         }
     }
+}
+
+/** Spinner shown over the black frame while a stream is being resolved or buffered. */
+@Composable
+private fun BufferingIndicator(modifier: Modifier = Modifier) {
+    CircularProgressIndicator(
+        color = Accent,
+        modifier = modifier.size(48.dp),
+    )
 }
 
 /** Circular back affordance over the video surface, which has no system chrome of its own. */

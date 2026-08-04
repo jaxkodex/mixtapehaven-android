@@ -16,4 +16,10 @@ local.properties
 
 .kotlin
 
-.claude
+# Local Claude Code state stays out of the repo, except the shared
+# session-start hook that provisions the Android SDK for Claude Code on the web.
+.claude/*
+!.claude/settings.json
+!.claude/hooks/
+.claude/hooks/*
+!.claude/hooks/session-start.sh

@@ -9,7 +9,7 @@ Mixtape Haven is an Android application built with Kotlin and Jetpack Compose. T
 **Package:** `pe.net.libre.mixtapehaven`
 **Min SDK:** 33
 **Target SDK:** 36
-**Compile SDK:** 36
+**Compile SDK:** 37
 **Java Version:** 11
 
 ## Build Commands
@@ -40,8 +40,8 @@ Mixtape Haven is an Android application built with Kotlin and Jetpack Compose. T
 
 ### Run specific test
 ```bash
-# Unit test
-./gradlew test --tests pe.net.libre.mixtapehaven.ExampleUnitTest
+# Unit test — filter on the variant task; the aggregate `test` task rejects --tests
+./gradlew testDebugUnitTest --tests pe.net.libre.mixtapehaven.ExampleUnitTest
 
 # Instrumented test
 ./gradlew connectedAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=pe.net.libre.mixtapehaven.ExampleInstrumentedTest
@@ -68,7 +68,7 @@ Mixtape Haven is an Android application built with Kotlin and Jetpack Compose. T
 
 ### Dependencies
 Dependencies are managed via Gradle version catalog in `gradle/libs.versions.toml`. Key dependencies:
-- Jetpack Compose BOM (2024.09.00)
+- Jetpack Compose BOM (2026.06.01)
 - Material 3
 - Lifecycle Runtime KTX
 - Activity Compose

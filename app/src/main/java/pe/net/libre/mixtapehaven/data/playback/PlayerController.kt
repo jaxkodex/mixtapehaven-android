@@ -17,10 +17,12 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
@@ -107,26 +109,45 @@ class PlayerController(
     }
 
     init {
-        // Poll position/duration only while something is actually playing; while paused or idle
-        // the loop is suspended so the app does no periodic work (seeks are handled by the listener).
+        // Poll position/duration only while something is playing *and* a screen is displaying it.
+        //
+        // Gating on isPlaying alone still left the loop running through background playback: a
+        // locked phone playing a downloaded album has no Now Playing screen collecting these, so
+        // the main thread was woken twice a second for the length of the album to recompute state
+        // with no reader. Subscriber count is the honest signal — these two flows exist solely to
+        // drive a progress bar, so no subscriber means no reason to poll. Seeks are still reflected
+        // by the listener, and re-subscribing updates before its first delay, so a screen that
+        // comes back never shows a stale position.
         scope.launch {
-            _isPlaying.collectLatest { playing ->
-                if (!playing) return@collectLatest
-                while (currentCoroutineContext().isActive) {
-                    val c = activeController()
-                    if (c == null) {
-                        // Controller lost mid-playback (service killed): stop polling and reset
-                        // the flag, else its conflated true would keep the loop from restarting.
-                        _isPlaying.value = false
-                        break
+            combine(_isPlaying, positionSubscribers()) { playing, watched -> playing && watched }
+                .collectLatest { shouldPoll ->
+                    if (!shouldPoll) return@collectLatest
+                    while (currentCoroutineContext().isActive) {
+                        val c = activeController()
+                        if (c == null) {
+                            // Controller lost mid-playback (service killed): stop polling and reset
+                            // the flag, else its conflated true would keep the loop from restarting.
+                            _isPlaying.value = false
+                            break
+                        }
+                        _durationMs.value = c.duration.coerceAtLeast(0)
+                        _positionMs.value = c.currentPosition.coerceAtLeast(0)
+                        delay(PROGRESS_INTERVAL_MS)
                     }
-                    _durationMs.value = c.duration.coerceAtLeast(0)
-                    _positionMs.value = c.currentPosition.coerceAtLeast(0)
-                    delay(PROGRESS_INTERVAL_MS)
                 }
-            }
         }
     }
+
+    /**
+     * True while anything is collecting [positionMs] or [durationMs].
+     *
+     * Both are checked because a caller may want the duration alone; either one is a reader that
+     * would otherwise see a frozen value.
+     */
+    private fun positionSubscribers(): Flow<Boolean> =
+        combine(_positionMs.subscriptionCount, _durationMs.subscriptionCount) { position, duration ->
+            position + duration > 0
+        }
 
     /** Set the origin label for the next queue; call before [play] when starting a new source. */
     fun setSource(source: PlaybackSource) {

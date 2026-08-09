@@ -1,6 +1,7 @@
 package pe.net.libre.mixtapehaven.data.playback
 
 import androidx.compose.ui.graphics.Color
+import androidx.media3.common.C
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -58,5 +59,27 @@ class PlayerControllerSeamsTest {
     fun `shouldRefillQueue never refills an empty queue`() {
         // A stopped/cleared player reports itemCount 0; it must stay stopped, not refill.
         assertFalse(shouldRefillQueue(currentIndex = 0, itemCount = 0, threshold = 3))
+    }
+
+    @Test
+    fun `wakeModeForUri takes the WiFi lock only for streamed items`() {
+        assertEquals(C.WAKE_MODE_NETWORK, wakeModeForUri("https://jellyfin.example/Audio/1/stream"))
+        assertEquals(C.WAKE_MODE_NETWORK, wakeModeForUri("http://jellyfin.example/Audio/1/stream"))
+    }
+
+    @Test
+    fun `wakeModeForUri leaves the WiFi radio alone for a downloaded file`() {
+        // The drain this exists to stop: a downloaded album played with the screen off held the
+        // Wi-Fi radio out of power-save for its whole run, for bytes already on disk.
+        val saved = "file:///data/user/0/pe.net.libre.mixtapehaven/files/downloads/1"
+        assertEquals(C.WAKE_MODE_LOCAL, wakeModeForUri(saved))
+    }
+
+    @Test
+    fun `wakeModeForUri treats an unknown or missing scheme as local`() {
+        // Erring local costs a stream its WifiLock; erring network costs every offline listener
+        // battery for nothing. The cheaper lock is the safer default.
+        assertEquals(C.WAKE_MODE_LOCAL, wakeModeForUri(null))
+        assertEquals(C.WAKE_MODE_LOCAL, wakeModeForUri("content://media/external/audio/media/42"))
     }
 }

@@ -47,7 +47,7 @@ class AndroidNetworkMonitor(context: Context) : NetworkMonitor {
             // No connectivity service to subscribe to: assume online so a missing system service
             // cannot lock the user out of streaming.
             trySend(true)
-            awaitClose { }
+            awaitClose { /* Nothing was registered, so there is nothing to unregister. */ }
             return@callbackFlow
         }
         // Networks come and go independently, so track the live set rather than a boolean: losing

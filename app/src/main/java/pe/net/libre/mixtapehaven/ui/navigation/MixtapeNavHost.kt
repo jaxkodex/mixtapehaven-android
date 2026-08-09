@@ -12,7 +12,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.di.AppContainer
@@ -32,7 +31,7 @@ import pe.net.libre.mixtapehaven.ui.screens.video.VideoPlayerScreen
 fun MixtapeNavHost(
     startDestination: String,
     modifier: Modifier = Modifier,
-    pendingRoute: StateFlow<String?> = MutableStateFlow(null),
+    pendingRoute: StateFlow<String?> = NoPendingRoute,
     onRouteConsumed: () -> Unit = {},
 ) {
     val navController = rememberNavController()

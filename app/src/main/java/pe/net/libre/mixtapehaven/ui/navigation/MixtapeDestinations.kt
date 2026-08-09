@@ -1,5 +1,15 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+
+/**
+ * A route request that never arrives — the default where no deep link is possible (previews,
+ * tests). A shared instance, so composables defaulting to it do not allocate a new flow per
+ * recomposition and reset the state collected from it.
+ */
+val NoPendingRoute: StateFlow<String?> = MutableStateFlow(null)
+
 object Routes {
     const val LOGIN = "login"
     const val HOME = "home"

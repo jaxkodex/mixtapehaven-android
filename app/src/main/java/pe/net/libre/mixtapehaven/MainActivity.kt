@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.navigation.AppStateViewModel
 import pe.net.libre.mixtapehaven.ui.navigation.MixtapeNavHost
+import pe.net.libre.mixtapehaven.ui.navigation.NoPendingRoute
 import pe.net.libre.mixtapehaven.ui.navigation.Routes
 import pe.net.libre.mixtapehaven.ui.theme.Bg
 import pe.net.libre.mixtapehaven.ui.theme.MixtapeTheme
@@ -25,14 +26,18 @@ class MainActivity : ComponentActivity() {
 
     /** Route requested by the intent that opened (or re-opened) the app; null once consumed. */
     private val _pendingRoute = MutableStateFlow<String?>(null)
+    private val pendingRoute: StateFlow<String?> = _pendingRoute.asStateFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        readPendingRoute(intent)
+        // Only on a fresh launch. A non-null savedInstanceState means the activity is being
+        // recreated (rotation, or Recents after a process kill), and the launch intent the system
+        // replays still carries the extra — honouring it would yank the user back to Now Playing.
+        if (savedInstanceState == null) readPendingRoute(intent)
         setContent {
             MixtapeApp(
-                pendingRoute = _pendingRoute.asStateFlow(),
+                pendingRoute = pendingRoute,
                 onRouteConsumed = { _pendingRoute.value = null },
             )
         }
@@ -50,6 +55,9 @@ class MainActivity : ComponentActivity() {
 
     private fun readPendingRoute(intent: Intent) {
         if (intent.getBooleanExtra(EXTRA_OPEN_NOW_PLAYING, false)) {
+            // Consume it: [setIntent] retains this intent, so leaving the extra in place would
+            // replay the request the next time the activity is recreated from it.
+            intent.removeExtra(EXTRA_OPEN_NOW_PLAYING)
             _pendingRoute.value = Routes.NOW_PLAYING
         }
     }
@@ -62,7 +70,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MixtapeApp(
-    pendingRoute: StateFlow<String?> = MutableStateFlow(null),
+    pendingRoute: StateFlow<String?> = NoPendingRoute,
     onRouteConsumed: () -> Unit = {},
 ) {
     val appState = appViewModel { AppStateViewModel(it.repository) }

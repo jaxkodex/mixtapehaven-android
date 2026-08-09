@@ -1,6 +1,9 @@
 package pe.net.libre.mixtapehaven.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavGraphBuilder
@@ -9,6 +12,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.di.AppContainer
 import pe.net.libre.mixtapehaven.di.appContainer
@@ -24,10 +28,26 @@ import pe.net.libre.mixtapehaven.ui.screens.video.VideoLibraryScreen
 import pe.net.libre.mixtapehaven.ui.screens.video.VideoPlayerScreen
 
 @Composable
-fun MixtapeNavHost(startDestination: String, modifier: Modifier = Modifier) {
+fun MixtapeNavHost(
+    startDestination: String,
+    modifier: Modifier = Modifier,
+    pendingRoute: StateFlow<String?> = NoPendingRoute,
+    onRouteConsumed: () -> Unit = {},
+) {
     val navController = rememberNavController()
     val container = appContainer()
     val scope = rememberCoroutineScope()
+
+    val requestedRoute by pendingRoute.collectAsState()
+    LaunchedEffect(requestedRoute) {
+        val request = requestedRoute ?: return@LaunchedEffect
+        // currentDestination is null until the graph is attached, so fall back to the start route.
+        val current = navController.currentDestination?.route ?: startDestination
+        resolveDeepLink(request, current)?.let { route ->
+            navController.navigate(route) { launchSingleTop = true }
+        }
+        onRouteConsumed()
+    }
 
     NavHost(
         navController = navController,

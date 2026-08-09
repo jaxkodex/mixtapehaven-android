@@ -75,9 +75,9 @@ class AndroidNetworkMonitor(context: Context) : NetworkMonitor {
     }.distinctUntilChanged().conflate()
 
     override fun isOnline(): Boolean {
+        // No connectivity service: assume online rather than lock the user out of streaming.
         val manager = connectivityManager ?: return true
-        val network = manager.activeNetwork ?: return false
-        val capabilities = manager.getNetworkCapabilities(network) ?: return false
-        return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+        val capabilities = manager.activeNetwork?.let(manager::getNetworkCapabilities)
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
     }
 }

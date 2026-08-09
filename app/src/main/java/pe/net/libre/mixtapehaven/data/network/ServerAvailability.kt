@@ -81,19 +81,21 @@ class ServerAvailability(
      * Short-circuits on no connectivity, trusts a recent success, and otherwise pings with a tight
      * timeout — a stalled TCP connect to an unroutable LAN address must not hang a tap.
      */
-    suspend fun check(): Boolean {
-        if (!networkMonitor.isOnline()) {
+    suspend fun check(): Boolean = when {
+        !networkMonitor.isOnline() -> {
             markUnreachable()
-            return false
+            false
         }
-        if (hasFreshSuccess()) return true
-        return pingLock.withLock {
-            // A ping may have landed while this call waited for the lock.
-            if (hasFreshSuccess()) return@withLock true
-            val answered = withTimeoutOrNull(PING_TIMEOUT_MS) { runCatching { ping() }.getOrDefault(false) } == true
-            if (answered) markReachable() else markUnreachable()
-            answered
-        }
+        hasFreshSuccess() -> true
+        // A ping may have landed while this call waited for the lock, hence the second look.
+        else -> pingLock.withLock { if (hasFreshSuccess()) true else pingNow() }
+    }
+
+    /** One ping, recorded either way. Callers hold [pingLock]. */
+    private suspend fun pingNow(): Boolean {
+        val answered = withTimeoutOrNull(PING_TIMEOUT_MS) { runCatching { ping() }.getOrDefault(false) } == true
+        if (answered) markReachable() else markUnreachable()
+        return answered
     }
 
     /** True when the server answered recently enough that re-asking would be waste. */

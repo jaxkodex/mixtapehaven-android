@@ -169,34 +169,44 @@ class VideoPlayerViewModel(
         val resolved = progressStore.resolvePlayback(id)
         val item = resolved.item
         if (item == null) {
-            _buffering.value = false
-            _error.value = if (serverAvailability.check()) {
-                "Could not load this title"
-            } else {
-                unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
-            }
+            // An item that will not resolve is usually the server, not the item: check before
+            // blaming the title, so the LAN-only/VPN case is named for what it is.
+            val reachable = serverAvailability.check()
+            fail(if (reachable) "Could not load this title" else unreachableMessage(serverAvailability.hasNetwork()))
             return
         }
         _nowPlaying.value = item
         candidates = resolveSources(id)
         candidateIndex = 0
         reachedReady = false
-        if (candidates.isEmpty()) {
-            _buffering.value = false
-            _error.value = "No playable source for this title"
-            return
-        }
-        // Every candidate needs a server that isn't answering: say so now rather than sit on a black
-        // frame while each one fails its own connection attempt in turn. The ping is skipped
-        // entirely for a saved copy, so offline playback of a download costs nothing.
-        if (needsServer(candidates) && !serverAvailability.check()) {
-            _buffering.value = false
-            _error.value = unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
+        val blocker = playbackBlocker()
+        if (blocker != null) {
+            fail(blocker)
             return
         }
         prepareCurrentCandidate(startMs = resolved.positionMs)
         progressStore.record(item, resolved.positionMs, player.duration.durationOrZero(), VideoPlaybackEvent.STARTED)
         _upNext.value = loadUpNext(item)
+    }
+
+    /**
+     * Why the resolved [candidates] cannot play, or null when they can.
+     *
+     * The server check is what keeps the screen from sitting on a black frame while each candidate
+     * fails its own connection attempt in turn. It is skipped entirely for a saved copy, so offline
+     * playback of a download costs nothing.
+     */
+    private suspend fun playbackBlocker(): String? = when {
+        candidates.isEmpty() -> "No playable source for this title"
+        needsServer(candidates) && !serverAvailability.check() ->
+            unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
+        else -> null
+    }
+
+    /** End the load with [message] on screen; the buffering indicator must not outlive it. */
+    private fun fail(message: String) {
+        _buffering.value = false
+        _error.value = message
     }
 
     /**

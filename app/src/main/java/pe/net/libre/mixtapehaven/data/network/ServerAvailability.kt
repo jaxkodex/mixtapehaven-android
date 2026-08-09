@@ -87,8 +87,9 @@ class ServerAvailability(
             false
         }
         hasFreshSuccess() -> true
-        // A ping may have landed while this call waited for the lock, hence the second look.
-        else -> pingLock.withLock { if (hasFreshSuccess()) true else pingNow() }
+        // A ping may have landed while this call waited for the lock, hence the second look —
+        // short-circuiting means the ping is skipped when it did.
+        else -> pingLock.withLock { hasFreshSuccess() || pingNow() }
     }
 
     /** One ping, recorded either way. Callers hold [pingLock]. */

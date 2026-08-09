@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -60,6 +61,12 @@ class HomeViewModel(
          * Starts optimistic so nothing is painted as unplayable before anything has failed.
          */
         val serverReachable: Boolean = true,
+        /**
+         * The Continue watching title whose tap is waiting on a reachability check, if any. The
+         * check can take seconds, and an unmarked card gives a tap nothing to show for itself —
+         * which is the "did that do anything?" this rail is trying to stop causing.
+         */
+        val resumePendingId: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -76,6 +83,9 @@ class HomeViewModel(
 
     /** One-shot messages for transient UI feedback (e.g. a Snackbar), not persisted in [state]. */
     val snackbarMessages: Flow<String> = _snackbarMessages.receiveAsFlow()
+
+    /** The reachability check behind the current Continue watching tap; at most one runs. */
+    private var pendingResume: Job? = null
 
     init {
         load()
@@ -217,6 +227,10 @@ class HomeViewModel(
      * A downloaded title never waits on anything. Otherwise the dimmed state is only a belief, so
      * it is confirmed with [ServerAvailability.check] before refusing: a server that came back
      * (VPN reconnected) must play on the first tap, not after a manual reload.
+     *
+     * That check is slow enough to be tapped through, so one runs at a time: a repeat tap on the
+     * title already being checked is dropped rather than queued (four taps used to mean four pings
+     * and the same message four times), and moving to a different title abandons the first.
      */
     fun resumeVideo(video: VideoItem, onResume: (String) -> Unit) {
         val state = _state.value
@@ -224,13 +238,22 @@ class HomeViewModel(
             onResume(video.id)
             return
         }
-        viewModelScope.launch {
-            if (serverAvailability.check()) {
-                onResume(video.id)
-                return@launch
+        if (state.resumePendingId == video.id) return
+        pendingResume?.cancel()
+        _state.update { it.copy(resumePendingId = video.id) }
+        pendingResume = viewModelScope.launch {
+            try {
+                if (serverAvailability.check()) {
+                    onResume(video.id)
+                    return@launch
+                }
+                diagnostics.log(TAG, "Blocked resume of ${video.id}: server unreachable, no saved copy")
+                _snackbarMessages.send(unavailableMessage(video.title, hasNetwork = serverAvailability.hasNetwork()))
+            } finally {
+                // Only if this tap is still the pending one: a tap on another title has already
+                // published its own wait, and clearing that would mark its card as idle mid-check.
+                _state.update { if (it.resumePendingId == video.id) it.copy(resumePendingId = null) else it }
             }
-            diagnostics.log(TAG, "Blocked resume of ${video.id}: server unreachable, no saved copy")
-            _snackbarMessages.send(unavailableMessage(video.title, hasNetwork = serverAvailability.hasNetwork()))
         }
     }
 

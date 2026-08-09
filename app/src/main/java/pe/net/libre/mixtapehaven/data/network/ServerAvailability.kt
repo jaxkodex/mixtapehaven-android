@@ -1,8 +1,10 @@
 package pe.net.libre.mixtapehaven.data.network
 
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -43,8 +45,11 @@ class ServerAvailability(
     @Volatile
     private var lastSuccessAtMs: Long? = null
 
-    /** Serializes pings so a burst of taps costs one request, not one each. */
+    /** Guards [inFlightPing] so a burst of taps costs one request, not one each. */
     private val pingLock = Mutex()
+
+    /** The ping currently in flight, if any, for later callers to join instead of starting their own. */
+    private var inFlightPing: Deferred<Boolean>? = null
 
     init {
         scope.launch {
@@ -87,12 +92,30 @@ class ServerAvailability(
             false
         }
         hasFreshSuccess() -> true
-        // A ping may have landed while this call waited for the lock, hence the second look —
-        // short-circuiting means the ping is skipped when it did.
-        else -> pingLock.withLock { hasFreshSuccess() || pingNow() }
+        else -> sharedPing()
     }
 
-    /** One ping, recorded either way. Callers hold [pingLock]. */
+    /**
+     * One ping per burst, shared by everyone waiting on it.
+     *
+     * Serializing the callers instead would have each of them re-ping on a refusal, since a failed
+     * ping leaves no fresh success for the next one to short-circuit on: four taps on a dimmed card
+     * would cost four round trips and four timeouts back to back, and the last tap would wait for
+     * all of them. Joining the request already in flight costs one.
+     */
+    private suspend fun sharedPing(): Boolean {
+        val ping = pingLock.withLock {
+            // A ping may have landed while this call waited for the lock, hence the second look —
+            // short-circuiting means the ping is skipped when it did.
+            if (hasFreshSuccess()) return true
+            // Runs in [scope] rather than the caller's: a caller that gives up (navigated away)
+            // must not cancel the answer the other waiters are still holding out for.
+            inFlightPing?.takeIf { it.isActive } ?: scope.async { pingNow() }.also { inFlightPing = it }
+        }
+        return ping.await()
+    }
+
+    /** One ping, recorded either way. */
     private suspend fun pingNow(): Boolean {
         // Running out of the budget (null) is as good as a refusal: the server did not answer.
         val answered = withTimeoutOrNull(PING_TIMEOUT_MS) { runCatching { ping() }.getOrDefault(false) } ?: false
@@ -119,7 +142,17 @@ class ServerAvailability(
         /** How long a successful exchange stands in for a ping. */
         const val FRESH_MS = 30_000L
 
-        /** Ping budget. Long enough for a slow LAN, short enough that a tap still feels answered. */
-        const val PING_TIMEOUT_MS = 3_000L
+        /**
+         * Ping budget.
+         *
+         * Running out of it counts as a refusal, which is what makes the length matter: the case
+         * this whole class exists for — a LAN address from off the LAN, a VPN that is down — has no
+         * one to send a refusal, so it *only* ever shows up as a timeout. Treating that as
+         * inconclusive would let the black frame back in. The cost is the opposite mistake: a
+         * server that would have answered, just slowly, is refused. So the budget is generous
+         * enough to cover a cold DNS + TCP + TLS handshake over a weak mobile connection, and the
+         * callers show that a tap is being worked on rather than leaving it to feel dropped.
+         */
+        const val PING_TIMEOUT_MS = 5_000L
     }
 }

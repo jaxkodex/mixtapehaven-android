@@ -84,6 +84,12 @@ class VideoPlayerViewModel(
     /** True once any candidate actually played; gates the STOPPED report in [onCleared]. */
     private var reachedReady = false
 
+    /**
+     * Bumped by every [startItem]. Work started for one item and finished after the next one began
+     * checks this before touching shared state, so a slow answer cannot land on the wrong episode.
+     */
+    private var loadGeneration = 0
+
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             when (playbackState) {
@@ -91,6 +97,10 @@ class VideoPlayerViewModel(
                 Player.STATE_READY -> {
                     reachedReady = true
                     _buffering.value = false
+                    // Bytes arriving over the network is proof the server answers, and it is free:
+                    // folding it in keeps the fresh window warm for the whole session, so the next
+                    // episode's gate can skip its ping instead of making every hop wait on one.
+                    if (needsServer(candidates)) serverAvailability.report(success = true)
                 }
                 Player.STATE_ENDED -> {
                     _buffering.value = false
@@ -117,8 +127,13 @@ class VideoPlayerViewModel(
                 // away mid-playback (VPN dropped, walked off the LAN). Confirm in the background and
                 // swap in the message that names the real problem; the raw one stands until then.
                 if (needsServer(candidates)) {
+                    val generation = loadGeneration
                     viewModelScope.launch {
-                        if (!serverAvailability.check()) {
+                        val unreachable = !serverAvailability.check()
+                        // The check can outlive the item that failed: a tap on Up Next during it
+                        // may already be playing a downloaded copy by now, and painting this
+                        // message over that would accuse a working screen of being broken.
+                        if (unreachable && generation == loadGeneration) {
                             _error.value = unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
                         }
                     }
@@ -147,6 +162,7 @@ class VideoPlayerViewModel(
      * unguarded — and a spinner turning forever reads worse than the black frame it replaced.
      */
     private suspend fun startItem(id: String) {
+        loadGeneration++
         // Cleared up front so a hop that fails below cannot leave the pill pointing at the
         // previous episode's successor, and so it never shows a stale value while loadUpNext runs.
         _upNext.value = null
@@ -172,35 +188,57 @@ class VideoPlayerViewModel(
             // An item that will not resolve is usually the server, not the item: check before
             // blaming the title, so the LAN-only/VPN case is named for what it is.
             val reachable = serverAvailability.check()
+            stopPlayback()
             fail(if (reachable) "Could not load this title" else unreachableMessage(serverAvailability.hasNetwork()))
             return
         }
-        _nowPlaying.value = item
-        candidates = resolveSources(id)
-        candidateIndex = 0
-        reachedReady = false
-        val blocker = playbackBlocker()
+        val sources = resolveSources(id)
+        val blocker = playbackBlocker(sources)
         if (blocker != null) {
+            // Nothing here will play, and on a user-driven hop the previous episode is still
+            // playing right now. Stop it before [_nowPlaying] moves on: [reportProgressLoop] pairs
+            // the player's playhead with whatever [_nowPlaying] holds, so leaving the old stream
+            // running under the new id would save the old episode's position as the new one's
+            // resume point — locally and on the server.
+            stopPlayback()
+            _nowPlaying.value = item
             fail(blocker)
             return
         }
+        _nowPlaying.value = item
+        candidates = sources
+        candidateIndex = 0
+        reachedReady = false
         prepareCurrentCandidate(startMs = resolved.positionMs)
         progressStore.record(item, resolved.positionMs, player.duration.durationOrZero(), VideoPlaybackEvent.STARTED)
         _upNext.value = loadUpNext(item)
     }
 
     /**
-     * Why the resolved [candidates] cannot play, or null when they can.
+     * Why [sources] cannot play, or null when they can. Asked before any of it is published, so a
+     * refusal leaves no half-switched state behind.
      *
      * The server check is what keeps the screen from sitting on a black frame while each candidate
      * fails its own connection attempt in turn. It is skipped entirely for a saved copy, so offline
      * playback of a download costs nothing.
      */
-    private suspend fun playbackBlocker(): String? = when {
-        candidates.isEmpty() -> "No playable source for this title"
-        needsServer(candidates) && !serverAvailability.check() ->
+    private suspend fun playbackBlocker(sources: List<String>): String? = when {
+        sources.isEmpty() -> "No playable source for this title"
+        needsServer(sources) && !serverAvailability.check() ->
             unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
         else -> null
+    }
+
+    /**
+     * Wind the player down to nothing, so a load that ends in an error leaves no stream running
+     * behind the message and no playhead for the progress reports to misattribute.
+     */
+    private fun stopPlayback() {
+        player.stop()
+        player.clearMediaItems()
+        candidates = emptyList()
+        candidateIndex = 0
+        reachedReady = false
     }
 
     /** End the load with [message] on screen; the buffering indicator must not outlive it. */

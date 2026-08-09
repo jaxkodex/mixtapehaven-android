@@ -122,6 +122,56 @@ class ServerAvailabilityTest {
         assertEquals(1, ping.calls)
     }
 
+    /**
+     * A refusal leaves no fresh success behind, so callers that merely serialized would each re-ping
+     * — the repeat-tap case, where four taps on a dimmed card used to mean four timeouts in a row.
+     */
+    @Test
+    fun `concurrent checks share one failing ping`() = runTest {
+        val ping = FakePing(answers = false, delayMs = 500)
+        val availability = availability(ping = ping)
+
+        val results = coroutineScope {
+            val first = async { availability.check() }
+            val second = async { availability.check() }
+            val third = async { availability.check() }
+            listOf(first.await(), second.await(), third.await())
+        }
+
+        assertEquals(listOf(false, false, false), results)
+        assertEquals(1, ping.calls)
+    }
+
+    /** Sharing must not outlive the request: the tap after it gets a current answer, not a cached one. */
+    @Test
+    fun `a later check starts a new ping`() = runTest {
+        val ping = FakePing(answers = false)
+        val availability = availability(ping = ping)
+
+        assertFalse(availability.check())
+        assertFalse(availability.check())
+
+        assertEquals(2, ping.calls)
+    }
+
+    /** A caller that gives up must not take the answer away from the ones still waiting. */
+    @Test
+    fun `abandoning a check leaves the shared ping running`() = runTest {
+        val ping = FakePing(delayMs = 500)
+        val availability = availability(ping = ping)
+
+        val joined = coroutineScope {
+            val abandoned = async { availability.check() }
+            val waiting = async { availability.check() }
+            runCurrent()
+            abandoned.cancel()
+            waiting.await()
+        }
+
+        assertTrue(joined)
+        assertEquals(1, ping.calls)
+    }
+
     @Test
     fun `losing the network marks the server unreachable`() = runTest {
         val monitor = FakeNetworkMonitor()

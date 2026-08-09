@@ -204,20 +204,28 @@ private data class HomeSectionActions(
 )
 
 /**
- * A Continue watching tap, with the resulting navigation gated on [lifecycle].
+ * A Continue watching tap, with the navigation that follows a *deferred* one gated on [lifecycle].
  *
  * A title that needs the server is confirmed against it before the player opens, which is a round
  * trip, and Home stays composed behind whatever the user opens in the meantime. Navigating on a
  * late answer would drop the player on top of the screen they moved to, so the tap lapses instead.
+ *
+ * `STARTED` rather than `RESUMED`, because the question is whether Home is still the screen in
+ * front of the user, not whether it holds focus: a back stack entry sits at `STARTED` in
+ * split-screen and mid-transition, and refusing there would make live taps do nothing — the very
+ * thing this rail is meant to stop. Navigation-compose drops a covered entry below `STARTED`, so
+ * the case worth refusing is still refused.
  */
 private fun resumeVideoAction(
     viewModel: HomeViewModel,
     lifecycle: Lifecycle,
     onResumeVideo: (String) -> Unit,
 ): (VideoItem) -> Unit = { video ->
-    viewModel.resumeVideo(video) { id ->
-        if (lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED)) onResumeVideo(id)
-    }
+    viewModel.resumeVideo(
+        video = video,
+        stillInFront = { lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) },
+        onResume = onResumeVideo,
+    )
 }
 
 /**

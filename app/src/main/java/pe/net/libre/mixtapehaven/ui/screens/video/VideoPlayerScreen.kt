@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -65,17 +66,9 @@ fun VideoPlayerScreen(
     val error by viewModel.error.collectAsState()
     val upNext by viewModel.upNext.collectAsState()
     val buffering by viewModel.buffering.collectAsState()
+    val playbackActive by viewModel.playbackActive.collectAsState()
 
-    // No background video service exists, so pause when the screen stops (Home button, lock);
-    // otherwise audio would keep playing invisibly and the progress loop would churn the radio.
-    val lifecycleOwner = LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, viewModel) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) viewModel.onScreenStopped()
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
+    PauseWhenScreenStops(viewModel::onScreenStopped)
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
@@ -84,9 +77,18 @@ fun VideoPlayerScreen(
                     player = viewModel.player
                     setShowNextButton(false)
                     setShowPreviousButton(false)
-                    keepScreenOn = true
                 }
             },
+            // Awake while playing, and across the load: the player is STATE_IDLE until prepare(),
+            // so playbackActive alone would let the display sleep through the resolve hop — and
+            // the ON_STOP observer above turns that into a pause the user never asked for.
+            //
+            // What this stops is the display being pinned on for as long as the screen is
+            // composed: behind a paused video, or a "Playback failed" message, both of which can
+            // sit there for hours. A stream stuck buffering still holds it, deliberately — a
+            // rebuffer must not blank the picture — but that ends when the load times out into an
+            // error, which releases it.
+            update = { it.keepScreenOn = playbackActive || buffering },
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )
@@ -116,6 +118,32 @@ fun VideoPlayerScreen(
                 modifier = Modifier.align(Alignment.TopEnd),
             )
         }
+    }
+}
+
+/**
+ * Pause playback once the screen stops — Home button, screen lock, or navigating away.
+ *
+ * There is no background video service, so without this the audio keeps playing invisibly behind
+ * whatever the user moved on to.
+ *
+ * The observer is keyed on the lifecycle owner alone and reads [onScreenStopped] through
+ * [rememberUpdatedState], so a recomposition that hands in a fresh lambda swaps the callback
+ * instead of tearing the observer down and re-registering it.
+ */
+@Composable
+private fun PauseWhenScreenStops(onScreenStopped: () -> Unit) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    // Read through .value rather than a `by` delegate. Both are the same read; the delegate is
+    // what static analysis flags as an unused variable, because the only use is a getValue call
+    // inside the observer lambda below and that is a hop it does not follow.
+    val currentCallback = rememberUpdatedState(onScreenStopped)
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) currentCallback.value()
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 }
 

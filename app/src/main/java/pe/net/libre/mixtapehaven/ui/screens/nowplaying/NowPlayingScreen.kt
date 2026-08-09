@@ -42,6 +42,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.flow.StateFlow
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.components.Artwork
 import pe.net.libre.mixtapehaven.ui.theme.Accent
@@ -58,15 +60,11 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
     val viewModel = appViewModel { NowPlayingViewModel(it.playerController, it.downloadManager) }
     val track by viewModel.nowPlaying.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
-    val positionMs by viewModel.positionMs.collectAsState()
-    val durationMs by viewModel.durationMs.collectAsState()
     val source by viewModel.source.collectAsState()
     val savingPercent by viewModel.savingPercent.collectAsState()
     val offlineReady by viewModel.offlineReady.collectAsState()
     val upNext by viewModel.upNext.collectAsState()
     val upNextOfflineReady by viewModel.upNextOfflineReady.collectAsState()
-
-    val progress = if (durationMs > 0) (positionMs.toFloat() / durationMs).coerceIn(0f, 1f) else 0f
 
     Column(
         modifier = modifier
@@ -135,25 +133,11 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
             OfflineStatus(savingPercent = savingPercent, offlineReady = offlineReady)
         }
 
-        // Progress
-        Column {
-            Slider(
-                value = progress,
-                onValueChange = viewModel::seekToFraction,
-                colors = SliderDefaults.colors(
-                    thumbColor = Accent,
-                    activeTrackColor = Accent,
-                    inactiveTrackColor = Surface2,
-                ),
-            )
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(formatTime(positionMs), style = MaterialTheme.typography.bodySmall, color = TextMuted)
-                Text(formatTime(durationMs), style = MaterialTheme.typography.bodySmall, color = TextMuted)
-            }
-        }
+        PlaybackProgress(
+            positionMs = viewModel.positionMs,
+            durationMs = viewModel.durationMs,
+            onSeek = viewModel::seekToFraction,
+        )
 
         // Controls
         Row(
@@ -209,6 +193,50 @@ fun NowPlayingScreen(onBack: () -> Unit, modifier: Modifier = Modifier) {
                 source = source,
                 offlineReady = upNextOfflineReady,
             )
+        }
+    }
+}
+
+/**
+ * The scrubber and its elapsed/total labels.
+ *
+ * Takes the flows rather than the values so the twice-a-second position tick is confined here.
+ * Collected at the screen's top level, every tick invalidated the whole body — hero artwork,
+ * track info, the controls row, the Up Next card — to move a slider and two labels.
+ *
+ * [collectAsStateWithLifecycle] rather than `collectAsState`, and that is a power decision, not a
+ * correctness one: these two subscriptions are what drive `PlayerController`'s 500 ms polling loop,
+ * and backgrounding the app does not leave the composition. A plain collector therefore keeps the
+ * subscription — and so the loop — alive at 2 Hz with the screen off, for as long as the music
+ * plays. Stopping below STARTED drops it, and the loop refreshes before its first delay when the
+ * screen comes back, so returning never shows a stale position.
+ */
+@Composable
+private fun PlaybackProgress(
+    positionMs: StateFlow<Long>,
+    durationMs: StateFlow<Long>,
+    onSeek: (Float) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val position by positionMs.collectAsStateWithLifecycle()
+    val duration by durationMs.collectAsStateWithLifecycle()
+    val progress = if (duration > 0) (position.toFloat() / duration).coerceIn(0f, 1f) else 0f
+    Column(modifier = modifier) {
+        Slider(
+            value = progress,
+            onValueChange = onSeek,
+            colors = SliderDefaults.colors(
+                thumbColor = Accent,
+                activeTrackColor = Accent,
+                inactiveTrackColor = Surface2,
+            ),
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            Text(formatTime(position), style = MaterialTheme.typography.bodySmall, color = TextMuted)
+            Text(formatTime(duration), style = MaterialTheme.typography.bodySmall, color = TextMuted)
         }
     }
 }

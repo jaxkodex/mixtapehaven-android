@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CloudOff
 import androidx.compose.material.icons.outlined.DownloadDone
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -54,6 +55,9 @@ private const val UNAVAILABLE_ALPHA = 0.45f
  * It is dimmed and says so instead of the time left, because a card that looks identical to a
  * playable one turns a tap into an apparent no-op. It stays clickable so the tap can explain itself.
  *
+ * [pending] covers the seconds that explaining takes: confirming a dimmed card against the server
+ * is a round trip, and without a mark on the card the tap looks as dropped as the one this replaced.
+ *
  * Mirrors the "Continue Card" component in happypath.pen.
  */
 @Composable
@@ -63,23 +67,28 @@ fun ContinueCard(
     modifier: Modifier = Modifier,
     downloaded: Boolean = false,
     unavailable: Boolean = false,
+    pending: Boolean = false,
 ) {
-    val meta = if (unavailable) {
-        listOfNotNull(video.seasonEpisodeLabel, "Not downloaded").joinToString(" · ")
-    } else {
-        listOfNotNull(
+    val meta = when {
+        pending -> listOfNotNull(video.seasonEpisodeLabel, "Checking your server…").joinToString(" · ")
+        unavailable -> listOfNotNull(video.seasonEpisodeLabel, "Not downloaded").joinToString(" · ")
+        else -> listOfNotNull(
             video.seasonEpisodeLabel,
             formatTimeLeft(video.runtimeMs, video.resumePositionMs).ifEmpty { null },
         ).joinToString(" · ")
     }
-    val clickLabel = if (unavailable) "${video.title}, not available right now" else "Resume ${video.title}"
+    val clickLabel = when {
+        pending -> "${video.title}, checking whether it can play"
+        unavailable -> "${video.title}, not available right now"
+        else -> "Resume ${video.title}"
+    }
     Column(
         modifier = modifier
             .width(CARD_WIDTH)
             .clickable(role = Role.Button, onClickLabel = clickLabel, onClick = onClick),
         verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
-        ContinueStill(video, dimmed = unavailable)
+        ContinueStill(video, dimmed = unavailable, pending = pending)
         Text(
             video.title,
             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
@@ -88,14 +97,14 @@ fun ContinueCard(
             overflow = TextOverflow.Ellipsis,
         )
         if (meta.isNotEmpty()) {
-            ContinueMeta(meta = meta, downloaded = downloaded, unavailable = unavailable)
+            ContinueMeta(meta = meta, downloaded = downloaded, unavailable = unavailable && !pending)
         }
     }
 }
 
 /** The 16:9 still with the watched-progress bar across its bottom edge. */
 @Composable
-private fun ContinueStill(video: VideoItem, dimmed: Boolean = false) {
+private fun ContinueStill(video: VideoItem, dimmed: Boolean = false, pending: Boolean = false) {
     Box(
         modifier = Modifier
             .fillMaxWidth()
@@ -118,6 +127,22 @@ private fun ContinueStill(video: VideoItem, dimmed: Boolean = false) {
                 contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(),
             )
+        }
+        if (pending) {
+            // Over a scrim rather than beside the meta line: the spinner has to be findable at a
+            // glance on a rail the user is already tapping again.
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                CircularProgressIndicator(
+                    color = Accent,
+                    strokeWidth = 2.dp,
+                    modifier = Modifier.size(22.dp),
+                )
+            }
         }
         ProgressTrack(
             fraction = video.progressFraction,

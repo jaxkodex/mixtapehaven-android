@@ -12,9 +12,11 @@ import androidx.media3.exoplayer.ExoPlayer
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -97,14 +99,33 @@ class VideoPlayerViewModel(
     /** True once any candidate actually played; gates the STOPPED report in [onCleared]. */
     private var reachedReady = false
 
+    /**
+     * Bumped by every [startItem]. Work that runs outside the load itself — the reachability check
+     * behind a playback failure — checks this before touching shared state, so a slow answer cannot
+     * land on the episode that replaced the one it was asked about.
+     */
+    private var loadGeneration = 0
+
+    /** The load in flight, so a new hop can replace it rather than race it. See [startLoad]. */
+    private var loadJob: Job? = null
+
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
             refreshPlaybackActive()
             when (playbackState) {
                 Player.STATE_BUFFERING -> _buffering.value = true
                 Player.STATE_READY -> {
+                    // Only the *first* ready of a load can be taken as evidence: it is the one the
+                    // network had to serve. Every later BUFFERING -> READY may be a seek back into
+                    // what the buffer already holds, which says nothing about a server that could
+                    // have died minutes ago — and vouching for it there would hand back the black
+                    // frame the check exists to prevent.
+                    val firstReady = !reachedReady
                     reachedReady = true
                     _buffering.value = false
+                    // Free evidence, so the fresh window stays warm for the session and the next
+                    // episode's gate can skip its ping instead of making every hop wait on one.
+                    if (firstReady && needsServer(candidates)) serverAvailability.report(success = true)
                 }
                 Player.STATE_ENDED -> {
                     _buffering.value = false
@@ -135,8 +156,13 @@ class VideoPlayerViewModel(
                 // away mid-playback (VPN dropped, walked off the LAN). Confirm in the background and
                 // swap in the message that names the real problem; the raw one stands until then.
                 if (needsServer(candidates)) {
+                    val generation = loadGeneration
                     viewModelScope.launch {
-                        if (!serverAvailability.check()) {
+                        val unreachable = !serverAvailability.check()
+                        // The check can outlive the item that failed: a tap on Up Next during it
+                        // may already be playing a downloaded copy by now, and painting this
+                        // message over that would accuse a working screen of being broken.
+                        if (unreachable && generation == loadGeneration) {
                             _error.value = unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
                         }
                     }
@@ -163,9 +189,30 @@ class VideoPlayerViewModel(
         musicController.pause()
         player.addListener(listener)
         player.playWhenReady = true
-        viewModelScope.launch {
-            startItem(itemId)
-            reportProgressLoop()
+        startLoad { startItem(itemId) }
+        // Its own coroutine: the reporting loop outlives every hop, so it must not be the thing a
+        // hop cancels. It reads the player's state each tick, so it is harmless before the first
+        // load lands.
+        viewModelScope.launch { reportProgressLoop() }
+    }
+
+    /**
+     * Run [block] as *the* load, replacing whatever was still running.
+     *
+     * Hops can be asked for faster than they complete — a next-button tap while the previous one is
+     * still resolving, or one landing exactly as the episode ends — and two loads in flight would
+     * interleave their publishes: whichever [resolveSources] returned last would win on [candidates]
+     * while the other had already won on [_nowPlaying], pairing a stream with the wrong episode's
+     * id. Only one load exists at a time, so there is nothing to interleave.
+     */
+    private fun startLoad(block: suspend () -> Unit) {
+        // Cancelled here rather than inside the new job: a third request must supersede the second
+        // even if the second never got to run its own cancellation.
+        val previous = loadJob?.also { it.cancel() }
+        loadJob = viewModelScope.launch {
+            // Joined so the outgoing load is fully unwound before this one starts publishing.
+            previous?.join()
+            block()
         }
     }
 
@@ -178,6 +225,7 @@ class VideoPlayerViewModel(
      * unguarded — and a spinner turning forever reads worse than the black frame it replaced.
      */
     private suspend fun startItem(id: String) {
+        loadGeneration++
         // Cleared up front so a hop that fails below cannot leave the pill pointing at the
         // previous episode's successor, and so it never shows a stale value while loadUpNext runs.
         _upNext.value = null
@@ -189,7 +237,8 @@ class VideoPlayerViewModel(
         // flag is raised here rather than waiting for STATE_BUFFERING.
         _buffering.value = true
         val failure = runCatching { prepareItem(id) }.exceptionOrNull() ?: return
-        // Cancellation is the scope shutting down, not a load failure; let it unwind.
+        // Cancellation is the scope shutting down or a newer hop taking over, not a load failure:
+        // let it unwind rather than painting an error over the load that replaced it.
         if (failure is CancellationException) throw failure
         _buffering.value = false
         _error.value = "Could not load this title"
@@ -203,35 +252,63 @@ class VideoPlayerViewModel(
             // An item that will not resolve is usually the server, not the item: check before
             // blaming the title, so the LAN-only/VPN case is named for what it is.
             val reachable = serverAvailability.check()
+            // Superseded while the check ran: the hop that replaced this one owns the player now,
+            // and stopping it here would kill the load the user is actually waiting on.
+            currentCoroutineContext().ensureActive()
+            stopPlayback()
             fail(if (reachable) "Could not load this title" else unreachableMessage(serverAvailability.hasNetwork()))
             return
         }
-        _nowPlaying.value = item
-        candidates = resolveSources(id)
-        candidateIndex = 0
-        reachedReady = false
-        val blocker = playbackBlocker()
+        val sources = resolveSources(id)
+        val blocker = playbackBlocker(sources)
+        // Last chance to notice a hop that replaced this one: everything below is synchronous, so
+        // an unwanted load would publish in full before the coroutine next looked at its own state.
+        currentCoroutineContext().ensureActive()
         if (blocker != null) {
+            // Nothing here will play, and on a user-driven hop the previous episode is still
+            // playing right now. Stop it before [_nowPlaying] moves on: [reportProgressLoop] pairs
+            // the player's playhead with whatever [_nowPlaying] holds, so leaving the old stream
+            // running under the new id would save the old episode's position as the new one's
+            // resume point — locally and on the server.
+            stopPlayback()
+            _nowPlaying.value = item
             fail(blocker)
             return
         }
+        _nowPlaying.value = item
+        candidates = sources
+        candidateIndex = 0
+        reachedReady = false
         prepareCurrentCandidate(startMs = resolved.positionMs)
         progressStore.record(item, resolved.positionMs, player.duration.durationOrZero(), VideoPlaybackEvent.STARTED)
         _upNext.value = loadUpNext(item)
     }
 
     /**
-     * Why the resolved [candidates] cannot play, or null when they can.
+     * Why [sources] cannot play, or null when they can. Asked before any of it is published, so a
+     * refusal leaves no half-switched state behind.
      *
      * The server check is what keeps the screen from sitting on a black frame while each candidate
      * fails its own connection attempt in turn. It is skipped entirely for a saved copy, so offline
      * playback of a download costs nothing.
      */
-    private suspend fun playbackBlocker(): String? = when {
-        candidates.isEmpty() -> "No playable source for this title"
-        needsServer(candidates) && !serverAvailability.check() ->
+    private suspend fun playbackBlocker(sources: List<String>): String? = when {
+        sources.isEmpty() -> "No playable source for this title"
+        needsServer(sources) && !serverAvailability.check() ->
             unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
         else -> null
+    }
+
+    /**
+     * Wind the player down to nothing, so a load that ends in an error leaves no stream running
+     * behind the message and no playhead for the progress reports to misattribute.
+     */
+    private fun stopPlayback() {
+        player.stop()
+        player.clearMediaItems()
+        candidates = emptyList()
+        candidateIndex = 0
+        reachedReady = false
     }
 
     /** End the load with [message] on screen; the buffering indicator must not outlive it. */
@@ -259,7 +336,7 @@ class VideoPlayerViewModel(
     private fun onPlaybackEnded() {
         val finished = _nowPlaying.value ?: return
         val next = _upNext.value
-        viewModelScope.launch {
+        startLoad {
             // Finalize the finished item first so it leaves Continue watching before the next
             // episode's own STARTED report lands.
             progressStore.record(
@@ -279,7 +356,7 @@ class VideoPlayerViewModel(
         val current = _nowPlaying.value
         val positionMs = player.currentPosition.coerceAtLeast(0)
         val durationMs = player.duration.durationOrZero()
-        viewModelScope.launch {
+        startLoad {
             if (current != null) {
                 progressStore.record(
                     current,

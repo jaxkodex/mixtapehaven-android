@@ -45,6 +45,8 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import pe.net.libre.mixtapehaven.R
 import pe.net.libre.mixtapehaven.di.appViewModel
 import androidx.compose.foundation.lazy.LazyRow
@@ -84,6 +86,9 @@ fun HomeScreen(
     val nowPlayingTrack by viewModel.nowPlaying.collectAsState()
     val isPlaying by viewModel.isPlaying.collectAsState()
     val hasDownloads = state.onDevice.isNotEmpty()
+    // Home's own back stack entry, so "still in front of the user" survives navigation, not just
+    // the app being backgrounded.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val snackbarHostState = remember { SnackbarHostState() }
     LaunchedEffect(viewModel) {
         viewModel.snackbarMessages.collect { message -> snackbarHostState.showSnackbar(message) }
@@ -121,7 +126,7 @@ fun HomeScreen(
                     onOpenDownloads = onOpenDownloads,
                     onOpenSettings = onOpenSettings,
                     videoNav = videoNav,
-                    onResumeVideo = { viewModel.resumeVideo(it, videoNav.onResumeVideo) },
+                    onResumeVideo = resumeVideoAction(viewModel, lifecycle, videoNav.onResumeVideo),
                     onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
                     onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
                     onRetry = viewModel::load,
@@ -199,6 +204,31 @@ private data class HomeSectionActions(
 )
 
 /**
+ * A Continue watching tap, with the navigation that follows a *deferred* one gated on [lifecycle].
+ *
+ * A title that needs the server is confirmed against it before the player opens, which is a round
+ * trip, and Home stays composed behind whatever the user opens in the meantime. Navigating on a
+ * late answer would drop the player on top of the screen they moved to, so the tap lapses instead.
+ *
+ * `STARTED` rather than `RESUMED`, because the question is whether Home is still the screen in
+ * front of the user, not whether it holds focus: a back stack entry sits at `STARTED` in
+ * split-screen and mid-transition, and refusing there would make live taps do nothing — the very
+ * thing this rail is meant to stop. Navigation-compose drops a covered entry below `STARTED`, so
+ * the case worth refusing is still refused.
+ */
+private fun resumeVideoAction(
+    viewModel: HomeViewModel,
+    lifecycle: Lifecycle,
+    onResumeVideo: (String) -> Unit,
+): (VideoItem) -> Unit = { video ->
+    viewModel.resumeVideo(
+        video = video,
+        stillInFront = { lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED) },
+        onResume = onResumeVideo,
+    )
+}
+
+/**
  * The library sections of Home, in design order: saved tracks, Continue watching, Movies & shows,
  * and the Recently added grid.
  */
@@ -220,6 +250,7 @@ private fun HomeSections(
             videos = state.continueWatching,
             downloadedIds = state.downloadedVideoIds,
             serverReachable = state.serverReachable,
+            pendingId = state.resumePendingId,
             onVideoClick = actions.onResumeVideo,
         )
     }
@@ -320,7 +351,7 @@ private fun OnDeviceSection(
  *
  * With the server out of reach ([serverReachable] false) the rail keeps listing everything, but
  * titles without a saved copy are marked unplayable rather than left looking like the downloaded
- * ones.
+ * ones. [pendingId] is the one whose tap is currently being confirmed against the server.
  *
  * The plain title (no "See all") matches the design: the rail is the complete list.
  */
@@ -329,6 +360,7 @@ private fun ContinueWatchingSection(
     videos: List<VideoItem>,
     downloadedIds: Set<String>,
     serverReachable: Boolean,
+    pendingId: String?,
     onVideoClick: (VideoItem) -> Unit,
 ) {
     SectionHeader(title = "Continue watching")
@@ -339,6 +371,7 @@ private fun ContinueWatchingSection(
                 video = video,
                 downloaded = downloaded,
                 unavailable = !serverReachable && !downloaded,
+                pending = video.id == pendingId,
                 onClick = { onVideoClick(video) },
             )
         }

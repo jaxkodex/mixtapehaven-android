@@ -4,7 +4,10 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -60,6 +63,12 @@ class HomeViewModel(
          * Starts optimistic so nothing is painted as unplayable before anything has failed.
          */
         val serverReachable: Boolean = true,
+        /**
+         * The Continue watching title whose tap is waiting on a reachability check, if any. The
+         * check can take seconds, and an unmarked card gives a tap nothing to show for itself —
+         * which is the "did that do anything?" this rail is trying to stop causing.
+         */
+        val resumePendingId: String? = null,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -76,6 +85,9 @@ class HomeViewModel(
 
     /** One-shot messages for transient UI feedback (e.g. a Snackbar), not persisted in [state]. */
     val snackbarMessages: Flow<String> = _snackbarMessages.receiveAsFlow()
+
+    /** The reachability check behind the current Continue watching tap; at most one runs. */
+    private var pendingResume: Job? = null
 
     init {
         load()
@@ -217,21 +229,47 @@ class HomeViewModel(
      * A downloaded title never waits on anything. Otherwise the dimmed state is only a belief, so
      * it is confirmed with [ServerAvailability.check] before refusing: a server that came back
      * (VPN reconnected) must play on the first tap, not after a manual reload.
+     *
+     * That check is slow enough to be tapped through, so one runs at a time: a repeat tap on the
+     * title already being checked is dropped rather than queued (four taps used to mean four pings
+     * and the same message four times), and moving to a different title abandons the first.
+     *
+     * [stillInFront] is asked only on that slow path, and only about navigating: an answer can
+     * arrive after the user has moved on, and opening the player over the screen they went to is
+     * worse than letting the tap lapse. The immediate path never consults it — a downloaded title
+     * resumes on the tap, whatever the screen is doing.
      */
-    fun resumeVideo(video: VideoItem, onResume: (String) -> Unit) {
+    fun resumeVideo(video: VideoItem, stillInFront: () -> Boolean = { true }, onResume: (String) -> Unit) {
         val state = _state.value
         if (canPlayNow(video.id, state.serverReachable, state.downloadedVideoIds)) {
             onResume(video.id)
             return
         }
-        viewModelScope.launch {
-            if (serverAvailability.check()) {
-                onResume(video.id)
-                return@launch
+        if (state.resumePendingId == video.id) return
+        pendingResume?.cancel()
+        _state.update { it.copy(resumePendingId = video.id) }
+        // Started only once [pendingResume] holds it, so the check below identifies this job rather
+        // than whatever the field happened to hold when the body first ran.
+        val job = viewModelScope.launch(start = CoroutineStart.LAZY) {
+            try {
+                if (serverAvailability.check()) {
+                    if (stillInFront()) onResume(video.id)
+                    return@launch
+                }
+                diagnostics.log(TAG, "Blocked resume of ${video.id}: server unreachable, no saved copy")
+                _snackbarMessages.send(unavailableMessage(video.title, hasNetwork = serverAvailability.hasNetwork()))
+            } finally {
+                // Keyed on the job, not the id: A -> B -> A within one check window puts the same
+                // id back on screen for a *different* job, and clearing on id alone would take the
+                // spinner off a check that is still running.
+                if (pendingResume == currentCoroutineContext()[Job]) {
+                    pendingResume = null
+                    _state.update { it.copy(resumePendingId = null) }
+                }
             }
-            diagnostics.log(TAG, "Blocked resume of ${video.id}: server unreachable, no saved copy")
-            _snackbarMessages.send(unavailableMessage(video.title, hasNetwork = serverAvailability.hasNetwork()))
         }
+        pendingResume = job
+        job.start()
     }
 
     fun playPause() = playerController.playPause()

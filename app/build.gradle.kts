@@ -25,6 +25,28 @@ android.sourceSets.getByName("androidTest") {
     assets.srcDir("$projectDir/schemas")
 }
 
+// Debug signing settings come from the environment first (CI exports them after decoding the
+// keystore secret) and fall back to a Gradle property, so a local override can live in
+// ~/.gradle/gradle.properties instead of anywhere inside the repo.
+fun debugSigningSetting(envName: String, propertyName: String): String? =
+    providers.environmentVariable(envName)
+        .orElse(providers.gradleProperty(propertyName))
+        .orNull
+        ?.takeIf { it.isNotBlank() }
+
+val debugKeystorePath = debugSigningSetting("MIXTAPE_DEBUG_KEYSTORE", "mixtape.debug.keystore")
+val debugKeystore = debugKeystorePath?.let(::file)
+
+if (debugKeystore != null && !debugKeystore.isFile) {
+    // Falling back here would silently reintroduce the mismatched-signature problem this
+    // config exists to prevent, so a configured-but-missing keystore is a hard error.
+    error(
+        "Debug keystore not found at ${debugKeystore.absolutePath}. " +
+            "Fix or unset MIXTAPE_DEBUG_KEYSTORE / mixtape.debug.keystore. " +
+            "See README.md > Debug signing."
+    )
+}
+
 android {
     namespace = "pe.net.libre.mixtapehaven"
     compileSdk {
@@ -39,6 +61,40 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    signingConfigs {
+        // Without this, AGP signs debug builds with a keystore it generates per machine — and
+        // CI runners are a fresh machine every run — so an APK from a PR build cannot be
+        // installed over a locally built one (INSTALL_FAILED_UPDATE_INCOMPATIBLE), nor over an
+        // APK from the previous CI run. Pointing every build at one shared keystore keeps the
+        // signature stable. The keystore itself stays out of the repo; see README.md.
+        getByName("debug") {
+            if (debugKeystore != null) {
+                storeFile = debugKeystore
+                storePassword =
+                    debugSigningSetting(
+                        "MIXTAPE_DEBUG_KEYSTORE_PASSWORD",
+                        "mixtape.debug.keystore.password"
+                    ) ?: "android"
+                keyAlias =
+                    debugSigningSetting(
+                        "MIXTAPE_DEBUG_KEY_ALIAS",
+                        "mixtape.debug.key.alias"
+                    ) ?: "androiddebugkey"
+                keyPassword =
+                    debugSigningSetting(
+                        "MIXTAPE_DEBUG_KEY_PASSWORD",
+                        "mixtape.debug.key.password"
+                    ) ?: "android"
+            } else {
+                logger.lifecycle(
+                    "No shared debug keystore configured; using the auto-generated one. " +
+                        "APKs from this build may not install over APKs built elsewhere. " +
+                        "See README.md > Debug signing."
+                )
+            }
+        }
     }
 
     buildTypes {

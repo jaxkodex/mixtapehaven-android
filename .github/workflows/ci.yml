@@ -17,6 +17,13 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    # Only needed if the shared debug keystore uses non-default credentials; unset secrets come
+    # through empty and the build falls back to the standard debug key values.
+    env:
+      MIXTAPE_DEBUG_KEYSTORE_PASSWORD: ${{ secrets.DEBUG_KEYSTORE_PASSWORD }}
+      MIXTAPE_DEBUG_KEY_ALIAS: ${{ secrets.DEBUG_KEY_ALIAS }}
+      MIXTAPE_DEBUG_KEY_PASSWORD: ${{ secrets.DEBUG_KEY_PASSWORD }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
@@ -42,6 +49,21 @@ jobs:
           key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
           restore-keys: |
             ${{ runner.os }}-gradle-
+
+      # Signs debug APKs with the project's shared debug key so a build from here installs over
+      # a locally built one. Fork PRs don't get repository secrets, so the secret is optional and
+      # the build falls back to a runner-generated key when it's absent.
+      - name: Decode debug keystore
+        env:
+          DEBUG_KEYSTORE_BASE64: ${{ secrets.DEBUG_KEYSTORE_BASE64 }}
+        run: |
+          if [ -z "$DEBUG_KEYSTORE_BASE64" ]; then
+            echo "::notice::DEBUG_KEYSTORE_BASE64 is not set; this APK is signed with a throwaway key and will not install over other builds."
+            exit 0
+          fi
+          keystore="$RUNNER_TEMP/debug.keystore"
+          printf '%s' "$DEBUG_KEYSTORE_BASE64" | base64 -d > "$keystore"
+          echo "MIXTAPE_DEBUG_KEYSTORE=$keystore" >> "$GITHUB_ENV"
 
       - name: Run Lint
         run: ./gradlew lint

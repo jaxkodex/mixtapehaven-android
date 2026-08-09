@@ -82,6 +82,73 @@ Connect an Android device or start an emulator, then:
 
 Or use the **Run** button in Android Studio.
 
+## Debug signing
+
+By default Android Gradle Plugin signs debug builds with a keystore it generates per machine.
+That means an APK built on your laptop and an APK downloaded from a CI run carry different
+signatures, and Android refuses to install one over the other
+(`INSTALL_FAILED_UPDATE_INCOMPATIBLE`) — you have to uninstall first and lose app data.
+
+This project avoids that by pointing every debug build at one shared keystore. The keystore is
+**not** committed (this repo is public); it lives in a GitHub Actions secret for CI and in a
+local file on each machine.
+
+### One-time: create the keystore
+
+```bash
+keytool -genkeypair -v \
+  -keystore debug.keystore \
+  -storepass android -keypass android \
+  -alias androiddebugkey \
+  -keyalg RSA -keysize 2048 -validity 10950 \
+  -dname "CN=Android Debug,O=Android,C=US"
+```
+
+The standard debug credentials above are what the build assumes. If you use different ones, set
+them via the `MIXTAPE_DEBUG_KEYSTORE_PASSWORD`, `MIXTAPE_DEBUG_KEY_ALIAS` and
+`MIXTAPE_DEBUG_KEY_PASSWORD` environment variables (or the matching
+`mixtape.debug.key*` Gradle properties), and add them as the `DEBUG_KEYSTORE_PASSWORD`,
+`DEBUG_KEY_ALIAS` and `DEBUG_KEY_PASSWORD` repository secrets.
+
+Keep a backup of this file somewhere safe. If it is lost, a replacement key produces a different
+signature and everyone has to uninstall the app once.
+
+### Local setup
+
+Store the keystore outside the repository and point Gradle at it from
+`~/.gradle/gradle.properties`:
+
+```properties
+mixtape.debug.keystore=/absolute/path/to/debug.keystore
+```
+
+An `MIXTAPE_DEBUG_KEYSTORE` environment variable works too and takes precedence. If neither is
+set the build still works — it just falls back to the per-machine key and logs a warning, so
+those APKs won't install over anyone else's.
+
+### CI setup
+
+Add the keystore as a repository secret named `DEBUG_KEYSTORE_BASE64`:
+
+```bash
+base64 -w0 debug.keystore   # macOS: base64 -i debug.keystore
+```
+
+Paste the output into **Settings → Secrets and variables → Actions → New repository secret**.
+The workflow decodes it before building.
+
+Note that pull requests from forks do not receive repository secrets, so their APKs fall back to
+a throwaway key and won't install over a build from `main`. The workflow logs a notice when this
+happens.
+
+### Verifying which key signed an APK
+
+```bash
+$ANDROID_HOME/build-tools/<version>/apksigner verify --print-certs app-debug.apk
+```
+
+Two APKs are interchangeable when their `Signer #1 certificate SHA-256 digest` lines match.
+
 ## Build Commands
 
 ### Testing

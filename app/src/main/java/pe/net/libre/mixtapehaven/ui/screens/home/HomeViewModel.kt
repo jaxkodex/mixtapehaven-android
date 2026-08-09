@@ -23,6 +23,7 @@ import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
 import pe.net.libre.mixtapehaven.data.download.toTrack
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
+import pe.net.libre.mixtapehaven.data.network.ServerAvailability
 import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.RandomWalk
@@ -39,6 +40,7 @@ class HomeViewModel(
     private val videoDownloadManager: VideoDownloadManager,
     private val videoProgressStore: VideoProgressStore,
     private val diagnostics: DiagnosticsLog,
+    private val serverAvailability: ServerAvailability,
 ) : ViewModel() {
 
     data class UiState(
@@ -52,6 +54,12 @@ class HomeViewModel(
         val onDevice: List<Track> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
+        /**
+         * Whether the media server can be reached — not merely whether the device has a network,
+         * since a LAN-only or VPN-gated server is unreachable from a working mobile connection.
+         * Starts optimistic so nothing is painted as unplayable before anything has failed.
+         */
+        val serverReachable: Boolean = true,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -73,6 +81,7 @@ class HomeViewModel(
         load()
         observeDownloads()
         observeContinueWatching()
+        observeServerAvailability()
     }
 
     fun load() {
@@ -91,7 +100,12 @@ class HomeViewModel(
             val continueDeferred = async { runCatching { repository.continueWatching() }.getOrNull() }
             val albumsResult = runCatching { repository.recentlyAddedAlbums() }
             val videos = videosDeferred.await()
-            continueDeferred.await()?.let { serverContinueWatching.value = it }
+            val serverContinue = continueDeferred.await()
+            serverContinue?.let { serverContinueWatching.value = it }
+            // These fetches double as a reachability probe — no extra request needed. All of them
+            // failing is the signal that the server is not answering, whatever the reason (no
+            // network, a LAN-only address from off the LAN, a VPN that is down).
+            serverAvailability.report(albumsResult.isSuccess || serverContinue != null || videos.isNotEmpty())
             albumsResult.fold(
                 onSuccess = { albums ->
                     _state.update { it.copy(userName = userName, albums = albums, videos = videos, loading = false) }
@@ -127,6 +141,19 @@ class HomeViewModel(
                     downloads.filter { it.complete }.map { it.id }.toSet()
             }.collect { (merged, downloadedIds) ->
                 _state.update { it.copy(continueWatching = merged, downloadedVideoIds = downloadedIds) }
+            }
+        }
+    }
+
+    /**
+     * Track server reachability so the Continue watching rail can mark what it cannot play. With no
+     * reachable server the rail still lists everything watched recently, but only downloaded titles
+     * have bytes to play — showing them identically is what made a tap look like it did nothing.
+     */
+    private fun observeServerAvailability() {
+        viewModelScope.launch {
+            serverAvailability.reachable.collect { reachable ->
+                _state.update { it.copy(serverReachable = reachable) }
             }
         }
     }
@@ -180,6 +207,33 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Handle a tap on a Continue watching card: resume [video] through [onResume], or explain why
+     * it cannot play when there is neither a reachable server nor a saved copy.
+     *
+     * Navigating anyway would land on the player's black frame while every stream candidate failed
+     * in turn — the "nothing happened" this replaces.
+     *
+     * A downloaded title never waits on anything. Otherwise the dimmed state is only a belief, so
+     * it is confirmed with [ServerAvailability.check] before refusing: a server that came back
+     * (VPN reconnected) must play on the first tap, not after a manual reload.
+     */
+    fun resumeVideo(video: VideoItem, onResume: (String) -> Unit) {
+        val state = _state.value
+        if (canPlayNow(video.id, state.serverReachable, state.downloadedVideoIds)) {
+            onResume(video.id)
+            return
+        }
+        viewModelScope.launch {
+            if (serverAvailability.check()) {
+                onResume(video.id)
+                return@launch
+            }
+            diagnostics.log(TAG, "Blocked resume of ${video.id}: server unreachable, no saved copy")
+            _snackbarMessages.send(unavailableMessage(video.title, hasNetwork = serverAvailability.hasNetwork()))
+        }
+    }
+
     fun playPause() = playerController.playPause()
 
     fun playNext() = playerController.next()
@@ -201,6 +255,28 @@ class HomeViewModel(
 
 /** How many titles the Continue watching rail shows. */
 private const val CONTINUE_WATCHING_LIMIT = 12
+
+/**
+ * Whether tapping the Continue watching card for [id] can start playback without further checks:
+ * with the server reachable anything streams, without it only a completed download
+ * ([downloadedIds]) has bytes to play.
+ */
+internal fun canPlayNow(
+    id: String,
+    serverReachable: Boolean,
+    downloadedIds: Set<String>,
+): Boolean = serverReachable || id in downloadedIds
+
+/**
+ * Why [title] cannot play. The two cases need different words: with no network the user knows what
+ * to do, whereas "you're online but your server isn't answering" is the LAN-only/VPN case they
+ * would otherwise read as the app being broken.
+ */
+internal fun unavailableMessage(title: String, hasNetwork: Boolean): String = if (hasNetwork) {
+    "$title isn't downloaded, and your server isn't reachable — check your VPN or network"
+} else {
+    "$title isn't downloaded — connect to watch it"
+}
 
 /**
  * Merge the [local] and [server] Continue watching lists into one rail, most recently watched

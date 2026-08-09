@@ -1,5 +1,7 @@
 package pe.net.libre.mixtapehaven.data.playback
 
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import androidx.annotation.OptIn
 import androidx.media3.common.C
@@ -13,6 +15,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.session.MediaSession
 import androidx.media3.session.MediaSessionService
 import okhttp3.OkHttpClient
+import pe.net.libre.mixtapehaven.MainActivity
 
 /** Foreground [MediaSessionService] hosting the single ExoPlayer instance for the app. */
 @OptIn(UnstableApi::class)
@@ -40,7 +43,9 @@ class PlaybackService : MediaSessionService() {
                 }
             },
         )
-        mediaSession = MediaSession.Builder(this, player).build()
+        mediaSession = MediaSession.Builder(this, player)
+            .setSessionActivity(nowPlayingSessionActivity(this))
+            .build()
     }
 
     override fun onGetSession(controllerInfo: MediaSession.ControllerInfo): MediaSession? = mediaSession
@@ -80,3 +85,23 @@ internal fun wakeModeForUri(uri: String?): Int =
     } else {
         C.WAKE_MODE_LOCAL
     }
+
+/**
+ * Where a tap on the media notification — or on the system's Now Playing tile — lands. Without a
+ * session activity media3 builds the notification with no content intent, so tapping it does
+ * nothing at all. [MainActivity] is `singleTask`, so this brings the existing task forward and is
+ * delivered to `onNewIntent` rather than restarting the app.
+ */
+internal fun nowPlayingSessionActivity(context: Context): PendingIntent {
+    val intent = Intent(context, MainActivity::class.java)
+        .setAction(Intent.ACTION_MAIN)
+        .addCategory(Intent.CATEGORY_LAUNCHER)
+        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        .putExtra(MainActivity.EXTRA_OPEN_NOW_PLAYING, true)
+    return PendingIntent.getActivity(
+        context,
+        0,
+        intent,
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+    )
+}

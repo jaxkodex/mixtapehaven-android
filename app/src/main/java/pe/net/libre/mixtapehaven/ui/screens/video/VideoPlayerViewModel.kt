@@ -133,10 +133,17 @@ class VideoPlayerViewModel(
         }
     }
 
+    /**
+     * True while the player holds a prepared item that has not finished: playing, paused, or
+     * buffering. False before the first [prepareCurrentCandidate] and after an error (STATE_IDLE)
+     * or the end of an item (STATE_ENDED).
+     */
+    private fun holdsLiveItem(): Boolean =
+        player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING
+
     /** Recompute [playbackActive] from the player's current intent and state. */
     private fun refreshPlaybackActive() {
-        _playbackActive.value = player.playWhenReady &&
-            (player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING)
+        _playbackActive.value = player.playWhenReady && holdsLiveItem()
     }
 
     init {
@@ -270,10 +277,15 @@ class VideoPlayerViewModel(
     private suspend fun reportProgressLoop() {
         _playbackActive.collectLatest { active ->
             if (!active) {
-                // One report as playback stops, so the resume point lands. STATE_READY excludes the
-                // end-of-item and error transitions, which write their own STOPPED or show a
-                // message, and the initial idle emission before the first item is prepared.
-                if (player.playbackState == Player.STATE_READY) reportProgress(paused = true)
+                // One report as playback stops, so the resume point lands.
+                //
+                // Guarded on the same state pair as the flag itself, not on STATE_READY alone.
+                // Pausing during a rebuffer flips the flag from STATE_BUFFERING, and a READY-only
+                // guard dropped that report for good: the state settling to READY afterwards
+                // recomputes the flag to false, which conflates against the current false and
+                // never re-enters this collector. STATE_IDLE (never prepared, or errored) and
+                // STATE_ENDED stay excluded — those write their own STOPPED or show a message.
+                if (holdsLiveItem()) reportProgress(paused = true)
                 return@collectLatest
             }
             while (currentCoroutineContext().isActive) {

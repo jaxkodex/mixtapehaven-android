@@ -86,10 +86,16 @@ fun VideoPlayerScreen(
                     setShowPreviousButton(false)
                 }
             },
-            // Only while something is actually playing. Pinning this on for as long as the screen
-            // is composed keeps the display — the phone's largest power draw — lit indefinitely
-            // behind a paused video, a "Playback failed" message, or a stream that never resolves.
-            update = { it.keepScreenOn = playbackActive },
+            // Awake while playing, and across the load: the player is STATE_IDLE until prepare(),
+            // so playbackActive alone would let the display sleep through the resolve hop — and
+            // the ON_STOP observer above turns that into a pause the user never asked for.
+            //
+            // What this stops is the display being pinned on for as long as the screen is
+            // composed: behind a paused video, or a "Playback failed" message, both of which can
+            // sit there for hours. A stream stuck buffering still holds it, deliberately — a
+            // rebuffer must not blank the picture — but that ends when the load times out into an
+            // error, which releases it.
+            update = { it.keepScreenOn = playbackActive || buffering },
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )

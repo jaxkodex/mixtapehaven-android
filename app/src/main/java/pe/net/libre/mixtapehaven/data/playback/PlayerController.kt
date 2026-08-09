@@ -108,6 +108,30 @@ class PlayerController(
         }
     }
 
+    /**
+     * Session liveness, kept separate from the progress poll.
+     *
+     * A session that dies mid-playback sends no [Player.Listener] callback, so this used to be
+     * noticed only by the poll loop finding a null controller. That detection cannot live in the
+     * loop any more: the loop is gated on a Now Playing subscriber, which is absent in exactly the
+     * case the service is most likely to be reclaimed — backgrounded and under memory pressure.
+     * Left stuck, [isPlaying] would keep Home's mini-player showing Pause for a player that no
+     * longer exists, and tapping it would do nothing.
+     *
+     * A listener rather than a slow poll: this is an event the session already reports, and a
+     * second timer ticking through backgrounded playback is the cost this change set exists to
+     * remove.
+     */
+    private val controllerListener = object : MediaController.Listener {
+        override fun onDisconnected(controller: MediaController) {
+            // Ignore a stale controller already replaced by reconnect().
+            if (this@PlayerController.controller !== controller) return
+            controller.release()
+            this@PlayerController.controller = null
+            _isPlaying.value = false
+        }
+    }
+
     init {
         // Poll position/duration only while something is playing *and* a screen is displaying it.
         //
@@ -123,13 +147,9 @@ class PlayerController(
                 .collectLatest { shouldPoll ->
                     if (!shouldPoll) return@collectLatest
                     while (currentCoroutineContext().isActive) {
-                        val c = activeController()
-                        if (c == null) {
-                            // Controller lost mid-playback (service killed): stop polling and reset
-                            // the flag, else its conflated true would keep the loop from restarting.
-                            _isPlaying.value = false
-                            break
-                        }
+                        // Backstop only; [controllerListener] owns liveness. Still worth breaking
+                        // on, so a loop that outlives its controller stops rather than spinning.
+                        val c = activeController() ?: break
                         _durationMs.value = c.duration.coerceAtLeast(0)
                         _positionMs.value = c.currentPosition.coerceAtLeast(0)
                         delay(PROGRESS_INTERVAL_MS)
@@ -267,7 +287,9 @@ class PlayerController(
         if (connecting) return
         connecting = true
         val token = SessionToken(appContext, ComponentName(appContext, PlaybackService::class.java))
-        val future = MediaController.Builder(appContext, token).buildAsync()
+        val future = MediaController.Builder(appContext, token)
+            .setListener(controllerListener)
+            .buildAsync()
         future.addListener(
             {
                 connecting = false

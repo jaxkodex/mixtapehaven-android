@@ -59,7 +59,7 @@ fun VideoPlayerScreen(
             it.playerController,
             itemId,
             it.videoSourceResolver,
-            it.networkMonitor,
+            it.serverAvailability,
         )
     }
     val error by viewModel.error.collectAsState()

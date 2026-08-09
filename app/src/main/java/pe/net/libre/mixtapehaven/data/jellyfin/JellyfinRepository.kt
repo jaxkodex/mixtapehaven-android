@@ -11,6 +11,7 @@ import org.jellyfin.sdk.api.client.extensions.genresApi
 import org.jellyfin.sdk.api.client.extensions.itemsApi
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
 import org.jellyfin.sdk.api.client.extensions.playStateApi
+import org.jellyfin.sdk.api.client.extensions.systemApi
 import org.jellyfin.sdk.api.client.extensions.tvShowsApi
 import org.jellyfin.sdk.api.client.extensions.userApi
 import org.jellyfin.sdk.api.client.extensions.userLibraryApi
@@ -86,6 +87,19 @@ class JellyfinRepository(
                 ),
             )
         }
+
+    /**
+     * Whether the configured server answers right now.
+     *
+     * `/System/Ping` is the cheapest endpoint there is and needs no auth, so this stays usable as a
+     * liveness check on the playback path. False when no session has been restored yet, when the
+     * request fails, and — the case device connectivity cannot see — when the server is simply not
+     * routable from the current network (LAN-only, VPN down).
+     */
+    suspend fun pingServer(): Boolean {
+        val client = api ?: return false
+        return runCatching { client.systemApi.getPingSystem() }.isSuccess
+    }
 
     suspend fun signOut() {
         sessionStore.clear()

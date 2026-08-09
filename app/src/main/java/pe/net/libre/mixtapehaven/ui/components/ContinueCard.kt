@@ -50,9 +50,9 @@ private const val UNAVAILABLE_ALPHA = 0.45f
  * A Continue watching card: a 16:9 still with a progress bar pinned to its bottom edge, the title,
  * and a meta line ("S2 E4 · 23 min left"). [downloaded] shows the offline check beside the meta.
  *
- * [unavailable] marks a title that cannot start right now — offline with no saved copy. It is
- * dimmed and says so instead of the time left, because a card that looks identical to a playable
- * one turns a tap into an apparent no-op. It stays clickable so the tap can explain itself.
+ * [unavailable] marks a title that cannot start right now — no reachable server and no saved copy.
+ * It is dimmed and says so instead of the time left, because a card that looks identical to a
+ * playable one turns a tap into an apparent no-op. It stays clickable so the tap can explain itself.
  *
  * Mirrors the "Continue Card" component in happypath.pen.
  */
@@ -72,7 +72,7 @@ fun ContinueCard(
             formatTimeLeft(video.runtimeMs, video.resumePositionMs).ifEmpty { null },
         ).joinToString(" · ")
     }
-    val clickLabel = if (unavailable) "${video.title}, not available offline" else "Resume ${video.title}"
+    val clickLabel = if (unavailable) "${video.title}, not available right now" else "Resume ${video.title}"
     Column(
         modifier = modifier
             .width(CARD_WIDTH)
@@ -139,7 +139,7 @@ private fun ContinueMeta(meta: String, downloaded: Boolean, unavailable: Boolean
         when {
             unavailable -> Icon(
                 Icons.Outlined.CloudOff,
-                contentDescription = "Not available offline",
+                contentDescription = "Not available right now",
                 tint = TextMuted,
                 modifier = Modifier.size(14.dp),
             )

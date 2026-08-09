@@ -22,7 +22,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoPlaybackEvent
-import pe.net.libre.mixtapehaven.data.network.NetworkMonitor
+import pe.net.libre.mixtapehaven.data.network.ServerAvailability
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.model.VideoItem
@@ -44,7 +44,7 @@ class VideoPlayerViewModel(
     musicController: PlayerController,
     itemId: String,
     private val resolveSources: suspend (String) -> List<String>,
-    private val networkMonitor: NetworkMonitor,
+    private val serverAvailability: ServerAvailability,
 ) : ViewModel() {
 
     val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext)
@@ -113,6 +113,16 @@ class VideoPlayerViewModel(
             } else {
                 _buffering.value = false
                 _error.value = error.message ?: "Playback failed"
+                // Every candidate exhausted on a server-backed stream usually means the server went
+                // away mid-playback (VPN dropped, walked off the LAN). Confirm in the background and
+                // swap in the message that names the real problem; the raw one stands until then.
+                if (needsServer(candidates)) {
+                    viewModelScope.launch {
+                        if (!serverAvailability.check()) {
+                            _error.value = unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
+                        }
+                    }
+                }
             }
         }
     }
@@ -160,7 +170,11 @@ class VideoPlayerViewModel(
         val item = resolved.item
         if (item == null) {
             _buffering.value = false
-            _error.value = if (networkMonitor.isOnline()) "Could not load this title" else OFFLINE_MESSAGE
+            _error.value = if (serverAvailability.check()) {
+                "Could not load this title"
+            } else {
+                unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
+            }
             return
         }
         _nowPlaying.value = item
@@ -172,11 +186,12 @@ class VideoPlayerViewModel(
             _error.value = "No playable source for this title"
             return
         }
-        // Every candidate needs the server and there is no network: say so now rather than sit on a
-        // black frame while each one fails its own connection attempt in turn.
-        if (needsNetwork(candidates) && !networkMonitor.isOnline()) {
+        // Every candidate needs a server that isn't answering: say so now rather than sit on a black
+        // frame while each one fails its own connection attempt in turn. The ping is skipped
+        // entirely for a saved copy, so offline playback of a download costs nothing.
+        if (needsServer(candidates) && !serverAvailability.check()) {
             _buffering.value = false
-            _error.value = OFFLINE_MESSAGE
+            _error.value = unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
             return
         }
         prepareCurrentCandidate(startMs = resolved.positionMs)
@@ -310,8 +325,16 @@ class VideoPlayerViewModel(
     }
 }
 
-/** Shown instead of a black frame when a title can only come from an unreachable server. */
-internal const val OFFLINE_MESSAGE = "Not available offline. Download this title to watch it without a connection."
+/**
+ * Shown instead of a black frame when a title can only come from a server that isn't answering.
+ * Having a network but no server is its own case — a LAN-only or VPN-gated server looks like a
+ * broken app unless the message says what is actually wrong.
+ */
+internal fun unreachableMessage(hasNetwork: Boolean): String = if (hasNetwork) {
+    "Can't reach your server. Check your network or VPN, or download this title to watch it offline."
+} else {
+    "Not available offline. Download this title to watch it without a connection."
+}
 
 /**
  * True when none of [candidates] can play without the server.
@@ -320,7 +343,7 @@ internal const val OFFLINE_MESSAGE = "Not available offline. Download this title
  * [pe.net.libre.mixtapehaven.data.download.VideoDownloadManager.localUriFor]); every other
  * candidate is an http(s) stream.
  */
-internal fun needsNetwork(candidates: List<String>): Boolean =
+internal fun needsServer(candidates: List<String>): Boolean =
     candidates.none { it.startsWith("file:", ignoreCase = true) }
 
 /** ExoPlayer reports an unknown duration as [C.TIME_UNSET]; treat that as "not known yet". */

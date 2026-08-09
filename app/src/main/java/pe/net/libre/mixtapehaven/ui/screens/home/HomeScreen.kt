@@ -182,7 +182,7 @@ private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
         it.videoDownloadManager,
         it.videoProgressStore,
         it.diagnosticsLog,
-        it.networkMonitor,
+        it.serverAvailability,
     )
 }
 
@@ -219,7 +219,7 @@ private fun HomeSections(
         ContinueWatchingSection(
             videos = state.continueWatching,
             downloadedIds = state.downloadedVideoIds,
-            online = state.online,
+            serverReachable = state.serverReachable,
             onVideoClick = actions.onResumeVideo,
         )
     }
@@ -318,8 +318,9 @@ private fun OnDeviceSection(
  * Horizontal rail of partially-watched titles. Tapping one resumes it straight in the player
  * rather than opening the detail screen — the whole point of the rail is skipping that hop.
  *
- * With no network ([online] false) the rail keeps listing everything, but titles without a saved
- * copy are marked unplayable rather than left looking like the downloaded ones.
+ * With the server out of reach ([serverReachable] false) the rail keeps listing everything, but
+ * titles without a saved copy are marked unplayable rather than left looking like the downloaded
+ * ones.
  *
  * The plain title (no "See all") matches the design: the rail is the complete list.
  */
@@ -327,7 +328,7 @@ private fun OnDeviceSection(
 private fun ContinueWatchingSection(
     videos: List<VideoItem>,
     downloadedIds: Set<String>,
-    online: Boolean,
+    serverReachable: Boolean,
     onVideoClick: (VideoItem) -> Unit,
 ) {
     SectionHeader(title = "Continue watching")
@@ -337,7 +338,7 @@ private fun ContinueWatchingSection(
             ContinueCard(
                 video = video,
                 downloaded = downloaded,
-                unavailable = !online && !downloaded,
+                unavailable = !serverReachable && !downloaded,
                 onClick = { onVideoClick(video) },
             )
         }

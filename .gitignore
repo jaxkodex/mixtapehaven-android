@@ -16,6 +16,11 @@ local.properties
 
 .kotlin
 
+# Signing keys never belong in the repo. The shared debug keystore lives in a GitHub secret
+# (DEBUG_KEYSTORE_BASE64) and in a local file referenced by mixtape.debug.keystore.
+*.jks
+*.keystore
+
 # Local Claude Code state stays out of the repo, except the shared
 # session-start hook that provisions the Android SDK for Claude Code on the web.
 .claude/*

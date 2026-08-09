@@ -52,6 +52,13 @@ Mixtape Haven is an Android application built with Kotlin and Jetpack Compose. T
 ./gradlew lint
 ```
 
+### Debug signing
+Debug builds are signed with a shared keystore so CI-built and locally built APKs can replace
+each other on a device. The keystore is not in the repo: CI decodes it from the
+`DEBUG_KEYSTORE_BASE64` secret, and local builds resolve it from `MIXTAPE_DEBUG_KEYSTORE` or the
+`mixtape.debug.keystore` Gradle property. When unset the build falls back to AGP's per-machine
+key and warns. See README.md > Debug signing.
+
 ## Architecture
 
 ### UI Layer

@@ -134,10 +134,13 @@ fun VideoPlayerScreen(
 @Composable
 private fun PauseWhenScreenStops(onScreenStopped: () -> Unit) {
     val lifecycleOwner = LocalLifecycleOwner.current
-    val currentCallback by rememberUpdatedState(onScreenStopped)
+    // Read through .value rather than a `by` delegate. Both are the same read; the delegate is
+    // what static analysis flags as an unused variable, because the only use is a getValue call
+    // inside the observer lambda below and that is a hop it does not follow.
+    val currentCallback = rememberUpdatedState(onScreenStopped)
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_STOP) currentCallback()
+            if (event == Lifecycle.Event.ON_STOP) currentCallback.value()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }

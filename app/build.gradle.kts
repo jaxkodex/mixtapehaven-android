@@ -25,16 +25,16 @@ android.sourceSets.getByName("androidTest") {
     assets.srcDir("$projectDir/schemas")
 }
 
-// Debug signing settings come from the environment first (CI exports them after decoding the
+// Signing settings come from the environment first (CI exports them after decoding the
 // keystore secret) and fall back to a Gradle property, so a local override can live in
 // ~/.gradle/gradle.properties instead of anywhere inside the repo.
-fun debugSigningSetting(envName: String, propertyName: String): String? =
+fun signingSetting(envName: String, propertyName: String): String? =
     providers.environmentVariable(envName)
         .orElse(providers.gradleProperty(propertyName))
         .orNull
         ?.takeIf { it.isNotBlank() }
 
-val debugKeystorePath = debugSigningSetting("MIXTAPE_DEBUG_KEYSTORE", "mixtape.debug.keystore")
+val debugKeystorePath = signingSetting("MIXTAPE_DEBUG_KEYSTORE", "mixtape.debug.keystore")
 val debugKeystore = debugKeystorePath?.let(::file)
 
 if (debugKeystore != null && !debugKeystore.isFile) {
@@ -44,6 +44,17 @@ if (debugKeystore != null && !debugKeystore.isFile) {
         "Debug keystore not found at ${debugKeystore.absolutePath}. " +
             "Fix or unset MIXTAPE_DEBUG_KEYSTORE / mixtape.debug.keystore. " +
             "See README.md > Debug signing."
+    )
+}
+
+val releaseKeystorePath = signingSetting("MIXTAPE_RELEASE_KEYSTORE", "mixtape.release.keystore")
+val releaseKeystore = releaseKeystorePath?.let(::file)
+
+if (releaseKeystore != null && !releaseKeystore.isFile) {
+    error(
+        "Release keystore not found at ${releaseKeystore.absolutePath}. " +
+            "Fix or unset MIXTAPE_RELEASE_KEYSTORE / mixtape.release.keystore. " +
+            "See README.md > Release signing."
     )
 }
 
@@ -57,8 +68,11 @@ android {
         applicationId = "pe.net.libre.mixtapehaven"
         minSdk = 33
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        // F-Droid builds this file from source at the release tag and compares the result to the
+        // published APK, so the version must be literal here — deriving it from the environment
+        // would make an F-Droid build disagree with the binary it is verifying.
+        versionCode = 2
+        versionName = "1.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -73,17 +87,17 @@ android {
             if (debugKeystore != null) {
                 storeFile = debugKeystore
                 storePassword =
-                    debugSigningSetting(
+                    signingSetting(
                         "MIXTAPE_DEBUG_KEYSTORE_PASSWORD",
                         "mixtape.debug.keystore.password"
                     ) ?: "android"
                 keyAlias =
-                    debugSigningSetting(
+                    signingSetting(
                         "MIXTAPE_DEBUG_KEY_ALIAS",
                         "mixtape.debug.key.alias"
                     ) ?: "androiddebugkey"
                 keyPassword =
-                    debugSigningSetting(
+                    signingSetting(
                         "MIXTAPE_DEBUG_KEY_PASSWORD",
                         "mixtape.debug.key.password"
                     ) ?: "android"
@@ -95,6 +109,31 @@ android {
                 )
             }
         }
+
+        // Unlike debug, there is no acceptable fallback key here: F-Droid pins this
+        // certificate as AllowedAPKSigningKeys, and Android will not install an update signed
+        // by anything else. With no keystore configured the config is simply absent and the
+        // release build stays unsigned, which the release workflow treats as a failure.
+        if (releaseKeystore != null) {
+            create("release") {
+                storeFile = releaseKeystore
+                storePassword =
+                    signingSetting(
+                        "MIXTAPE_RELEASE_KEYSTORE_PASSWORD",
+                        "mixtape.release.keystore.password"
+                    )
+                keyAlias =
+                    signingSetting(
+                        "MIXTAPE_RELEASE_KEY_ALIAS",
+                        "mixtape.release.key.alias"
+                    )
+                keyPassword =
+                    signingSetting(
+                        "MIXTAPE_RELEASE_KEY_PASSWORD",
+                        "mixtape.release.key.password"
+                    )
+            }
+        }
     }
 
     buildTypes {
@@ -104,6 +143,7 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            signingConfig = signingConfigs.findByName("release")
         }
     }
     compileOptions {

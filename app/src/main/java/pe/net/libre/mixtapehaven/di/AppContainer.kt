@@ -13,6 +13,9 @@ import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinVideoLibrary
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
+import pe.net.libre.mixtapehaven.data.network.AndroidNetworkMonitor
+import pe.net.libre.mixtapehaven.data.network.NetworkMonitor
+import pe.net.libre.mixtapehaven.data.network.ServerAvailability
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.data.session.SessionStore
@@ -32,10 +35,20 @@ class AppContainer(context: Context) {
     /** Ring buffer of recent diagnostic events, exportable from Settings > Share diagnostics. */
     val diagnosticsLog: DiagnosticsLog = DiagnosticsLog()
 
+    /** Live connectivity — the first gate on whether anything can stream. */
+    val networkMonitor: NetworkMonitor = AndroidNetworkMonitor(appContext)
+
     val repository: JellyfinRepository = JellyfinRepository(jellyfin, sessionStore)
 
     /** Video browse/search queries, kept out of [repository] so it stays auth + playback. */
     val videoLibrary: VideoLibrarySource = JellyfinVideoLibrary(repository)
+
+    /**
+     * Whether the server itself is reachable, which connectivity alone cannot answer: a LAN-only or
+     * VPN-gated server is unreachable from a working mobile connection.
+     */
+    val serverAvailability: ServerAvailability =
+        ServerAvailability(networkMonitor, repository::pingServer)
 
     val downloadSettingsStore: DownloadSettingsStore = DownloadSettingsStore(appContext)
 

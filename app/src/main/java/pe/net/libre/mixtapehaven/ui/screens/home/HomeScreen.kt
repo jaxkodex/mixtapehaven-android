@@ -121,6 +121,7 @@ fun HomeScreen(
                     onOpenDownloads = onOpenDownloads,
                     onOpenSettings = onOpenSettings,
                     videoNav = videoNav,
+                    onResumeVideo = { viewModel.resumeVideo(it, videoNav.onResumeVideo) },
                     onPlayTrack = { viewModel.playOnDevice(it); onOpenNowPlaying() },
                     onPlayAlbum = { viewModel.playAlbum(it); onOpenNowPlaying() },
                     onRetry = viewModel::load,
@@ -181,6 +182,7 @@ private fun rememberHomeViewModel(): HomeViewModel = appViewModel {
         it.videoDownloadManager,
         it.videoProgressStore,
         it.diagnosticsLog,
+        it.serverAvailability,
     )
 }
 
@@ -189,6 +191,8 @@ private data class HomeSectionActions(
     val onOpenDownloads: () -> Unit,
     val onOpenSettings: () -> Unit,
     val videoNav: VideoNavActions,
+    /** Continue watching taps go through the ViewModel, which may refuse them offline. */
+    val onResumeVideo: (VideoItem) -> Unit,
     val onPlayTrack: (Track) -> Unit,
     val onPlayAlbum: (Album) -> Unit,
     val onRetry: () -> Unit,
@@ -215,7 +219,8 @@ private fun HomeSections(
         ContinueWatchingSection(
             videos = state.continueWatching,
             downloadedIds = state.downloadedVideoIds,
-            onVideoClick = { actions.videoNav.onResumeVideo(it.id) },
+            serverReachable = state.serverReachable,
+            onVideoClick = actions.onResumeVideo,
         )
     }
 
@@ -313,20 +318,27 @@ private fun OnDeviceSection(
  * Horizontal rail of partially-watched titles. Tapping one resumes it straight in the player
  * rather than opening the detail screen — the whole point of the rail is skipping that hop.
  *
+ * With the server out of reach ([serverReachable] false) the rail keeps listing everything, but
+ * titles without a saved copy are marked unplayable rather than left looking like the downloaded
+ * ones.
+ *
  * The plain title (no "See all") matches the design: the rail is the complete list.
  */
 @Composable
 private fun ContinueWatchingSection(
     videos: List<VideoItem>,
     downloadedIds: Set<String>,
+    serverReachable: Boolean,
     onVideoClick: (VideoItem) -> Unit,
 ) {
     SectionHeader(title = "Continue watching")
     LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         items(videos, key = { it.id }) { video ->
+            val downloaded = video.id in downloadedIds
             ContinueCard(
                 video = video,
-                downloaded = video.id in downloadedIds,
+                downloaded = downloaded,
+                unavailable = !serverReachable && !downloaded,
                 onClick = { onVideoClick(video) },
             )
         }

@@ -22,6 +22,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoPlaybackEvent
+import pe.net.libre.mixtapehaven.data.network.ServerAvailability
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.model.VideoItem
@@ -43,6 +44,7 @@ class VideoPlayerViewModel(
     musicController: PlayerController,
     itemId: String,
     private val resolveSources: suspend (String) -> List<String>,
+    private val serverAvailability: ServerAvailability,
 ) : ViewModel() {
 
     val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext)
@@ -111,6 +113,16 @@ class VideoPlayerViewModel(
             } else {
                 _buffering.value = false
                 _error.value = error.message ?: "Playback failed"
+                // Every candidate exhausted on a server-backed stream usually means the server went
+                // away mid-playback (VPN dropped, walked off the LAN). Confirm in the background and
+                // swap in the message that names the real problem; the raw one stands until then.
+                if (needsServer(candidates)) {
+                    viewModelScope.launch {
+                        if (!serverAvailability.check()) {
+                            _error.value = unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
+                        }
+                    }
+                }
             }
         }
     }
@@ -157,22 +169,44 @@ class VideoPlayerViewModel(
         val resolved = progressStore.resolvePlayback(id)
         val item = resolved.item
         if (item == null) {
-            _buffering.value = false
-            _error.value = "Could not load this title"
+            // An item that will not resolve is usually the server, not the item: check before
+            // blaming the title, so the LAN-only/VPN case is named for what it is.
+            val reachable = serverAvailability.check()
+            fail(if (reachable) "Could not load this title" else unreachableMessage(serverAvailability.hasNetwork()))
             return
         }
         _nowPlaying.value = item
         candidates = resolveSources(id)
         candidateIndex = 0
         reachedReady = false
-        if (candidates.isEmpty()) {
-            _buffering.value = false
-            _error.value = "No playable source for this title"
+        val blocker = playbackBlocker()
+        if (blocker != null) {
+            fail(blocker)
             return
         }
         prepareCurrentCandidate(startMs = resolved.positionMs)
         progressStore.record(item, resolved.positionMs, player.duration.durationOrZero(), VideoPlaybackEvent.STARTED)
         _upNext.value = loadUpNext(item)
+    }
+
+    /**
+     * Why the resolved [candidates] cannot play, or null when they can.
+     *
+     * The server check is what keeps the screen from sitting on a black frame while each candidate
+     * fails its own connection attempt in turn. It is skipped entirely for a saved copy, so offline
+     * playback of a download costs nothing.
+     */
+    private suspend fun playbackBlocker(): String? = when {
+        candidates.isEmpty() -> "No playable source for this title"
+        needsServer(candidates) && !serverAvailability.check() ->
+            unreachableMessage(hasNetwork = serverAvailability.hasNetwork())
+        else -> null
+    }
+
+    /** End the load with [message] on screen; the buffering indicator must not outlive it. */
+    private fun fail(message: String) {
+        _buffering.value = false
+        _error.value = message
     }
 
     /**
@@ -300,6 +334,27 @@ class VideoPlayerViewModel(
         const val PROGRESS_REPORT_MS = 10_000L
     }
 }
+
+/**
+ * Shown instead of a black frame when a title can only come from a server that isn't answering.
+ * Having a network but no server is its own case — a LAN-only or VPN-gated server looks like a
+ * broken app unless the message says what is actually wrong.
+ */
+internal fun unreachableMessage(hasNetwork: Boolean): String = if (hasNetwork) {
+    "Can't reach your server. Check your network or VPN, or download this title to watch it offline."
+} else {
+    "Not available offline. Download this title to watch it without a connection."
+}
+
+/**
+ * True when none of [candidates] can play without the server.
+ *
+ * A saved copy is handed to the player as a `file://` uri (see
+ * [pe.net.libre.mixtapehaven.data.download.VideoDownloadManager.localUriFor]); every other
+ * candidate is an http(s) stream.
+ */
+internal fun needsServer(candidates: List<String>): Boolean =
+    candidates.none { it.startsWith("file:", ignoreCase = true) }
 
 /** ExoPlayer reports an unknown duration as [C.TIME_UNSET]; treat that as "not known yet". */
 private fun Long.durationOrZero(): Long = if (this == C.TIME_UNSET || this < 0L) 0L else this

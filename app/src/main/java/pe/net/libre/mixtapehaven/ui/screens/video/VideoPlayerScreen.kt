@@ -64,6 +64,7 @@ fun VideoPlayerScreen(
     val error by viewModel.error.collectAsState()
     val upNext by viewModel.upNext.collectAsState()
     val buffering by viewModel.buffering.collectAsState()
+    val playbackActive by viewModel.playbackActive.collectAsState()
 
     // No background video service exists, so pause when the screen stops (Home button, lock);
     // otherwise audio would keep playing invisibly and the progress loop would churn the radio.
@@ -83,9 +84,12 @@ fun VideoPlayerScreen(
                     player = viewModel.player
                     setShowNextButton(false)
                     setShowPreviousButton(false)
-                    keepScreenOn = true
                 }
             },
+            // Only while something is actually playing. Pinning this on for as long as the screen
+            // is composed keeps the display — the phone's largest power draw — lit indefinitely
+            // behind a paused video, a "Playback failed" message, or a stream that never resolves.
+            update = { it.keepScreenOn = playbackActive },
             onRelease = { it.player = null },
             modifier = Modifier.fillMaxSize(),
         )

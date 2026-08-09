@@ -18,6 +18,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
@@ -68,6 +69,18 @@ class VideoPlayerViewModel(
     private val _buffering = MutableStateFlow(true)
     val buffering: StateFlow<Boolean> = _buffering.asStateFlow()
 
+    /**
+     * True while playback is live *or* about to be: playing, or rebuffering with the intent to
+     * resume. False once paused, ended, or errored.
+     *
+     * Two things hang off this, and both are power decisions rather than display state. The screen
+     * is held awake only while it is true, and [reportProgressLoop] only ticks while it is true.
+     * Buffering counts as live deliberately — a two-second rebuffer must not blank the screen —
+     * whereas [Player.isPlaying] would drop out for exactly that window.
+     */
+    private val _playbackActive = MutableStateFlow(false)
+    val playbackActive: StateFlow<Boolean> = _playbackActive.asStateFlow()
+
     /** The item currently on screen; changes when autoplay advances to the next episode. */
     private val _nowPlaying = MutableStateFlow<VideoItem?>(null)
     val nowPlaying: StateFlow<VideoItem?> = _nowPlaying.asStateFlow()
@@ -84,6 +97,7 @@ class VideoPlayerViewModel(
 
     private val listener = object : Player.Listener {
         override fun onPlaybackStateChanged(playbackState: Int) {
+            refreshPlaybackActive()
             when (playbackState) {
                 Player.STATE_BUFFERING -> _buffering.value = true
                 Player.STATE_READY -> {
@@ -99,6 +113,10 @@ class VideoPlayerViewModel(
             }
         }
 
+        // playWhenReady moves independently of the playback state — pausing mid-buffer changes only
+        // this — so both callbacks have to recompute the flag.
+        override fun onPlayWhenReadyChanged(playWhenReady: Boolean, reason: Int) = refreshPlaybackActive()
+
         override fun onPlayerError(error: PlaybackException) {
             // Direct play failed (e.g. a codec the device can't decode): fall through to the
             // transcoded candidate, keeping the position already reached.
@@ -113,6 +131,12 @@ class VideoPlayerViewModel(
                 _error.value = error.message ?: "Playback failed"
             }
         }
+    }
+
+    /** Recompute [playbackActive] from the player's current intent and state. */
+    private fun refreshPlaybackActive() {
+        _playbackActive.value = player.playWhenReady &&
+            (player.playbackState == Player.STATE_READY || player.playbackState == Player.STATE_BUFFERING)
     }
 
     init {
@@ -235,22 +259,28 @@ class VideoPlayerViewModel(
 
     /**
      * Report progress every [PROGRESS_REPORT_MS] while playing, plus exactly one paused report per
-     * pause (so the resume point lands) — then stay quiet to avoid indefinite idle network churn.
+     * pause (so the resume point lands) — then stay quiet.
+     *
+     * Gated on [playbackActive] rather than looping unconditionally: the ViewModel outlives the
+     * visible screen (backgrounding the app only pauses, it does not pop the back stack entry), so
+     * an unconditional loop keeps waking the CPU every ten seconds for as long as the player is on
+     * the stack — after a pause, after a terminal error, and for a video that ended with nothing to
+     * play next. [collectLatest] suspends the loop outright in all of those.
      */
     private suspend fun reportProgressLoop() {
-        var reportedPause = false
-        while (currentCoroutineContext().isActive) {
-            delay(PROGRESS_REPORT_MS)
-            val ready = player.playbackState == Player.STATE_READY
-            when {
-                ready && player.isPlaying -> {
-                    reportedPause = false
-                    reportProgress(paused = false)
-                }
-                ready && !reportedPause -> {
-                    reportedPause = true
-                    reportProgress(paused = true)
-                }
+        _playbackActive.collectLatest { active ->
+            if (!active) {
+                // One report as playback stops, so the resume point lands. STATE_READY excludes the
+                // end-of-item and error transitions, which write their own STOPPED or show a
+                // message, and the initial idle emission before the first item is prepared.
+                if (player.playbackState == Player.STATE_READY) reportProgress(paused = true)
+                return@collectLatest
+            }
+            while (currentCoroutineContext().isActive) {
+                delay(PROGRESS_REPORT_MS)
+                // False during a mid-playback rebuffer, which keeps the flag up but has no new
+                // position worth reporting.
+                if (player.isPlaying) reportProgress(paused = false)
             }
         }
     }

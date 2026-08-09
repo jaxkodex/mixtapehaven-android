@@ -149,6 +149,46 @@ $ANDROID_HOME/build-tools/<version>/apksigner verify --print-certs app-debug.apk
 
 Two APKs are interchangeable when their `Signer #1 certificate SHA-256 digest` lines match.
 
+## Release signing
+
+Release builds use a separate keystore from the debug one, configured the same way — an
+`MIXTAPE_RELEASE_KEYSTORE` environment variable or a `mixtape.release.keystore` Gradle property,
+with `MIXTAPE_RELEASE_KEYSTORE_PASSWORD`, `MIXTAPE_RELEASE_KEY_ALIAS` and
+`MIXTAPE_RELEASE_KEY_PASSWORD` for the credentials.
+
+There is no fallback here. When no release keystore is configured the signing config is absent
+and `assembleRelease` produces `app-release-unsigned.apk`, because F-Droid pins this app's
+signing certificate (`AllowedAPKSigningKeys` in
+[fdroiddata](https://gitlab.com/fdroid/fdroiddata)'s `metadata/pe.net.libre.mixtapehaven.yml`)
+and Android refuses to install an update signed by a different key. Losing this keystore means
+users must uninstall and reinstall, and F-Droid's metadata has to be updated.
+
+For CI, add the keystore and its credentials as the `RELEASE_KEYSTORE_BASE64`,
+`RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` repository secrets,
+the same way as the debug ones above.
+
+## Cutting a release
+
+1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`. Both are literal values on
+   purpose: F-Droid rebuilds the app from source at the release tag and compares the result to
+   the published APK, so a version taken from the environment would not match.
+2. Add the release notes as `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
+   F-Droid displays this file as the changelog.
+3. Merge that to `main`, then tag it and push the tag:
+
+   ```bash
+   git tag v1.1
+   git push origin v1.1
+   ```
+
+The `Release` workflow then builds the signed APK, verifies that its version matches the tag and
+that it carries the expected signing certificate, and publishes it to the GitHub release as
+`app-release.apk` — the exact filename F-Droid downloads.
+
+Finally, update `metadata/pe.net.libre.mixtapehaven.yml` in fdroiddata with the new
+`versionName`, `versionCode`, `CurrentVersion` and `CurrentVersionCode`, and point the build at
+the tag (`commit: v1.1`) rather than a raw commit hash.
+
 ## Build Commands
 
 ### Testing

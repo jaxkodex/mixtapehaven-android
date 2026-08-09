@@ -1,0 +1,5 @@
+- Video player shows a buffering indicator instead of a frozen frame
+- Continue watching marks titles that can't play right now, and says why
+- Tapping the now playing notification reopens the app on the right screen
+- Fixed battery drain from wake locks and polling that kept running in the background
+- Debug builds are signed with a shared key so they install over each other

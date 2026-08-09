@@ -54,18 +54,24 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun readPendingRoute(intent: Intent) {
-        if (intent.getBooleanExtra(EXTRA_OPEN_NOW_PLAYING, false)) {
-            // Consume it: [setIntent] retains this intent, so leaving the extra in place would
-            // replay the request the next time the activity is recreated from it.
-            intent.removeExtra(EXTRA_OPEN_NOW_PLAYING)
-            _pendingRoute.value = Routes.NOW_PLAYING
-        }
+        consumeNowPlayingRequest(intent)?.let { _pendingRoute.value = it }
     }
 
     companion object {
         /** Set by the playback notification's content intent to open Now Playing on arrival. */
         const val EXTRA_OPEN_NOW_PLAYING = "pe.net.libre.mixtapehaven.OPEN_NOW_PLAYING"
     }
+}
+
+/**
+ * The route [intent] asks to open, or null if it carries no request. Reading is destructive: the
+ * extra is removed, because [MainActivity.setIntent] retains the intent and the system replays it
+ * whenever the activity is recreated from it — a second read must not re-navigate the user.
+ */
+internal fun consumeNowPlayingRequest(intent: Intent): String? {
+    if (!intent.getBooleanExtra(MainActivity.EXTRA_OPEN_NOW_PLAYING, false)) return null
+    intent.removeExtra(MainActivity.EXTRA_OPEN_NOW_PLAYING)
+    return Routes.NOW_PLAYING
 }
 
 @Composable

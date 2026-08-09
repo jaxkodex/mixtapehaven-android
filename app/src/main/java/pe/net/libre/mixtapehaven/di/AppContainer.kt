@@ -13,6 +13,8 @@ import pe.net.libre.mixtapehaven.data.diagnostics.DiagnosticsLog
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinVideoLibrary
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
+import pe.net.libre.mixtapehaven.data.network.AndroidNetworkMonitor
+import pe.net.libre.mixtapehaven.data.network.NetworkMonitor
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.data.session.SessionStore
@@ -31,6 +33,9 @@ class AppContainer(context: Context) {
 
     /** Ring buffer of recent diagnostic events, exportable from Settings > Share diagnostics. */
     val diagnosticsLog: DiagnosticsLog = DiagnosticsLog()
+
+    /** Live connectivity, so the UI can tell apart "streamable" from "saved on this device". */
+    val networkMonitor: NetworkMonitor = AndroidNetworkMonitor(appContext)
 
     val repository: JellyfinRepository = JellyfinRepository(jellyfin, sessionStore)
 

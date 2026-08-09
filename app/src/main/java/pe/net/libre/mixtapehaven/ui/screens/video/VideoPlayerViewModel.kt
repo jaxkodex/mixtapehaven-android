@@ -22,6 +22,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoPlaybackEvent
+import pe.net.libre.mixtapehaven.data.network.NetworkMonitor
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.VideoProgressStore
 import pe.net.libre.mixtapehaven.model.VideoItem
@@ -43,6 +44,7 @@ class VideoPlayerViewModel(
     musicController: PlayerController,
     itemId: String,
     private val resolveSources: suspend (String) -> List<String>,
+    private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     val player: ExoPlayer = ExoPlayer.Builder(context.applicationContext)
@@ -158,7 +160,7 @@ class VideoPlayerViewModel(
         val item = resolved.item
         if (item == null) {
             _buffering.value = false
-            _error.value = "Could not load this title"
+            _error.value = if (networkMonitor.isOnline()) "Could not load this title" else OFFLINE_MESSAGE
             return
         }
         _nowPlaying.value = item
@@ -168,6 +170,13 @@ class VideoPlayerViewModel(
         if (candidates.isEmpty()) {
             _buffering.value = false
             _error.value = "No playable source for this title"
+            return
+        }
+        // Every candidate needs the server and there is no network: say so now rather than sit on a
+        // black frame while each one fails its own connection attempt in turn.
+        if (needsNetwork(candidates) && !networkMonitor.isOnline()) {
+            _buffering.value = false
+            _error.value = OFFLINE_MESSAGE
             return
         }
         prepareCurrentCandidate(startMs = resolved.positionMs)
@@ -300,6 +309,19 @@ class VideoPlayerViewModel(
         const val PROGRESS_REPORT_MS = 10_000L
     }
 }
+
+/** Shown instead of a black frame when a title can only come from an unreachable server. */
+internal const val OFFLINE_MESSAGE = "Not available offline. Download this title to watch it without a connection."
+
+/**
+ * True when none of [candidates] can play without the server.
+ *
+ * A saved copy is handed to the player as a `file://` uri (see
+ * [pe.net.libre.mixtapehaven.data.download.VideoDownloadManager.localUriFor]); every other
+ * candidate is an http(s) stream.
+ */
+internal fun needsNetwork(candidates: List<String>): Boolean =
+    candidates.none { it.startsWith("file:", ignoreCase = true) }
 
 /** ExoPlayer reports an unknown duration as [C.TIME_UNSET]; treat that as "not known yet". */
 private fun Long.durationOrZero(): Long = if (this == C.TIME_UNSET || this < 0L) 0L else this

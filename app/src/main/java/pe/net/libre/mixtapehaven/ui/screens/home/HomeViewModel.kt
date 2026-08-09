@@ -23,6 +23,7 @@ import pe.net.libre.mixtapehaven.data.download.VideoDownloadManager
 import pe.net.libre.mixtapehaven.data.download.toTrack
 import pe.net.libre.mixtapehaven.data.jellyfin.JellyfinRepository
 import pe.net.libre.mixtapehaven.data.jellyfin.VideoLibrarySource
+import pe.net.libre.mixtapehaven.data.network.NetworkMonitor
 import pe.net.libre.mixtapehaven.data.playback.PlaybackSource
 import pe.net.libre.mixtapehaven.data.playback.PlayerController
 import pe.net.libre.mixtapehaven.data.playback.RandomWalk
@@ -39,6 +40,7 @@ class HomeViewModel(
     private val videoDownloadManager: VideoDownloadManager,
     private val videoProgressStore: VideoProgressStore,
     private val diagnostics: DiagnosticsLog,
+    private val networkMonitor: NetworkMonitor,
 ) : ViewModel() {
 
     data class UiState(
@@ -52,6 +54,11 @@ class HomeViewModel(
         val onDevice: List<Track> = emptyList(),
         val loading: Boolean = true,
         val error: String? = null,
+        /**
+         * Whether the device has a network. Starts optimistic so the rail is not briefly painted as
+         * unplayable before the first connectivity emission lands.
+         */
+        val online: Boolean = true,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -73,6 +80,7 @@ class HomeViewModel(
         load()
         observeDownloads()
         observeContinueWatching()
+        observeConnectivity()
     }
 
     fun load() {
@@ -131,6 +139,17 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Track connectivity so the Continue watching rail can mark what it cannot play. Without a
+     * network the rail still lists everything watched recently, but only downloaded titles have
+     * bytes to play — showing them identically is what made a tap look like it did nothing.
+     */
+    private fun observeConnectivity() {
+        viewModelScope.launch {
+            networkMonitor.online.collect { online -> _state.update { it.copy(online = online) } }
+        }
+    }
+
     /** Keep the "On your device" section in sync with the offline library. */
     private fun observeDownloads() {
         viewModelScope.launch {
@@ -180,6 +199,25 @@ class HomeViewModel(
         }
     }
 
+    /**
+     * Handle a tap on a Continue watching card: resume [video] through [onResume], or explain why
+     * it cannot play when there is neither a network nor a saved copy.
+     *
+     * Navigating anyway would land on the player's black frame while every stream candidate failed
+     * in turn — the "nothing happened" this replaces.
+     */
+    fun resumeVideo(video: VideoItem, onResume: (String) -> Unit) {
+        val state = _state.value
+        if (canResumeOffline(video.id, state.online, state.downloadedVideoIds)) {
+            onResume(video.id)
+            return
+        }
+        diagnostics.log(TAG, "Blocked offline resume of ${video.id} (no saved copy)")
+        viewModelScope.launch {
+            _snackbarMessages.send("${video.title} isn't downloaded — connect to watch it")
+        }
+    }
+
     fun playPause() = playerController.playPause()
 
     fun playNext() = playerController.next()
@@ -201,6 +239,16 @@ class HomeViewModel(
 
 /** How many titles the Continue watching rail shows. */
 private const val CONTINUE_WATCHING_LIMIT = 12
+
+/**
+ * Whether tapping the Continue watching card for [id] can actually start playback: online anything
+ * streams, offline only a completed download ([downloadedIds]) has bytes to play.
+ */
+internal fun canResumeOffline(
+    id: String,
+    online: Boolean,
+    downloadedIds: Set<String>,
+): Boolean = online || id in downloadedIds
 
 /**
  * Merge the [local] and [server] Continue watching lists into one rail, most recently watched

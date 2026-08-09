@@ -78,6 +78,6 @@ class AndroidNetworkMonitor(context: Context) : NetworkMonitor {
         // No connectivity service: assume online rather than lock the user out of streaming.
         val manager = connectivityManager ?: return true
         val capabilities = manager.activeNetwork?.let(manager::getNetworkCapabilities)
-        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        return capabilities?.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) ?: false
     }
 }

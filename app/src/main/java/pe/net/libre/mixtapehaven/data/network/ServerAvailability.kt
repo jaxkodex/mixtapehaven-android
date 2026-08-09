@@ -93,14 +93,17 @@ class ServerAvailability(
 
     /** One ping, recorded either way. Callers hold [pingLock]. */
     private suspend fun pingNow(): Boolean {
-        val answered = withTimeoutOrNull(PING_TIMEOUT_MS) { runCatching { ping() }.getOrDefault(false) } == true
+        // Running out of the budget (null) is as good as a refusal: the server did not answer.
+        val answered = withTimeoutOrNull(PING_TIMEOUT_MS) { runCatching { ping() }.getOrDefault(false) } ?: false
         if (answered) markReachable() else markUnreachable()
         return answered
     }
 
     /** True when the server answered recently enough that re-asking would be waste. */
-    private fun hasFreshSuccess(): Boolean =
-        _reachable.value && lastSuccessAtMs?.let { now() - it < FRESH_MS } == true
+    private fun hasFreshSuccess(): Boolean {
+        val last = lastSuccessAtMs ?: return false
+        return _reachable.value && now() - last < FRESH_MS
+    }
 
     private fun markReachable() {
         lastSuccessAtMs = now()

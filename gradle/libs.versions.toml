@@ -25,7 +25,7 @@ detekt = "1.23.8"
 detektCompose = "0.6.3"
 jellyfin = "1.8.12"
 slf4j = "2.0.18"
-robolectric = "4.16"
+robolectric = "4.16.1"
 androidxTestCore = "1.7.0"
 
 [libraries]

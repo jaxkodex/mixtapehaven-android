@@ -32,7 +32,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         // Only on a fresh launch. A non-null savedInstanceState means the activity is being
-        // recreated (rotation, or Recents after a process kill), and the launch intent the system
+        // recreated (Recents after a process kill, or a config change outside the manifest's
+        // configChanges list — rotation is handled in place), and the launch intent the system
         // replays still carries the extra — honouring it would yank the user back to Now Playing.
         if (savedInstanceState == null) readPendingRoute(intent)
         setContent {

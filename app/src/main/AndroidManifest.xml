@@ -20,8 +20,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.Mixtape">
+        <!-- Orientation and uiMode changes relayout in place instead of recreating the activity.
+             The player screen holds the window in landscape, and a recreation around that flip
+             would fire ON_STOP — which PauseWhenScreenStops turns into a pause the user never
+             asked for — and tear the video surface down mid-frame. Compose picks up the new
+             configuration on its own; uiMode is included because the theme is fixed dark, so a
+             dark-mode toggle mid-video would otherwise recreate for no visible reason. -->
         <activity
             android:name=".MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboardHidden|uiMode"
             android:exported="true"
             android:label="@string/app_name"
             android:launchMode="singleTask"

@@ -1,5 +1,8 @@
 package pe.net.libre.mixtapehaven.ui.screens.video
 
+import android.app.Activity
+import android.content.pm.ActivityInfo
+import androidx.activity.compose.LocalActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -69,6 +72,7 @@ fun VideoPlayerScreen(
     val playbackActive by viewModel.playbackActive.collectAsState()
 
     PauseWhenScreenStops(viewModel::onScreenStopped)
+    LandscapeWhilePlaying(LocalActivity.current)
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
         AndroidView(
@@ -144,6 +148,29 @@ private fun PauseWhenScreenStops(onScreenStopped: () -> Unit) {
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+}
+
+/**
+ * Holds the window in landscape — either side, following the sensor — for as long as the player is
+ * composed, and hands orientation back to the system on the way out.
+ *
+ * SENSOR_LANDSCAPE is deliberate over plain LANDSCAPE: the sensor picks either side, so the picture
+ * stays upright however the phone is turned, and it overrides the system rotation lock, so starting
+ * a video must not begin with a detour into Quick Settings to enable auto-rotate. The restore to
+ * UNSPECIFIED on dispose puts every other screen back under the user's own setting.
+ *
+ * The flip itself never recreates the activity: MainActivity declares the orientation
+ * configChanges (see the manifest), so the request is answered with an in-place relayout and the
+ * stream never stutters.
+ */
+@Composable
+private fun LandscapeWhilePlaying(activity: Activity?) {
+    DisposableEffect(activity) {
+        activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+        onDispose {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
+        }
     }
 }
 

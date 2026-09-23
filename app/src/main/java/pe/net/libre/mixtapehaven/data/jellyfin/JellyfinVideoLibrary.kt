@@ -1,8 +1,8 @@
 package pe.net.libre.mixtapehaven.data.jellyfin
 
 import org.jellyfin.sdk.api.client.ApiClient
-import org.jellyfin.sdk.api.client.extensions.genresApi
-import org.jellyfin.sdk.api.client.extensions.itemsApi
+import org.jellyfin.sdk.api.client.extensions.genreApi
+import org.jellyfin.sdk.api.client.extensions.libraryApi
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.ItemFields
 import org.jellyfin.sdk.model.api.ItemSortBy
@@ -110,7 +110,7 @@ class JellyfinVideoLibrary(
         limit: Int,
     ): VideoPage {
         val (client, userId) = repository.authedClient()
-        val result by client.itemsApi.getItems(
+        val result by client.libraryApi.getItems(
             GetItemsRequest(
                 userId = userId,
                 includeItemTypes = filter.itemTypes(),
@@ -137,7 +137,7 @@ class JellyfinVideoLibrary(
      */
     override suspend fun videoGenres(limit: Int): List<String> = runCatching {
         val (client, userId) = repository.authedClient()
-        val result by client.genresApi.getGenres(
+        val result by client.genreApi.getGenres(
             GetGenresRequest(
                 userId = userId,
                 includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES),
@@ -158,7 +158,7 @@ class JellyfinVideoLibrary(
      */
     override suspend fun searchVideos(query: String, limit: Int): List<VideoItem> {
         val (client, userId) = repository.authedClient()
-        val result by client.itemsApi.getItems(
+        val result by client.libraryApi.getItems(
             GetItemsRequest(
                 userId = userId,
                 includeItemTypes = listOf(BaseItemKind.MOVIE, BaseItemKind.SERIES, BaseItemKind.EPISODE),

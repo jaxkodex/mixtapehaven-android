@@ -5,17 +5,14 @@ import kotlinx.coroutines.flow.first
 import org.jellyfin.sdk.Jellyfin
 import org.jellyfin.sdk.api.client.ApiClient
 import org.jellyfin.sdk.api.client.extensions.audioApi
+import org.jellyfin.sdk.api.client.extensions.authenticationApi
 import org.jellyfin.sdk.api.client.extensions.authenticateUserByName
-import org.jellyfin.sdk.api.client.extensions.dynamicHlsApi
-import org.jellyfin.sdk.api.client.extensions.genresApi
-import org.jellyfin.sdk.api.client.extensions.itemsApi
+import org.jellyfin.sdk.api.client.extensions.libraryApi
 import org.jellyfin.sdk.api.client.extensions.mediaInfoApi
-import org.jellyfin.sdk.api.client.extensions.playStateApi
+import org.jellyfin.sdk.api.client.extensions.sessionApi
+import org.jellyfin.sdk.api.client.extensions.showApi
 import org.jellyfin.sdk.api.client.extensions.systemApi
-import org.jellyfin.sdk.api.client.extensions.tvShowsApi
-import org.jellyfin.sdk.api.client.extensions.userApi
-import org.jellyfin.sdk.api.client.extensions.userLibraryApi
-import org.jellyfin.sdk.api.client.extensions.videosApi
+import org.jellyfin.sdk.api.client.extensions.videoApi
 import org.jellyfin.sdk.model.api.BaseItemKind
 import org.jellyfin.sdk.model.api.EncodingContext
 import org.jellyfin.sdk.model.api.ImageType
@@ -24,8 +21,13 @@ import org.jellyfin.sdk.model.api.ItemSortBy
 import org.jellyfin.sdk.model.api.MediaType
 import org.jellyfin.sdk.model.api.PlayMethod
 import org.jellyfin.sdk.model.api.PlaybackInfoDto
+import org.jellyfin.sdk.model.api.PlaybackOrder
+import org.jellyfin.sdk.model.api.PlaybackProgressInfo
+import org.jellyfin.sdk.model.api.PlaybackStartInfo
+import org.jellyfin.sdk.model.api.PlaybackStopInfo
+import org.jellyfin.sdk.model.api.RepeatMode
 import org.jellyfin.sdk.model.api.SortOrder
-import org.jellyfin.sdk.model.api.request.GetGenresRequest
+import org.jellyfin.sdk.model.api.request.GetEpisodesRequest
 import org.jellyfin.sdk.model.api.request.GetItemsRequest
 import org.jellyfin.sdk.model.api.request.GetNextUpRequest
 import org.jellyfin.sdk.model.api.request.GetResumeItemsRequest
@@ -72,7 +74,7 @@ class JellyfinRepository(
                 if (it.startsWith("http://") || it.startsWith("https://")) it else "https://$it"
             }
             val client = jellyfin.createApi(baseUrl = baseUrl)
-            val result by client.userApi.authenticateUserByName(username = username, password = password)
+            val result by client.authenticationApi.authenticateUserByName(username = username, password = password)
             val token = requireNotNull(result.accessToken) { "Server returned no access token" }
             val user = requireNotNull(result.user) { "Server returned no user" }
             client.update(accessToken = token)
@@ -109,7 +111,7 @@ class JellyfinRepository(
 
     suspend fun recentlyAddedAlbums(limit: Int = 40): List<Album> {
         val client = requireApi()
-        val result by client.itemsApi.getItems(
+        val result by client.libraryApi.getItems(
             GetItemsRequest(
                 userId = userId,
                 includeItemTypes = listOf(BaseItemKind.MUSIC_ALBUM),
@@ -124,7 +126,7 @@ class JellyfinRepository(
 
     suspend fun search(query: String, limit: Int = 50): List<Track> {
         val client = requireApi()
-        val result by client.itemsApi.getItems(
+        val result by client.libraryApi.getItems(
             GetItemsRequest(
                 userId = userId,
                 includeItemTypes = listOf(BaseItemKind.AUDIO),
@@ -140,7 +142,7 @@ class JellyfinRepository(
     /** A randomly ordered batch of tracks from the whole library, for the endless Random Walk queue. */
     suspend fun randomTracks(limit: Int = 50): List<Track> {
         val client = requireApi()
-        val result by client.itemsApi.getItems(
+        val result by client.libraryApi.getItems(
             GetItemsRequest(
                 userId = userId,
                 includeItemTypes = listOf(BaseItemKind.AUDIO),
@@ -155,7 +157,7 @@ class JellyfinRepository(
     suspend fun albumTracks(albumId: String): List<Track> {
         val client = requireApi()
         val parent = runCatching { UUID.fromString(albumId) }.getOrNull() ?: return emptyList()
-        val result by client.itemsApi.getItems(
+        val result by client.libraryApi.getItems(
             GetItemsRequest(
                 userId = userId,
                 parentId = parent,
@@ -181,7 +183,7 @@ class JellyfinRepository(
     suspend fun videoItem(itemId: String): VideoItem? {
         val client = requireApi()
         val id = runCatching { UUID.fromString(itemId) }.getOrNull() ?: return null
-        val item by client.userLibraryApi.getItem(itemId = id, userId = userId)
+        val item by client.libraryApi.getItem(itemId = id, userId = userId)
         return item.toVideoItem(client)
     }
 
@@ -195,11 +197,13 @@ class JellyfinRepository(
     suspend fun seriesEpisodes(seriesId: String): List<VideoItem> {
         val client = requireApi()
         val id = runCatching { UUID.fromString(seriesId) }.getOrNull() ?: return emptyList()
-        val result by client.tvShowsApi.getEpisodes(
-            seriesId = id,
-            userId = userId,
-            fields = listOf(ItemFields.OVERVIEW),
-            enableUserData = true,
+        val result by client.showApi.getEpisodes(
+            GetEpisodesRequest(
+                seriesId = id,
+                userId = userId,
+                fields = listOf(ItemFields.OVERVIEW),
+                enableUserData = true,
+            ),
         )
         return result.items.orEmpty()
             .map { it.toVideoItem(client) to it }
@@ -235,26 +239,31 @@ class JellyfinRepository(
     }
 
     /**
-     * Ordered stream URL candidates for [itemId]: direct play of the original file first, then an
-     * HLS transcode pinned to h264/aac for anything the device cannot play natively. The player
-     * tries them in order and falls through on error.
+     * Ordered stream URL candidates for [itemId]: direct play of the original file first, then a
+     * progressive server-side transcode pinned to h264/aac for anything the device cannot play
+     * natively. The player tries them in order and falls through on error.
+     *
+     * The old HLS master-playlist fallback went away with the Jellyfin 12.0 API, which dropped the
+     * DynamicHls endpoints the SDK's 1.9 line is generated from; the progressive transcode stream
+     * (`static = false` plus codecs) is the remaining server-side transcode path.
      */
     suspend fun videoStreamCandidates(itemId: String): List<String> {
         val client = api
         val id = runCatching { UUID.fromString(itemId) }.getOrNull()
         if (client == null || id == null) return emptyList()
-        val direct = client.videosApi
+        val direct = client.videoApi
             .getVideoStreamUrl(itemId = id, static = true)
             .withApiKey(client)
-        val hls = client.dynamicHlsApi
-            .getMasterHlsVideoPlaylistUrl(
+        val transcode = client.videoApi
+            .getVideoStreamUrl(
                 itemId = id,
+                static = false,
                 mediaSourceId = mediaSourceId(itemId),
                 videoCodec = "h264",
                 audioCodec = "aac",
             )
             .withApiKey(client)
-        return listOf(direct, hls)
+        return listOf(direct, transcode)
     }
 
     /**
@@ -266,7 +275,7 @@ class JellyfinRepository(
     suspend fun nextUpEpisode(seriesId: String): VideoItem? {
         val client = requireApi()
         val id = runCatching { UUID.fromString(seriesId) }.getOrNull() ?: return null
-        val result by client.tvShowsApi.getNextUp(
+        val result by client.showApi.getNextUp(
             GetNextUpRequest(
                 userId = userId,
                 seriesId = id,
@@ -284,7 +293,7 @@ class JellyfinRepository(
     /** The server's Continue Watching list: partially-watched movies and episodes, most recent first. */
     suspend fun continueWatching(limit: Int = 12): List<VideoItem> {
         val client = requireApi()
-        val result by client.itemsApi.getResumeItems(
+        val result by client.libraryApi.getResumeItems(
             GetResumeItemsRequest(
                 userId = userId,
                 limit = limit,
@@ -319,22 +328,41 @@ class JellyfinRepository(
         runCatching {
             when (event) {
                 VideoPlaybackEvent.STARTED -> {
-                    client.playStateApi.onPlaybackStart(itemId = id, playMethod = playMethod)
+                    client.sessionApi.reportPlaybackStart(
+                        PlaybackStartInfo(
+                            canSeek = true,
+                            itemId = id,
+                            isPaused = false,
+                            isMuted = false,
+                            playMethod = playMethod,
+                            repeatMode = RepeatMode.REPEAT_NONE,
+                            playbackOrder = PlaybackOrder.DEFAULT,
+                        ),
+                    )
                     if (positionMs > 0) {
                         reportVideoPlayback(itemId, positionMs, VideoPlaybackEvent.PROGRESS, transcoding = transcoding)
                     }
                 }
 
-                VideoPlaybackEvent.PROGRESS -> client.playStateApi.onPlaybackProgress(
-                    itemId = id,
-                    positionTicks = positionMs * TICKS_PER_MS,
-                    isPaused = paused,
-                    playMethod = playMethod,
+                VideoPlaybackEvent.PROGRESS -> client.sessionApi.reportPlaybackProgress(
+                    PlaybackProgressInfo(
+                        canSeek = true,
+                        itemId = id,
+                        isPaused = paused,
+                        isMuted = false,
+                        positionTicks = positionMs * TICKS_PER_MS,
+                        playMethod = playMethod,
+                        repeatMode = RepeatMode.REPEAT_NONE,
+                        playbackOrder = PlaybackOrder.DEFAULT,
+                    ),
                 )
 
-                VideoPlaybackEvent.STOPPED -> client.playStateApi.onPlaybackStopped(
-                    itemId = id,
-                    positionTicks = positionMs * TICKS_PER_MS,
+                VideoPlaybackEvent.STOPPED -> client.sessionApi.reportPlaybackStopped(
+                    PlaybackStopInfo(
+                        itemId = id,
+                        positionTicks = positionMs * TICKS_PER_MS,
+                        failed = false,
+                    ),
                 )
             }
         }
@@ -352,7 +380,7 @@ class JellyfinRepository(
         val client = api
         val id = runCatching { UUID.fromString(itemId) }.getOrNull()
         if (client == null || id == null) return null
-        return client.videosApi
+        return client.videoApi
             .getVideoStreamUrl(
                 itemId = id,
                 container = "ts",

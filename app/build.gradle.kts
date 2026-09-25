@@ -1,3 +1,5 @@
+import org.gradle.api.tasks.testing.Test
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
@@ -13,6 +15,13 @@ detekt {
 
 tasks.named("check") {
     dependsOn("detekt")
+}
+
+// Robolectric 4.17's FileDescriptorInterceptor reflects into jdk.internal.access.SharedSecrets
+// while booting the SDK 37 sandbox, and java.base does not export that package to the unnamed
+// module by default (robolectric/robolectric#11434).
+tasks.withType<Test>().configureEach {
+    jvmArgs("--add-exports=java.base/jdk.internal.access=ALL-UNNAMED")
 }
 
 // Room writes each version's schema JSON here so migrations are diffable in review and testable.

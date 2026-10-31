@@ -78,10 +78,20 @@ android {
         minSdk = 33
         targetSdk = 36
         // F-Droid builds this file from source at the release tag and compares the result to the
-        // published APK, so the version must be literal here — deriving it from the environment
-        // would make an F-Droid build disagree with the binary it is verifying.
+        // published APK, so the default version must be literal. Tagged release builds do not
+        // use the Play-only override below.
         versionCode = 2
         versionName = "1.1"
+
+        // Play alpha builds need a fresh code for every upload. Tagged/F-Droid builds do not
+        // supply this property and continue to use the literal version above.
+        providers.gradleProperty("playVersionCode").orNull?.let { value ->
+            val code = value.toIntOrNull()
+            require(code != null && code in 1..2_100_000_000) {
+                "playVersionCode must be an integer between 1 and 2100000000"
+            }
+            versionCode = code
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

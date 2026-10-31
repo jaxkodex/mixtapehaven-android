@@ -167,11 +167,47 @@ For CI, add the keystore and its credentials as the `RELEASE_KEYSTORE_BASE64`,
 `RELEASE_KEYSTORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` repository secrets,
 the same way as the debug ones above.
 
+## Google Play alpha releases
+
+Every push to `main`, including a merged pull request, runs the `Google Play alpha` workflow.
+It builds a signed Android App Bundle and submits a completed release to the Play `alpha`
+track. A manually dispatched run on `main` can also release its current commit. Play review,
+managed publishing, or account requirements can still delay availability to testers.
+
+Before the first run:
+
+1. Create `pe.net.libre.mixtapehaven` in Play Console, complete the required app setup, and
+   configure the `alpha` closed-testing track and testers. The Play Developer API requires an
+   initial app artifact to have been uploaded through the console.
+2. Enable the Google Play Android Developer API in a Google Cloud project and create a service
+   account. Invite that service account in Play Console and grant it access to this app with
+   permission to release to testing tracks.
+3. Create a JSON key for the service account and add its full contents as the GitHub Actions
+   repository secret `PLAY_SERVICE_ACCOUNT_JSON`. Keep the key out of the repository.
+4. Configure the four `RELEASE_*` signing secrets described above. The workflow verifies the
+   existing release certificate; this key must also be accepted by Play as the app's upload key.
+
+The workflow reads the current Play bundles, APKs, and tracks and picks a version code greater
+than all of them and the source version. It passes that code only to the Play build; ordinary
+and tagged builds retain the literal source version used by F-Droid. Play version codes cannot
+be reused, so any future Play production upload must use a suitable unused code higher than
+the versions it needs to update, or promote an existing bundle. If distributing a later F-Droid
+build as an update to an alpha installation, its code and signing certificate must also be
+compatible with that installation. Play's edit API reports current artifacts; if an older,
+no-longer-current upload has already used the selected code, set the repository variable
+`PLAY_VERSION_CODE_FLOOR` to the highest previously used code and rerun the workflow.
+
+Alpha runs are queued to avoid conflicting Play edits. GitHub queues up to 100 pending runs;
+queue order is based on when runs begin waiting and is not guaranteed to match commit order.
+Play Console changes or other upload tools can also invalidate an edit. If a run fails, check
+the Actions log and rerun the latest relevant commit after fixing the problem. Rerunning an
+older commit can publish older app code as a newer alpha version.
+
 ## Cutting a release
 
 1. Bump `versionCode` and `versionName` in `app/build.gradle.kts`. Both are literal values on
    purpose: F-Droid rebuilds the app from source at the release tag and compares the result to
-   the published APK, so a version taken from the environment would not match.
+   the published APK. The Play-only version override is not used by the tagged release workflow.
 2. Add the release notes as `fastlane/metadata/android/en-US/changelogs/<versionCode>.txt`.
    F-Droid displays this file as the changelog.
 3. Merge that to `main`, then tag it and push the tag:

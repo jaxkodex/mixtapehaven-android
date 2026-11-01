@@ -9,26 +9,45 @@ on:
 permissions:
   contents: read
 
-# Do not replace a pending deployment when several PRs merge close together. Play edits
-# conflict with one another, so version selection, build, and upload must all be serialized.
-concurrency:
-  group: google-play-alpha
-  queue: max
-
 jobs:
+  settle:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      # Each push waits independently so even out-of-order workflow starts retain a run
+      # for the newest commit. Manual dispatches bypass the wait.
+      - name: Wait for a quiet period
+        if: github.event_name == 'push'
+        run: sleep 900
+
   alpha:
+    needs: settle
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 60
+    # Never cancel an upload in progress. Play edits, version selection, and uploads
+    # must be serialized; stale queued runs are skipped by the checks below.
+    concurrency:
+      group: google-play-alpha
+      queue: max
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
 
-      - name: Test version selection
-        run: node --test .github/scripts/play-version.test.mjs
+      - name: Check whether this is still the latest commit
+        id: initial_head
+        run: bash .github/scripts/check-play-head.sh
+
+      - name: Test Play release scripts
+        if: steps.initial_head.outputs.current == 'true'
+        run: |
+          bash .github/scripts/check-play-head.test.sh
+          node --test .github/scripts/play-version.test.mjs
 
       - name: Configure Play credentials
+        if: steps.initial_head.outputs.current == 'true'
         env:
           PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
         run: |
@@ -44,6 +63,7 @@ jobs:
 
       - name: Choose Play version code
         id: version
+        if: steps.initial_head.outputs.current == 'true'
         env:
           PLAY_VERSION_CODE_FLOOR: ${{ vars.PLAY_VERSION_CODE_FLOOR || '0' }}
         run: |
@@ -55,15 +75,18 @@ jobs:
           node .github/scripts/play-version.mjs >> "$GITHUB_OUTPUT"
 
       - name: Set up JDK 21
+        if: steps.initial_head.outputs.current == 'true'
         uses: actions/setup-java@v6
         with:
           java-version: '21'
           distribution: 'temurin'
 
       - name: Set up Android SDK
+        if: steps.initial_head.outputs.current == 'true'
         uses: android-actions/setup-android@v4
 
       - name: Cache Gradle packages
+        if: steps.initial_head.outputs.current == 'true'
         uses: actions/cache@v6
         with:
           path: |
@@ -74,6 +97,7 @@ jobs:
             ${{ runner.os }}-gradle-
 
       - name: Decode release keystore
+        if: steps.initial_head.outputs.current == 'true'
         env:
           RELEASE_KEYSTORE_BASE64: ${{ secrets.RELEASE_KEYSTORE_BASE64 }}
         run: |
@@ -88,6 +112,7 @@ jobs:
           echo "MIXTAPE_RELEASE_KEYSTORE=$keystore" >> "$GITHUB_ENV"
 
       - name: Build signed release bundle
+        if: steps.initial_head.outputs.current == 'true'
         env:
           MIXTAPE_RELEASE_KEYSTORE_PASSWORD: ${{ secrets.RELEASE_KEYSTORE_PASSWORD }}
           MIXTAPE_RELEASE_KEY_ALIAS: ${{ secrets.RELEASE_KEY_ALIAS }}
@@ -98,6 +123,7 @@ jobs:
           ./gradlew :app:bundleRelease -PplayVersionCode="$PLAY_VERSION_CODE"
 
       - name: Verify bundle signing key
+        if: steps.initial_head.outputs.current == 'true'
         run: |
           set -euo pipefail
           bundle=app/build/outputs/bundle/release/app-release.aab
@@ -114,7 +140,13 @@ jobs:
             exit 1
           fi
 
+      - name: Check for newer commits before upload
+        id: upload_head
+        if: steps.initial_head.outputs.current == 'true'
+        run: bash .github/scripts/check-play-head.sh
+
       - name: Release to Google Play alpha
+        if: steps.upload_head.outputs.current == 'true'
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
           serviceAccountJson: ${{ env.GOOGLE_APPLICATION_CREDENTIALS }}
@@ -125,6 +157,7 @@ jobs:
           releaseName: alpha-${{ github.sha }}
 
       - name: Summarize release
+        if: steps.upload_head.outputs.current == 'true'
         env:
           PLAY_VERSION_CODE: ${{ steps.version.outputs.version_code }}
         run: |

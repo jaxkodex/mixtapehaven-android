@@ -169,9 +169,11 @@ the same way as the debug ones above.
 
 ## Google Play alpha releases
 
-Every push to `main`, including a merged pull request, runs the `Google Play alpha` workflow.
-It builds a signed Android App Bundle and submits a completed release to the Play `alpha`
-track. A manually dispatched run on `main` can also release its current commit. Play review,
+Every push to `main`, including a merged pull request, starts the `Google Play alpha` workflow.
+Push runs wait 15 minutes to batch commits: a run skips its release if a newer commit is on
+`main`. The latest run builds a signed Android App Bundle and submits a completed release to
+the Play `alpha` track. Each push uses a runner during the wait, which counts toward Actions
+usage where applicable. A manually dispatched run on `main` bypasses the wait. Play review,
 managed publishing, or account requirements can still delay availability to testers.
 
 Before the first run:
@@ -197,11 +199,12 @@ compatible with that installation. Play's edit API reports current artifacts; if
 no-longer-current upload has already used the selected code, set the repository variable
 `PLAY_VERSION_CODE_FLOOR` to the highest previously used code and rerun the workflow.
 
-Alpha runs are queued to avoid conflicting Play edits. GitHub queues up to 100 pending runs;
-queue order is based on when runs begin waiting and is not guaranteed to match commit order.
-Play Console changes or other upload tools can also invalidate an edit. If a run fails, check
-the Actions log and rerun the latest relevant commit after fixing the problem. Rerunning an
-older commit can publish older app code as a newer alpha version.
+Alpha uploads are serialized to avoid conflicting Play edits. A run checks that its commit is
+still the tip of `main` both before building and immediately before uploading. A push after the
+final check can still result in a separate release; the wait batches close-together changes but
+does not enforce a fixed release schedule. Play Console changes or other upload tools can also
+invalidate an edit. If a run fails, check the Actions log and rerun the latest commit after
+fixing the problem. Older commits are skipped rather than published as newer alpha versions.
 
 ## Cutting a release
 

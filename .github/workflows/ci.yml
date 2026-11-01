@@ -28,6 +28,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v7
 
+      - name: Test Play release scripts
+        run: |
+          bash .github/scripts/check-play-head.test.sh
+          node --test .github/scripts/play-version.test.mjs
+
       - name: Set up JDK 17
         uses: actions/setup-java@v6
         with:

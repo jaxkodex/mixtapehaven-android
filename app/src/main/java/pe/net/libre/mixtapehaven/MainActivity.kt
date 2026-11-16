@@ -1,8 +1,10 @@
 package pe.net.libre.mixtapehaven
 
 import android.content.Intent
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
@@ -30,7 +32,11 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
+        // The app stays dark even when the device uses light mode.
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+            navigationBarStyle = SystemBarStyle.dark(Color.TRANSPARENT),
+        )
         // Only on a fresh launch. A non-null savedInstanceState means the activity is being
         // recreated (Recents after a process kill, or a config change outside the manifest's
         // configChanges list — rotation is handled in place), and the launch intent the system

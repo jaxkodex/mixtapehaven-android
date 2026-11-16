@@ -1,10 +1,10 @@
 package pe.net.libre.mixtapehaven.ui.screens.login
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -41,9 +41,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
+import pe.net.libre.mixtapehaven.R
 import pe.net.libre.mixtapehaven.di.appViewModel
 import pe.net.libre.mixtapehaven.ui.theme.Accent
 import pe.net.libre.mixtapehaven.ui.theme.AccentInk
@@ -71,16 +73,13 @@ fun LoginScreen(onConnect: () -> Unit, modifier: Modifier = Modifier) {
     ) {
         Spacer(Modifier.height(48.dp))
 
-        // Logo: rounded square with "oo" motif.
-        Box(
+        Image(
+            painter = painterResource(R.drawable.mixtape_launcher_art),
+            contentDescription = null,
             modifier = Modifier
                 .size(56.dp)
-                .clip(RoundedCornerShape(16.dp))
-                .border(1.5.dp, Accent, RoundedCornerShape(16.dp)),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text("oo", style = MaterialTheme.typography.titleLarge, color = Accent)
-        }
+                .clip(RoundedCornerShape(16.dp)),
+        )
 
         Spacer(Modifier.height(4.dp))
 
